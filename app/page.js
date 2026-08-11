@@ -2,6 +2,70 @@
 
 import { useState } from "react";
 
+// RSI, MACD, SMA20/50 негізінде сауда сигналын есептеу
+function getSignal(technicals, currentPrice) {
+  if (!technicals) return null;
+
+  const { rsi, sma20, sma50, macd } = technicals;
+  let score = 0;
+  const reasons = [];
+
+  if (rsi !== null) {
+    if (rsi < 30) {
+      score += 2;
+      reasons.push("RSI артық сатылған аймақта (< 30)");
+    } else if (rsi > 70) {
+      score -= 2;
+      reasons.push("RSI артық сатып алынған аймақта (> 70)");
+    }
+  }
+
+  if (macd !== null) {
+    if (macd > 0) {
+      score += 1;
+      reasons.push("MACD оң аймақта — өсу үрдісі");
+    } else {
+      score -= 1;
+      reasons.push("MACD теріс аймақта — төмендеу үрдісі");
+    }
+  }
+
+  if (sma20 !== null && sma50 !== null) {
+    if (sma20 > sma50) {
+      score += 1;
+      reasons.push("SMA20 > SMA50 — қысқа мерзімді үрдіс жоғары");
+    } else {
+      score -= 1;
+      reasons.push("SMA20 < SMA50 — қысқа мерзімді үрдіс төмен");
+    }
+  }
+
+  if (sma20 !== null && currentPrice > sma20) {
+    score += 1;
+  } else if (sma20 !== null) {
+    score -= 1;
+  }
+
+  let label = "ҰСТАУ";
+  let color = "#facc15";
+
+  if (score >= 3) {
+    label = "СЕНІМДІ САТЫП АЛУ";
+    color = "#22c55e";
+  } else if (score >= 1) {
+    label = "САТЫП АЛУ";
+    color = "#4ade80";
+  } else if (score <= -3) {
+    label = "СЕНІМДІ САТУ";
+    color = "#dc2626";
+  } else if (score <= -1) {
+    label = "САТУ";
+    color = "#f87171";
+  }
+
+  return { label, color, reasons };
+}
+
 export default function Home() {
   const [ticker, setTicker] = useState("");
   const [data, setData] = useState(null);
@@ -35,6 +99,7 @@ export default function Home() {
   }
 
   const isUp = data && data.change >= 0;
+  const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
 
   return (
     <main
@@ -162,6 +227,103 @@ export default function Home() {
             )}
             {data.industry && <div>Сала: {data.industry}</div>}
           </div>
+
+          {/* ТЕХНИКАЛЫҚ АНАЛИЗ БЛОГЫ */}
+          {data.technicals && (
+            <div
+              style={{
+                marginTop: "20px",
+                paddingTop: "16px",
+                borderTop: "1px solid #334155",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: "bold",
+                  marginBottom: "10px",
+                  color: "#e2e8f0",
+                }}
+              >
+                📊 Техникалық анализ
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  fontSize: "0.85rem",
+                  color: "#cbd5e1",
+                }}
+              >
+                <div>
+                  RSI (14):{" "}
+                  <span
+                    style={{
+                      color:
+                        data.technicals.rsi > 70
+                          ? "#f87171"
+                          : data.technicals.rsi < 30
+                          ? "#4ade80"
+                          : "#e2e8f0",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {data.technicals.rsi ?? "—"}
+                  </span>
+                </div>
+                <div>
+                  MACD:{" "}
+                  <span
+                    style={{
+                      color: data.technicals.macd > 0 ? "#4ade80" : "#f87171",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {data.technicals.macd ?? "—"}
+                  </span>
+                </div>
+                <div>SMA20: ${data.technicals.sma20 ?? "—"}</div>
+                <div>SMA50: ${data.technicals.sma50 ?? "—"}</div>
+              </div>
+
+              {signal && (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    padding: "12px",
+                    borderRadius: "10px",
+                    background: "#0f172a",
+                    border: `1px solid ${signal.color}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: "bold",
+                      color: signal.color,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Сигнал: {signal.label}
+                  </div>
+                  <ul
+                    style={{
+                      margin: 0,
+                      paddingLeft: "18px",
+                      fontSize: "0.78rem",
+                      color: "#94a3b8",
+                    }}
+                  >
+                    {signal.reasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </main>
