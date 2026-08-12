@@ -123,7 +123,7 @@ export async function GET(request) {
     });
   } catch (err) {
     return Response.json(
-      { error: "Деректерді алу кезінде қате шықты" },
+      { error: "Деректерді алу кезінде қате шықты", detail: err.message, stack: err.stack },
       { status: 500 }
     );
   }
