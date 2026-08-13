@@ -56,26 +56,22 @@ export async function GET(request) {
     return Response.json({ error: "Ticker керек" }, { status: 400 });
   }
 
-  var apiKey = process.env.FINNHUB_API_KEY;
+  var finnhubKey = process.env.FINNHUB_API_KEY;
+  var alphaKey = process.env.ALPHAVANTAGE_API_KEY;
 
-  if (!apiKey) {
+  if (!finnhubKey) {
     return Response.json(
-      { error: "API key орнатылмаган" },
+      { error: "Finnhub API key орнатылмаган" },
       { status: 500 }
     );
   }
 
   try {
-    var now = Math.floor(Date.now() / 1000);
-    var from = now - 60 * 60 * 24 * 200;
-
-    var quoteUrl = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + apiKey;
-    var profileUrl = "https://finnhub.io/api/v1/stock/profile2?symbol=" + symbol + "&token=" + apiKey;
-    var candleUrl = "https://finnhub.io/api/v1/stock/candle?symbol=" + symbol + "&resolution=D&from=" + from + "&to=" + now + "&token=" + apiKey;
+    var quoteUrl = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + finnhubKey;
+    var profileUrl = "https://finnhub.io/api/v1/stock/profile2?symbol=" + symbol + "&token=" + finnhubKey;
 
     var quoteRes = await fetch(quoteUrl);
     var profileRes = await fetch(profileUrl);
-    var candleRes = await fetch(candleUrl);
 
     if (!quoteRes.ok) {
       var quoteErrText = await quoteRes.text();
@@ -91,7 +87,6 @@ export async function GET(request) {
 
     var quote = await quoteRes.json();
     var profile = profileRes.ok ? await profileRes.json() : {};
-    var candle = candleRes.ok ? await candleRes.json() : { s: "error" };
 
     if (!quote || typeof quote.c !== "number" || quote.c === 0) {
       return Response.json(
@@ -102,27 +97,46 @@ export async function GET(request) {
 
     var technicals = null;
 
-    if (candle && candle.s === "ok" && Array.isArray(candle.c) && candle.c.length > 0) {
-      var closes = candle.c;
+    if (alphaKey) {
+      var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
+      var alphaRes = await fetch(alphaUrl);
+      var alphaData = alphaRes.ok ? await alphaRes.json() : null;
 
-      var rsi = calculateRSI(closes, 14);
-      var sma20 = calculateSMA(closes, 20);
-      var sma50 = calculateSMA(closes, 50);
-      var macd = calculateMACD(closes);
+      var series = alphaData ? alphaData["Time Series (Daily)"] : null;
 
-      technicals = {
-        rsi: rsi !== null ? Number(rsi.toFixed(2)) : null,
-        sma20: sma20 !== null ? Number(sma20.toFixed(2)) : null,
-        sma50: sma50 !== null ? Number(sma50.toFixed(2)) : null,
-        macd: macd !== null ? Number(macd.toFixed(2)) : null
-      };
+      if (series) {
+        var dates = Object.keys(series).sort();
+        var closes = dates.map(function (d) {
+          return parseFloat(series[d]["4. close"]);
+        });
+
+        var rsi = calculateRSI(closes, 14);
+        var sma20 = calculateSMA(closes, 20);
+        var sma50 = calculateSMA(closes, 50);
+        var macd = calculateMACD(closes);
+
+        technicals = {
+          rsi: rsi !== null ? Number(rsi.toFixed(2)) : null,
+          sma20: sma20 !== null ? Number(sma20.toFixed(2)) : null,
+          sma50: sma50 !== null ? Number(sma50.toFixed(2)) : null,
+          macd: macd !== null ? Number(macd.toFixed(2)) : null
+        };
+      } else {
+        technicals = {
+          rsi: null,
+          sma20: null,
+          sma50: null,
+          macd: null,
+          debugAlphaError: alphaData ? (alphaData["Note"] || alphaData["Information"] || "no_series") : "fetch_failed"
+        };
+      }
     } else {
       technicals = {
         rsi: null,
         sma20: null,
         sma50: null,
         macd: null,
-        debugCandleStatus: candle ? candle.s : "no_response"
+        debugAlphaError: "ALPHAVANTAGE_API_KEY жок"
       };
     }
 
