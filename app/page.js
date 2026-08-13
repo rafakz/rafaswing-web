@@ -66,24 +66,37 @@ function getSignal(technicals, currentPrice) {
   return { label, color, reasons };
 }
 
+function formatNewsDate(unixSeconds) {
+  if (!unixSeconds) return "";
+  const d = new Date(unixSeconds * 1000);
+  return d.toLocaleDateString("kk-KZ", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 export default function Home() {
   const [ticker, setTicker] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+
   async function searchStock(e) {
     e.preventDefault();
     if (!ticker.trim()) return;
 
+    const symbol = ticker.trim().toUpperCase();
+
     setLoading(true);
     setError("");
     setData(null);
+    setNews([]);
 
     try {
-      const res = await fetch(
-        `/api/stock?symbol=${ticker.trim().toUpperCase()}`
-      );
+      const res = await fetch(`/api/stock?symbol=${symbol}`);
       const json = await res.json();
 
       if (!res.ok) {
@@ -95,6 +108,20 @@ export default function Home() {
       setError("Байланыс қатесі");
     } finally {
       setLoading(false);
+    }
+
+    // Жаңалықтарды бөлек жүктейміз (баға дереу шығуы үшін)
+    setNewsLoading(true);
+    try {
+      const newsRes = await fetch(`/api/news?symbol=${symbol}`);
+      const newsJson = await newsRes.json();
+      if (newsRes.ok && Array.isArray(newsJson.news)) {
+        setNews(newsJson.news);
+      }
+    } catch (err) {
+      // жаңалықтар жүктелмесе, үнсіз қалдырамыз
+    } finally {
+      setNewsLoading(false);
     }
   }
 
@@ -324,6 +351,82 @@ export default function Home() {
               )}
             </div>
           )}
+
+          {/* ЖАНАЛЫҚТАР БЛОГЫ */}
+          <div
+            style={{
+              marginTop: "20px",
+              paddingTop: "16px",
+              borderTop: "1px solid #334155",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.95rem",
+                fontWeight: "bold",
+                marginBottom: "10px",
+                color: "#e2e8f0",
+              }}
+            >
+              📰 Соңғы жаңалықтар
+            </div>
+
+            {newsLoading && (
+              <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+                Жаңалықтар жүктелуде...
+              </p>
+            )}
+
+            {!newsLoading && news.length === 0 && (
+              <p style={{ color: "#64748b", fontSize: "0.85rem" }}>
+                Соңғы 7 күнде жаңалық табылмады.
+              </p>
+            )}
+
+            {!newsLoading && news.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {news.map((item, i) => (
+                  <a
+                    key={i}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "block",
+                      textDecoration: "none",
+                      color: "inherit",
+                      background: "#0f172a",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      border: "1px solid #334155",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "#e2e8f0",
+                        lineHeight: "1.3",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {item.headline}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "#64748b",
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>{item.source}</span>
+                      <span>{formatNewsDate(item.datetime)}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>
