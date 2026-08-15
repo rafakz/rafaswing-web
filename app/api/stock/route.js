@@ -96,6 +96,7 @@ export async function GET(request) {
     }
 
     var technicals = null;
+    var history = [];
 
     if (alphaKey) {
       var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
@@ -121,6 +122,11 @@ export async function GET(request) {
           sma50: sma50 !== null ? Number(sma50.toFixed(2)) : null,
           macd: macd !== null ? Number(macd.toFixed(2)) : null
         };
+
+        var last30dates = dates.slice(-30);
+        history = last30dates.map(function (d) {
+          return { date: d, close: parseFloat(series[d]["4. close"]) };
+        });
       } else {
         technicals = {
           rsi: null,
@@ -153,7 +159,8 @@ export async function GET(request) {
       previousClose: quote.pc,
       marketCap: profile.marketCapitalization || null,
       industry: profile.finnhubIndustry || null,
-      technicals: technicals
+      technicals: technicals,
+      history: history
     });
   } catch (err) {
     return Response.json(
