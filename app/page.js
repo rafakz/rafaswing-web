@@ -2,7 +2,61 @@
 
 import { useState } from "react";
 
-// RSI, MACD, SMA20/50 негізінде сауда сигналын есептеу
+/* ---------- Дизайн токендары ---------- */
+const colors = {
+  bg: "#0B0F1A",
+  card: "#141B2E",
+  border: "#263248",
+  gold: "#C9A227",
+  goldBright: "#E8C468",
+  textPrimary: "#F5F1E6",
+  textMuted: "#8A93A6",
+  textFaint: "#5B6478",
+  gain: "#4FA98B",
+  gainBright: "#6FCBA8",
+  loss: "#C2542D",
+  lossBright: "#E2764C",
+  hold: "#D4A24C",
+};
+
+const fontDisplay = "'Georgia', 'Times New Roman', serif";
+const fontBody =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const fontMono =
+  "'SF Mono', 'Consolas', 'Menlo', monospace";
+
+/* ---------- Логотип: дала көкжиегі + таң жұлдызы ---------- */
+function NogaiMark({ size = 40 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="38" cy="9" r="3" fill={colors.gold} />
+      <path
+        d="M3 33 L12 21 L18 27 L26 13 L34 23 L45 17"
+        stroke={colors.gold}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <line
+        x1="3"
+        y1="40"
+        x2="45"
+        y2="40"
+        stroke={colors.border}
+        strokeWidth="1.4"
+      />
+    </svg>
+  );
+}
+
+/* ---------- Сигнал есептеу ---------- */
 function getSignal(technicals, currentPrice) {
   if (!technicals) return null;
 
@@ -47,20 +101,20 @@ function getSignal(technicals, currentPrice) {
   }
 
   let label = "ҰСТАУ";
-  let color = "#facc15";
+  let color = colors.hold;
 
   if (score >= 3) {
     label = "СЕНІМДІ САТЫП АЛУ";
-    color = "#22c55e";
+    color = colors.gain;
   } else if (score >= 1) {
     label = "САТЫП АЛУ";
-    color = "#4ade80";
+    color = colors.gainBright;
   } else if (score <= -3) {
     label = "СЕНІМДІ САТУ";
-    color = "#dc2626";
+    color = colors.loss;
   } else if (score <= -1) {
     label = "САТУ";
-    color = "#f87171";
+    color = colors.lossBright;
   }
 
   return { label, color, reasons };
@@ -69,10 +123,7 @@ function getSignal(technicals, currentPrice) {
 function formatNewsDate(unixSeconds) {
   if (!unixSeconds) return "";
   const d = new Date(unixSeconds * 1000);
-  return d.toLocaleDateString("kk-KZ", {
-    day: "2-digit",
-    month: "2-digit",
-  });
+  return d.toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" });
 }
 
 export default function Home() {
@@ -110,7 +161,6 @@ export default function Home() {
       setLoading(false);
     }
 
-    // Жаңалықтарды бөлек жүктейміз (баға дереу шығуы үшін)
     setNewsLoading(true);
     try {
       const newsRes = await fetch(`/api/news?symbol=${symbol}`);
@@ -119,7 +169,7 @@ export default function Home() {
         setNews(newsJson.news);
       }
     } catch (err) {
-      // жаңалықтар жүктелмесе, үнсіз қалдырамыз
+      // үнсіз қалдырамыз
     } finally {
       setNewsLoading(false);
     }
@@ -132,21 +182,53 @@ export default function Home() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#0f172a",
-        color: "white",
-        padding: "24px 16px",
+        background: colors.bg,
+        color: colors.textPrimary,
+        padding: "32px 16px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        fontFamily: fontBody,
       }}
     >
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "4px" }}>
-        🚀 RafaSwing
-      </h1>
-      <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "0.9rem" }}>
-        Swing trading & investment platform
+      {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <NogaiMark size={40} />
+        <h1
+          style={{
+            fontFamily: fontDisplay,
+            fontSize: "2.1rem",
+            fontWeight: "bold",
+            letterSpacing: "0.5px",
+            margin: 0,
+            color: colors.textPrimary,
+          }}
+        >
+          Ноғай
+        </h1>
+      </div>
+      <p
+        style={{
+          color: colors.gold,
+          marginTop: "6px",
+          marginBottom: "2px",
+          fontSize: "0.85rem",
+          letterSpacing: "0.3px",
+        }}
+      >
+        Дала дәстүрінен жылдамдық пен дәлдік
+      </p>
+      <p
+        style={{
+          color: colors.textFaint,
+          marginBottom: "26px",
+          fontSize: "0.75rem",
+        }}
+      >
+        Свинг-трейдинг және инвестиция платформасы
       </p>
 
+      {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
       <form
         onSubmit={searchStock}
         style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "360px" }}
@@ -159,22 +241,25 @@ export default function Home() {
             flex: 1,
             padding: "12px 14px",
             borderRadius: "10px",
-            border: "1px solid #334155",
-            background: "#1e293b",
-            color: "white",
+            border: `1px solid ${colors.border}`,
+            background: colors.card,
+            color: colors.textPrimary,
             fontSize: "1rem",
+            fontFamily: fontBody,
           }}
         />
         <button
           type="submit"
           style={{
-            padding: "12px 20px",
+            padding: "12px 22px",
             borderRadius: "10px",
             border: "none",
-            background: "#22c55e",
-            color: "#0f172a",
+            background: colors.gold,
+            color: colors.bg,
             fontWeight: "bold",
             fontSize: "1rem",
+            fontFamily: fontBody,
+            cursor: "pointer",
           }}
         >
           Іздеу
@@ -182,24 +267,28 @@ export default function Home() {
       </form>
 
       {loading && (
-        <p style={{ marginTop: "24px", color: "#94a3b8" }}>Жүктелуде...</p>
+        <p style={{ marginTop: "24px", color: colors.textMuted }}>
+          Жүктелуде...
+        </p>
       )}
 
       {error && (
-        <p style={{ marginTop: "24px", color: "#f87171" }}>{error}</p>
+        <p style={{ marginTop: "24px", color: colors.lossBright }}>{error}</p>
       )}
 
       {data && (
         <div
           style={{
-            marginTop: "24px",
+            marginTop: "26px",
             width: "100%",
             maxWidth: "360px",
-            background: "#1e293b",
+            background: colors.card,
             borderRadius: "16px",
             padding: "20px",
+            border: `1px solid ${colors.border}`,
           }}
         >
+          {/* ---------- НЕГІЗГІ АҚПАРАТ ---------- */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {data.logo && (
               <img
@@ -211,23 +300,38 @@ export default function Home() {
               />
             )}
             <div>
-              <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "1.1rem",
+                  fontFamily: fontMono,
+                  letterSpacing: "0.5px",
+                }}
+              >
                 {data.symbol}
               </div>
-              <div style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+              <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>
                 {data.name}
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <span style={{ fontSize: "1.8rem", fontWeight: "bold" }}>
+          <div
+            style={{
+              marginTop: "16px",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              fontFamily: fontMono,
+            }}
+          >
+            <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>
               ${data.currentPrice.toFixed(2)}
             </span>
             <span
               style={{
                 fontSize: "1rem",
-                color: isUp ? "#4ade80" : "#f87171",
+                color: isUp ? colors.gain : colors.loss,
               }}
             >
               {isUp ? "▲" : "▼"} {data.change.toFixed(2)} (
@@ -242,37 +346,40 @@ export default function Home() {
               gridTemplateColumns: "1fr 1fr",
               gap: "10px",
               fontSize: "0.85rem",
-              color: "#cbd5e1",
+              color: colors.textMuted,
+              fontFamily: fontMono,
             }}
           >
             <div>Ашылу: ${data.open.toFixed(2)}</div>
             <div>Жабылу (алдыңғы): ${data.previousClose.toFixed(2)}</div>
             <div>Максимум: ${data.high.toFixed(2)}</div>
             <div>Минимум: ${data.low.toFixed(2)}</div>
-            {data.marketCap && (
-              <div>Market Cap: ${data.marketCap.toFixed(0)}M</div>
+            {data.marketCap && <div>Market Cap: ${data.marketCap.toFixed(0)}M</div>}
+            {data.industry && (
+              <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div>
             )}
-            {data.industry && <div>Сала: {data.industry}</div>}
           </div>
 
-          {/* ТЕХНИКАЛЫҚ АНАЛИЗ БЛОГЫ */}
+          {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
           {data.technicals && (
             <div
               style={{
-                marginTop: "20px",
+                marginTop: "22px",
                 paddingTop: "16px",
-                borderTop: "1px solid #334155",
+                borderTop: `1px solid ${colors.border}`,
               }}
             >
               <div
                 style={{
-                  fontSize: "0.95rem",
+                  fontSize: "0.8rem",
                   fontWeight: "bold",
-                  marginBottom: "10px",
-                  color: "#e2e8f0",
+                  marginBottom: "12px",
+                  color: colors.gold,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
                 }}
               >
-                📊 Техникалық анализ
+                Техникалық анализ
               </div>
 
               <div
@@ -281,7 +388,8 @@ export default function Home() {
                   gridTemplateColumns: "1fr 1fr",
                   gap: "10px",
                   fontSize: "0.85rem",
-                  color: "#cbd5e1",
+                  color: colors.textMuted,
+                  fontFamily: fontMono,
                 }}
               >
                 <div>
@@ -290,10 +398,10 @@ export default function Home() {
                     style={{
                       color:
                         data.technicals.rsi > 70
-                          ? "#f87171"
+                          ? colors.loss
                           : data.technicals.rsi < 30
-                          ? "#4ade80"
-                          : "#e2e8f0",
+                          ? colors.gain
+                          : colors.textPrimary,
                       fontWeight: "bold",
                     }}
                   >
@@ -304,7 +412,8 @@ export default function Home() {
                   MACD:{" "}
                   <span
                     style={{
-                      color: data.technicals.macd > 0 ? "#4ade80" : "#f87171",
+                      color:
+                        data.technicals.macd > 0 ? colors.gain : colors.loss,
                       fontWeight: "bold",
                     }}
                   >
@@ -319,18 +428,20 @@ export default function Home() {
                 <div
                   style={{
                     marginTop: "14px",
-                    padding: "12px",
+                    padding: "12px 14px",
                     borderRadius: "10px",
-                    background: "#0f172a",
+                    background: colors.bg,
                     border: `1px solid ${signal.color}`,
                   }}
                 >
                   <div
                     style={{
-                      fontSize: "1rem",
+                      fontSize: "0.95rem",
                       fontWeight: "bold",
                       color: signal.color,
                       marginBottom: "6px",
+                      fontFamily: fontMono,
+                      letterSpacing: "0.3px",
                     }}
                   >
                     Сигнал: {signal.label}
@@ -340,7 +451,7 @@ export default function Home() {
                       margin: 0,
                       paddingLeft: "18px",
                       fontSize: "0.78rem",
-                      color: "#94a3b8",
+                      color: colors.textMuted,
                     }}
                   >
                     {signal.reasons.map((r, i) => (
@@ -352,39 +463,41 @@ export default function Home() {
             </div>
           )}
 
-          {/* ЖАНАЛЫҚТАР БЛОГЫ */}
+          {/* ---------- ЖАНАЛЫҚТАР ---------- */}
           <div
             style={{
-              marginTop: "20px",
+              marginTop: "22px",
               paddingTop: "16px",
-              borderTop: "1px solid #334155",
+              borderTop: `1px solid ${colors.border}`,
             }}
           >
             <div
               style={{
-                fontSize: "0.95rem",
+                fontSize: "0.8rem",
                 fontWeight: "bold",
-                marginBottom: "10px",
-                color: "#e2e8f0",
+                marginBottom: "12px",
+                color: colors.gold,
+                textTransform: "uppercase",
+                letterSpacing: "0.6px",
               }}
             >
-              📰 Соңғы жаңалықтар
+              Соңғы жаңалықтар
             </div>
 
             {newsLoading && (
-              <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
+              <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>
                 Жаңалықтар жүктелуде...
               </p>
             )}
 
             {!newsLoading && news.length === 0 && (
-              <p style={{ color: "#64748b", fontSize: "0.85rem" }}>
+              <p style={{ color: colors.textFaint, fontSize: "0.85rem" }}>
                 Соңғы 7 күнде жаңалық табылмады.
               </p>
             )}
 
             {!newsLoading && news.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {news.map((item, i) => (
                   <a
                     key={i}
@@ -395,17 +508,17 @@ export default function Home() {
                       display: "block",
                       textDecoration: "none",
                       color: "inherit",
-                      background: "#0f172a",
+                      background: colors.bg,
                       borderRadius: "10px",
                       padding: "10px 12px",
-                      border: "1px solid #334155",
+                      border: `1px solid ${colors.border}`,
                     }}
                   >
                     <div
                       style={{
                         fontSize: "0.85rem",
-                        color: "#e2e8f0",
-                        lineHeight: "1.3",
+                        color: colors.textPrimary,
+                        lineHeight: "1.35",
                         marginBottom: "6px",
                       }}
                     >
@@ -413,10 +526,11 @@ export default function Home() {
                     </div>
                     <div
                       style={{
-                        fontSize: "0.7rem",
-                        color: "#64748b",
+                        fontSize: "0.68rem",
+                        color: colors.textFaint,
                         display: "flex",
                         justifyContent: "space-between",
+                        fontFamily: fontMono,
                       }}
                     >
                       <span>{item.source}</span>
@@ -429,6 +543,16 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <p
+        style={{
+          marginTop: "40px",
+          color: colors.textFaint,
+          fontSize: "0.7rem",
+        }}
+      >
+        © Ноғай — дала рухымен сауда
+      </p>
     </main>
   );
 }
