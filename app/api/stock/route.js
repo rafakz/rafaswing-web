@@ -70,8 +70,10 @@ export async function GET(request) {
     var quoteUrl = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + finnhubKey;
     var profileUrl = "https://finnhub.io/api/v1/stock/profile2?symbol=" + symbol + "&token=" + finnhubKey;
 
-    var quoteRes = await fetch(quoteUrl);
-    var profileRes = await fetch(profileUrl);
+    // Баға: 60 секунд кэш (жиі өзгереді, бірақ секундтық дәлдік керек емес)
+    var quoteRes = await fetch(quoteUrl, { next: { revalidate: 60 } });
+    // Компания профилі: сирек өзгереді, 1 күн кэш
+    var profileRes = await fetch(profileUrl, { next: { revalidate: 86400 } });
 
     if (!quoteRes.ok) {
       var quoteErrText = await quoteRes.text();
@@ -100,7 +102,8 @@ export async function GET(request) {
 
     if (alphaKey) {
       var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
-      var alphaRes = await fetch(alphaUrl);
+      // Alpha Vantage: күніне тек 25 сұрау рұқсат, сол себепті 30 минут кэштейміз
+      var alphaRes = await fetch(alphaUrl, { next: { revalidate: 1800 } });
       var alphaData = alphaRes.ok ? await alphaRes.json() : null;
 
       var series = alphaData ? alphaData["Time Series (Daily)"] : null;
