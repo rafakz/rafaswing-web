@@ -103,9 +103,14 @@ export async function GET(request) {
       );
     }
 
+    var peValue = numOrNull(metric.peExclExtraTTM) ?? numOrNull(metric.peTTM) ?? numOrNull(metric.peNormalizedAnnual);
+    // EPS-ті бағадан және P/E-ден есептейміз (Finnhub-тың кейбір тикерлер үшін
+    // "eps" өрісі басқа валютада/масштабта келеді, ал P/E әрдайым дұрыс)
+    var epsValue = (peValue !== null && peValue > 0) ? quote.c / peValue : (numOrNull(metric.epsExclExtraItemsTTM) ?? numOrNull(metric.epsTTM));
+
     var fundamentals = {
-      pe: numOrNull(metric.peExclExtraTTM) ?? numOrNull(metric.peTTM) ?? numOrNull(metric.peNormalizedAnnual),
-      eps: numOrNull(metric.epsExclExtraItemsTTM) ?? numOrNull(metric.epsTTM) ?? numOrNull(metric.epsNormalizedAnnual),
+      pe: peValue,
+      eps: epsValue,
       roe: numOrNull(metric.roeTTM),
       netMargin: numOrNull(metric.netProfitMarginTTM),
       revenueGrowth: numOrNull(metric.revenueGrowthTTMYoy),
