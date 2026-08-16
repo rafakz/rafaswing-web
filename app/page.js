@@ -434,6 +434,25 @@ export default function Home() {
             </div>
           ) : null}
 
+          {/* ---------- EARNINGS ---------- */}
+          {data.earnings && (data.earnings.nextDate || data.earnings.lastDate) ? (
+            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
+              {data.earnings.nextDate ? (
+                <div style={{ color: colors.hold, fontWeight: "bold" }}>
+                  ⚠ Алдағы есеп: {data.earnings.nextDate}
+                </div>
+              ) : null}
+              {data.earnings.lastDate && typeof data.earnings.lastEpsActual === "number" && typeof data.earnings.lastEpsEstimate === "number" ? (
+                <div style={{ marginTop: "4px" }}>
+                  Соңғы есеп ({data.earnings.lastDate}): факт ${data.earnings.lastEpsActual.toFixed(2)} / болжам ${data.earnings.lastEpsEstimate.toFixed(2)}{" "}
+                  <span style={{ color: data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? colors.gain : colors.loss, fontWeight: "bold" }}>
+                    {data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? "(асып түсті)" : "(төмен шықты)"}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
           {hasTechnicals ? (
             <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
