@@ -79,6 +79,9 @@ export async function GET(request) {
     var profileRes = await fetch(profileUrl, { next: { revalidate: 86400 } });
     var metricRes = await fetch(metricUrl, { next: { revalidate: 86400 } });
 
+    var earningsUrl = "https://finnhub.io/api/v1/calendar/earnings?symbol=" + symbol + "&token=" + finnhubKey;
+    var earningsRes = await fetch(earningsUrl, { next: { revalidate: 43200 } });
+
     if (!quoteRes.ok) {
       var quoteErrText = await quoteRes.text();
       return Response.json(
@@ -120,6 +123,29 @@ export async function GET(request) {
       week52Low: numOrNull(metric["52WeekLow"]),
       beta: numOrNull(metric.beta)
     };
+
+    var earningsInfo = null;
+    try {
+      var earningsData = earningsRes.ok ? await earningsRes.json() : null;
+      var calendar = (earningsData && Array.isArray(earningsData.earningsCalendar)) ? earningsData.earningsCalendar : [];
+
+      if (calendar.length > 0) {
+        var todayStr = new Date().toISOString().slice(0, 10);
+        var sorted = calendar.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+
+        var next = sorted.find(function (e) { return e.date >= todayStr; });
+        var lastPast = sorted.slice().reverse().find(function (e) { return e.date < todayStr; });
+
+        earningsInfo = {
+          nextDate: next ? next.date : null,
+          lastDate: lastPast ? lastPast.date : null,
+          lastEpsActual: lastPast ? numOrNull(lastPast.epsActual) : null,
+          lastEpsEstimate: lastPast ? numOrNull(lastPast.epsEstimate) : null
+        };
+      }
+    } catch (e) {
+      earningsInfo = null;
+    }
 
     var technicals = null;
     var history = [];
@@ -203,7 +229,8 @@ export async function GET(request) {
       technicals: technicals,
       history: history,
       volume: volumeInfo,
-      fundamentals: fundamentals
+      fundamentals: fundamentals,
+      earnings: earningsInfo
     });
   } catch (err) {
     return Response.json(
