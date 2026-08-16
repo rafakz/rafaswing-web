@@ -123,6 +123,7 @@ export async function GET(request) {
 
     var technicals = null;
     var history = [];
+    var volumeInfo = null;
 
     if (alphaKey) {
       var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
@@ -135,6 +136,9 @@ export async function GET(request) {
         var dates = Object.keys(series).sort();
         var closes = dates.map(function (d) {
           return parseFloat(series[d]["4. close"]);
+        });
+        var volumes = dates.map(function (d) {
+          return parseFloat(series[d]["5. volume"]);
         });
 
         var rsi = calculateRSI(closes, 14);
@@ -153,6 +157,17 @@ export async function GET(request) {
         history = last30dates.map(function (d) {
           return { date: d, close: parseFloat(series[d]["4. close"]) };
         });
+
+        // Volume: соңғы күн және 20 күндік орташа
+        var latestVolume = volumes[volumes.length - 1];
+        var vol20 = volumes.slice(-20);
+        var avgVolume20 = vol20.length > 0 ? vol20.reduce(function (a, b) { return a + b; }, 0) / vol20.length : null;
+
+        volumeInfo = {
+          latest: numOrNull(latestVolume),
+          avg20: avgVolume20 !== null ? Math.round(avgVolume20) : null,
+          ratio: (avgVolume20 && avgVolume20 > 0) ? Number((latestVolume / avgVolume20).toFixed(2)) : null
+        };
       } else {
         technicals = {
           rsi: null,
@@ -187,6 +202,7 @@ export async function GET(request) {
       industry: profile.finnhubIndustry || null,
       technicals: technicals,
       history: history,
+      volume: volumeInfo,
       fundamentals: fundamentals
     });
   } catch (err) {
