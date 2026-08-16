@@ -395,6 +395,45 @@ export default function Home() {
             {data.industry ? <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div> : null}
           </div>
 
+          {/* ---------- ФУНДАМЕНТАЛДЫ КӨРСЕТКІШТЕР ---------- */}
+          {data.fundamentals && typeof data.fundamentals === "object" ? (
+            <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: "bold",
+                  marginBottom: "12px",
+                  color: colors.gold,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                }}
+              >
+                Фундаменталды көрсеткіштер
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  fontSize: "0.85rem",
+                  color: colors.textMuted,
+                  fontFamily: fontMono,
+                }}
+              >
+                <div>P/E: {safeNum(data.fundamentals.pe, 2)}</div>
+                <div>EPS: ${safeNum(data.fundamentals.eps, 2)}</div>
+                <div>ROE: {safeNum(data.fundamentals.roe, 1)}%</div>
+                <div>Таза маржа: {safeNum(data.fundamentals.netMargin, 1)}%</div>
+                <div>Кіріс өсімі: {safeNum(data.fundamentals.revenueGrowth, 1)}%</div>
+                <div>EPS өсімі: {safeNum(data.fundamentals.epsGrowth, 1)}%</div>
+                <div>Дивиденд: {safeNum(data.fundamentals.dividendYield, 2)}%</div>
+                <div>Beta: {safeNum(data.fundamentals.beta, 2)}</div>
+                <div>52 апта макс: ${safeNum(data.fundamentals.week52High, 2)}</div>
+                <div>52 апта мин: ${safeNum(data.fundamentals.week52Low, 2)}</div>
+              </div>
+            </div>
+          ) : null}
+
           {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
           {hasTechnicals ? (
             <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
