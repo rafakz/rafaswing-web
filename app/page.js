@@ -23,7 +23,7 @@ const fontDisplay = "'Georgia', 'Times New Roman', serif";
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
 
-/* ---------- Логотип: дала көкжиегі + таң жұлдызы ---------- */
+/* ---------- Логотип ---------- */
 function NogaiMark({ size = 40 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,11 +41,16 @@ function NogaiMark({ size = 40 }) {
   );
 }
 
-/* ---------- Sparkline: 30 күндік баға графигі ---------- */
+/* ---------- Sparkline (толығымен қорғалған) ---------- */
 function Sparkline({ history, isUp }) {
-  if (!history || history.length < 2) return null;
+  if (!Array.isArray(history) || history.length < 2) return null;
 
-  const closes = history.map((h) => h.close);
+  const closes = history
+    .map((h) => (h && typeof h.close === "number" ? h.close : null))
+    .filter((c) => c !== null && !isNaN(c));
+
+  if (closes.length < 2) return null;
+
   const min = Math.min(...closes);
   const max = Math.max(...closes);
   const range = max - min || 1;
@@ -84,11 +89,16 @@ function Sparkline({ history, isUp }) {
   );
 }
 
-/* ---------- Сигнал есептеу ---------- */
+/* ---------- Сигнал есептеу (толығымен қорғалған) ---------- */
 function getSignal(technicals, currentPrice) {
-  if (!technicals) return null;
+  if (!technicals || typeof technicals !== "object") return null;
 
-  const { rsi, sma20, sma50, macd } = technicals;
+  const rsi = typeof technicals.rsi === "number" ? technicals.rsi : null;
+  const sma20 = typeof technicals.sma20 === "number" ? technicals.sma20 : null;
+  const sma50 = typeof technicals.sma50 === "number" ? technicals.sma50 : null;
+  const macd = typeof technicals.macd === "number" ? technicals.macd : null;
+  const price = typeof currentPrice === "number" ? currentPrice : null;
+
   let score = 0;
   const reasons = [];
 
@@ -122,11 +132,15 @@ function getSignal(technicals, currentPrice) {
     }
   }
 
-  if (sma20 !== null && currentPrice > sma20) {
-    score += 1;
-  } else if (sma20 !== null) {
-    score -= 1;
+  if (sma20 !== null && price !== null) {
+    if (price > sma20) {
+      score += 1;
+    } else {
+      score -= 1;
+    }
   }
+
+  if (reasons.length === 0) return null;
 
   let label = "ҰСТАУ";
   let color = colors.hold;
@@ -149,9 +163,18 @@ function getSignal(technicals, currentPrice) {
 }
 
 function formatNewsDate(unixSeconds) {
-  if (!unixSeconds) return "";
-  const d = new Date(unixSeconds * 1000);
-  return d.toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" });
+  if (!unixSeconds || typeof unixSeconds !== "number") return "";
+  try {
+    const d = new Date(unixSeconds * 1000);
+    return d.toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function safeNum(v, digits) {
+  if (typeof v !== "number" || isNaN(v)) return "—";
+  return v.toFixed(digits);
 }
 
 export default function Home() {
@@ -179,7 +202,7 @@ export default function Home() {
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error || "Қате шықты");
+        setError((json && json.error) || "Қате шықты");
       } else {
         setData(json);
       }
@@ -193,7 +216,7 @@ export default function Home() {
     try {
       const newsRes = await fetch(`/api/news?symbol=${symbol}`);
       const newsJson = await newsRes.json();
-      if (newsRes.ok && Array.isArray(newsJson.news)) {
+      if (newsRes.ok && newsJson && Array.isArray(newsJson.news)) {
         setNews(newsJson.news);
       }
     } catch (err) {
@@ -203,8 +226,11 @@ export default function Home() {
     }
   }
 
-  const isUp = data && data.change >= 0;
+  const isUp = !!(data && typeof data.change === "number" && data.change >= 0);
   const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
+  const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
+  const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
+  const hasNews = Array.isArray(news) && news.length > 0;
 
   return (
     <main
@@ -224,29 +250,13 @@ export default function Home() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .noghai-card {
-          animation: fadeInUp 0.4s ease-out;
-        }
-        .noghai-news-item {
-          transition: border-color 0.15s ease, transform 0.15s ease;
-        }
-        .noghai-news-item:hover {
-          border-color: ${colors.gold} !important;
-          transform: translateX(2px);
-        }
-        .noghai-search-btn {
-          transition: filter 0.15s ease, transform 0.1s ease;
-        }
-        .noghai-search-btn:hover {
-          filter: brightness(1.12);
-        }
-        .noghai-search-btn:active {
-          transform: scale(0.97);
-        }
-        .noghai-input:focus {
-          outline: none;
-          border-color: ${colors.gold} !important;
-        }
+        .noghai-card { animation: fadeInUp 0.4s ease-out; }
+        .noghai-news-item { transition: border-color 0.15s ease, transform 0.15s ease; }
+        .noghai-news-item:hover { border-color: ${colors.gold} !important; transform: translateX(2px); }
+        .noghai-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
+        .noghai-search-btn:hover { filter: brightness(1.12); }
+        .noghai-search-btn:active { transform: scale(0.97); }
+        .noghai-input:focus { outline: none; border-color: ${colors.gold} !important; }
       `}</style>
 
       {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
@@ -265,15 +275,7 @@ export default function Home() {
           Ноғай
         </h1>
       </div>
-      <p
-        style={{
-          color: colors.gold,
-          marginTop: "6px",
-          marginBottom: "2px",
-          fontSize: "0.85rem",
-          letterSpacing: "0.3px",
-        }}
-      >
+      <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.85rem", letterSpacing: "0.3px" }}>
         Дала дәстүрінен жылдамдық пен дәлдік
       </p>
       <p style={{ color: colors.textFaint, marginBottom: "26px", fontSize: "0.75rem" }}>
@@ -319,9 +321,9 @@ export default function Home() {
 
       {loading && <p style={{ marginTop: "24px", color: colors.textMuted }}>Жүктелуде...</p>}
 
-      {error && <p style={{ marginTop: "24px", color: colors.lossBright }}>{error}</p>}
+      {error ? <p style={{ marginTop: "24px", color: colors.lossBright }}>{error}</p> : null}
 
-      {data && (
+      {data ? (
         <div
           className="noghai-card"
           style={{
@@ -336,26 +338,26 @@ export default function Home() {
         >
           {/* ---------- НЕГІЗГІ АҚПАРАТ ---------- */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {data.logo && (
-              <img src={data.logo} alt={data.symbol} width={36} height={36} style={{ borderRadius: "8px" }} />
-            )}
+            {data.logo ? (
+              <img src={data.logo} alt={data.symbol || ""} width={36} height={36} style={{ borderRadius: "8px" }} />
+            ) : null}
             <div>
               <div style={{ fontWeight: "bold", fontSize: "1.1rem", fontFamily: fontMono, letterSpacing: "0.5px" }}>
-                {data.symbol}
+                {data.symbol || "—"}
               </div>
-              <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name}</div>
+              <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name || ""}</div>
             </div>
           </div>
 
           <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px", fontFamily: fontMono }}>
-            <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>${data.currentPrice.toFixed(2)}</span>
+            <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>${safeNum(data.currentPrice, 2)}</span>
             <span style={{ fontSize: "1rem", color: isUp ? colors.gain : colors.loss }}>
-              {isUp ? "▲" : "▼"} {data.change.toFixed(2)} ({data.changePercent.toFixed(2)}%)
+              {isUp ? "▲" : "▼"} {safeNum(data.change, 2)} ({safeNum(data.changePercent, 2)}%)
             </span>
           </div>
 
           {/* ---------- SPARKLINE ГРАФИК ---------- */}
-          {data.history && data.history.length > 1 && (
+          {hasHistory ? (
             <>
               <Sparkline history={data.history} isUp={isUp} />
               <div
@@ -372,7 +374,7 @@ export default function Home() {
                 <span>соңғы баға үрдісі</span>
               </div>
             </>
-          )}
+          ) : null}
 
           <div
             style={{
@@ -385,16 +387,16 @@ export default function Home() {
               fontFamily: fontMono,
             }}
           >
-            <div>Ашылу: ${data.open.toFixed(2)}</div>
-            <div>Жабылу (алдыңғы): ${data.previousClose.toFixed(2)}</div>
-            <div>Максимум: ${data.high.toFixed(2)}</div>
-            <div>Минимум: ${data.low.toFixed(2)}</div>
-            {data.marketCap && <div>Market Cap: ${data.marketCap.toFixed(0)}M</div>}
-            {data.industry && <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div>}
+            <div>Ашылу: ${safeNum(data.open, 2)}</div>
+            <div>Жабылу (алдыңғы): ${safeNum(data.previousClose, 2)}</div>
+            <div>Максимум: ${safeNum(data.high, 2)}</div>
+            <div>Минимум: ${safeNum(data.low, 2)}</div>
+            {typeof data.marketCap === "number" ? <div>Market Cap: ${data.marketCap.toFixed(0)}M</div> : null}
+            {data.industry ? <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div> : null}
           </div>
 
           {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
-          {data.technicals && (
+          {hasTechnicals ? (
             <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
               <div
                 style={{
@@ -424,28 +426,36 @@ export default function Home() {
                   <span
                     style={{
                       color:
-                        data.technicals.rsi > 70
+                        typeof data.technicals.rsi === "number" && data.technicals.rsi > 70
                           ? colors.loss
-                          : data.technicals.rsi < 30
+                          : typeof data.technicals.rsi === "number" && data.technicals.rsi < 30
                           ? colors.gain
                           : colors.textPrimary,
                       fontWeight: "bold",
                     }}
                   >
-                    {data.technicals.rsi ?? "—"}
+                    {safeNum(data.technicals.rsi, 2)}
                   </span>
                 </div>
                 <div>
                   MACD:{" "}
-                  <span style={{ color: data.technicals.macd > 0 ? colors.gain : colors.loss, fontWeight: "bold" }}>
-                    {data.technicals.macd ?? "—"}
+                  <span
+                    style={{
+                      color:
+                        typeof data.technicals.macd === "number" && data.technicals.macd > 0
+                          ? colors.gain
+                          : colors.loss,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {safeNum(data.technicals.macd, 2)}
                   </span>
                 </div>
-                <div>SMA20: ${data.technicals.sma20 ?? "—"}</div>
-                <div>SMA50: ${data.technicals.sma50 ?? "—"}</div>
+                <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
+                <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
               </div>
 
-              {signal && (
+              {signal ? (
                 <div
                   style={{
                     marginTop: "14px",
@@ -473,9 +483,9 @@ export default function Home() {
                     ))}
                   </ul>
                 </div>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
 
           {/* ---------- ЖАНАЛЫҚТАР ---------- */}
           <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
@@ -492,18 +502,18 @@ export default function Home() {
               Соңғы жаңалықтар
             </div>
 
-            {newsLoading && <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>Жаңалықтар жүктелуде...</p>}
+            {newsLoading ? <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>Жаңалықтар жүктелуде...</p> : null}
 
-            {!newsLoading && news.length === 0 && (
+            {!newsLoading && !hasNews ? (
               <p style={{ color: colors.textFaint, fontSize: "0.85rem" }}>Соңғы 7 күнде жаңалық табылмады.</p>
-            )}
+            ) : null}
 
-            {!newsLoading && news.length > 0 && (
+            {!newsLoading && hasNews ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {news.map((item, i) => (
                   <a
                     key={i}
-                    href={item.url}
+                    href={item && item.url ? item.url : "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="noghai-news-item"
@@ -518,7 +528,7 @@ export default function Home() {
                     }}
                   >
                     <div style={{ fontSize: "0.85rem", color: colors.textPrimary, lineHeight: "1.35", marginBottom: "6px" }}>
-                      {item.headline}
+                      {item && item.headline ? item.headline : ""}
                     </div>
                     <div
                       style={{
@@ -529,16 +539,16 @@ export default function Home() {
                         fontFamily: fontMono,
                       }}
                     >
-                      <span>{item.source}</span>
-                      <span>{formatNewsDate(item.datetime)}</span>
+                      <span>{item && item.source ? item.source : ""}</span>
+                      <span>{item ? formatNewsDate(item.datetime) : ""}</span>
                     </div>
                   </a>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
-      )}
+      ) : null}
 
       <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© Ноғай — дала рухымен сауда</p>
     </main>
