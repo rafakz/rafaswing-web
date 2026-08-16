@@ -492,6 +492,32 @@ export default function Home() {
                 </div>
                 <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
                 <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
+                {data.volume && typeof data.volume === "object" ? (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    Volume:{" "}
+                    <span
+                      style={{
+                        color:
+                          typeof data.volume.ratio === "number" && data.volume.ratio > 1.5
+                            ? colors.gainBright
+                            : typeof data.volume.ratio === "number" && data.volume.ratio < 0.7
+                            ? colors.textFaint
+                            : colors.textPrimary,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {typeof data.volume.latest === "number"
+                        ? (data.volume.latest / 1e6).toFixed(2) + "M"
+                        : "—"}
+                    </span>
+                    {typeof data.volume.ratio === "number" ? (
+                      <span style={{ color: colors.textFaint }}>
+                        {" "}
+                        (орташадан {data.volume.ratio}×)
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               {signal ? (
