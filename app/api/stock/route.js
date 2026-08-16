@@ -176,7 +176,7 @@ export async function GET(request) {
     var ema20 = null, ema50 = null, ema200 = null;
 
     if (alphaKey) {
-      var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=full&apikey=" + alphaKey;
+      var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
       var alphaRes = await fetch(alphaUrl, { next: { revalidate: 1800 } });
       var alphaData = alphaRes.ok ? await alphaRes.json() : null;
 
