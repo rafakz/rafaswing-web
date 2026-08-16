@@ -511,6 +511,13 @@ export default function Home() {
                 </div>
                 <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
                 <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
+                {typeof data.technicals.ema20 === "number" || typeof data.technicals.ema50 === "number" || typeof data.technicals.ema200 === "number" ? (
+                  <>
+                    <div>EMA20: ${safeNum(data.technicals.ema20, 2)}</div>
+                    <div>EMA50: ${safeNum(data.technicals.ema50, 2)}</div>
+                    <div>EMA200: ${safeNum(data.technicals.ema200, 2)}</div>
+                  </>
+                ) : null}
                 {data.volume && typeof data.volume === "object" ? (
                   <div style={{ gridColumn: "1 / -1" }}>
                     Volume:{" "}
@@ -568,6 +575,86 @@ export default function Home() {
                   </ul>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {/* ---------- SENTIMENT ---------- */}
+          {data.sentiment && typeof data.sentiment === "object" && typeof data.sentiment.bullishPercent === "number" ? (
+            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
+              Sentiment:{" "}
+              <span style={{ color: colors.gain, fontWeight: "bold" }}>▲ {data.sentiment.bullishPercent}%</span>
+              {"  "}
+              <span style={{ color: colors.loss, fontWeight: "bold" }}>▼ {data.sentiment.bearishPercent}%</span>
+            </div>
+          ) : null}
+
+          {/* ---------- SWING SCORE ---------- */}
+          {typeof data.swingScore === "number" ? (
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "14px",
+                borderRadius: "10px",
+                background: colors.bg,
+                border: `1px solid ${colors.border}`,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: "0.72rem", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "6px" }}>
+                Swing Score
+              </div>
+              <div
+                style={{
+                  fontSize: "2.2rem",
+                  fontWeight: "bold",
+                  fontFamily: fontMono,
+                  color:
+                    data.swingScore >= 65 ? colors.gain : data.swingScore <= 35 ? colors.loss : colors.hold,
+                }}
+              >
+                {data.swingScore}
+                <span style={{ fontSize: "1rem", color: colors.textFaint }}> /100</span>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ---------- ENTRY / STOP LOSS / TAKE PROFIT ---------- */}
+          {data.tradePlan && typeof data.tradePlan === "object" ? (
+            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: "bold",
+                  marginBottom: "12px",
+                  color: colors.gold,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                }}
+              >
+                Сауда жоспары
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  fontSize: "0.85rem",
+                  fontFamily: fontMono,
+                }}
+              >
+                <div style={{ color: colors.textPrimary }}>Entry: ${safeNum(data.tradePlan.entry, 2)}</div>
+                <div style={{ color: colors.loss }}>Stop Loss: ${safeNum(data.tradePlan.stopLoss, 2)}</div>
+                <div style={{ color: colors.gain }}>TP1: ${safeNum(data.tradePlan.takeProfit1, 2)}</div>
+                <div style={{ color: colors.gainBright }}>TP2: ${safeNum(data.tradePlan.takeProfit2, 2)}</div>
+              </div>
+              {typeof data.tradePlan.riskReward === "number" ? (
+                <div style={{ marginTop: "8px", fontSize: "0.78rem", color: colors.textFaint, fontFamily: fontMono }}>
+                  Risk/Reward: 1:{data.tradePlan.riskReward}
+                </div>
+              ) : null}
+              <div style={{ marginTop: "8px", fontSize: "0.68rem", color: colors.textFaint }}>
+                ⚠ Бұл автоматты есептеу, инвестиция кеңесі емес.
+              </div>
             </div>
           ) : null}
 
