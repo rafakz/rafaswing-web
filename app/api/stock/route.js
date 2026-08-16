@@ -48,6 +48,10 @@ function calculateMACD(closes) {
   return ema12 - ema26;
 }
 
+function numOrNull(v) {
+  return typeof v === "number" && !isNaN(v) ? v : null;
+}
+
 export async function GET(request) {
   var searchParams = new URL(request.url).searchParams;
   var symbol = searchParams.get("symbol");
@@ -69,11 +73,11 @@ export async function GET(request) {
   try {
     var quoteUrl = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + finnhubKey;
     var profileUrl = "https://finnhub.io/api/v1/stock/profile2?symbol=" + symbol + "&token=" + finnhubKey;
+    var metricUrl = "https://finnhub.io/api/v1/stock/metric?symbol=" + symbol + "&metric=all&token=" + finnhubKey;
 
-    // Баға: 60 секунд кэш (жиі өзгереді, бірақ секундтық дәлдік керек емес)
     var quoteRes = await fetch(quoteUrl, { next: { revalidate: 60 } });
-    // Компания профилі: сирек өзгереді, 1 күн кэш
     var profileRes = await fetch(profileUrl, { next: { revalidate: 86400 } });
+    var metricRes = await fetch(metricUrl, { next: { revalidate: 86400 } });
 
     if (!quoteRes.ok) {
       var quoteErrText = await quoteRes.text();
@@ -89,6 +93,8 @@ export async function GET(request) {
 
     var quote = await quoteRes.json();
     var profile = profileRes.ok ? await profileRes.json() : {};
+    var metricData = metricRes.ok ? await metricRes.json() : {};
+    var metric = (metricData && metricData.metric) ? metricData.metric : {};
 
     if (!quote || typeof quote.c !== "number" || quote.c === 0) {
       return Response.json(
@@ -97,12 +103,24 @@ export async function GET(request) {
       );
     }
 
+    var fundamentals = {
+      pe: numOrNull(metric.peExclExtraTTM) ?? numOrNull(metric.peTTM) ?? numOrNull(metric.peNormalizedAnnual),
+      eps: numOrNull(metric.epsExclExtraItemsTTM) ?? numOrNull(metric.epsTTM) ?? numOrNull(metric.epsNormalizedAnnual),
+      roe: numOrNull(metric.roeTTM),
+      netMargin: numOrNull(metric.netProfitMarginTTM),
+      revenueGrowth: numOrNull(metric.revenueGrowthTTMYoy),
+      epsGrowth: numOrNull(metric.epsGrowthTTMYoy),
+      dividendYield: numOrNull(metric.dividendYieldIndicatedAnnual),
+      week52High: numOrNull(metric["52WeekHigh"]),
+      week52Low: numOrNull(metric["52WeekLow"]),
+      beta: numOrNull(metric.beta)
+    };
+
     var technicals = null;
     var history = [];
 
     if (alphaKey) {
       var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
-      // Alpha Vantage: күніне тек 25 сұрау рұқсат, сол себепті 30 минут кэштейміз
       var alphaRes = await fetch(alphaUrl, { next: { revalidate: 1800 } });
       var alphaData = alphaRes.ok ? await alphaRes.json() : null;
 
@@ -163,7 +181,8 @@ export async function GET(request) {
       marketCap: profile.marketCapitalization || null,
       industry: profile.finnhubIndustry || null,
       technicals: technicals,
-      history: history
+      history: history,
+      fundamentals: fundamentals
     });
   } catch (err) {
     return Response.json(
