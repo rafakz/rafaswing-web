@@ -186,6 +186,10 @@ export default function Home() {
   const [news, setNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
 
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
   async function searchStock(e) {
     e.preventDefault();
     if (!ticker.trim()) return;
@@ -196,6 +200,8 @@ export default function Home() {
     setError("");
     setData(null);
     setNews([]);
+    setAiSummary("");
+    setAiError("");
 
     try {
       const res = await fetch(`/api/stock?symbol=${symbol}`);
@@ -223,6 +229,42 @@ export default function Home() {
       // үнсіз қалдырамыз
     } finally {
       setNewsLoading(false);
+    }
+  }
+
+  async function getAiSummary() {
+    if (!data) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiSummary("");
+
+    try {
+      const signal = getSignal(data.technicals, data.currentPrice);
+      const res = await fetch("/api/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: data.symbol,
+          name: data.name,
+          currentPrice: data.currentPrice,
+          changePercent: data.changePercent,
+          technicals: data.technicals,
+          fundamentals: data.fundamentals,
+          swingScore: data.swingScore,
+          tradePlan: data.tradePlan,
+          signalLabel: signal ? signal.label : ""
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAiError((json && json.error) || "Қате шықты");
+      } else {
+        setAiSummary(json.summary || "");
+      }
+    } catch (err) {
+      setAiError("Байланыс қатесі");
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -657,6 +699,50 @@ export default function Home() {
               </div>
             </div>
           ) : null}
+
+          {/* ---------- AI ҚОРЫТЫНДЫ ---------- */}
+          <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+            <button
+              onClick={getAiSummary}
+              disabled={aiLoading}
+              className="noghai-search-btn"
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "10px",
+                border: `1px solid ${colors.gold}`,
+                background: "transparent",
+                color: colors.gold,
+                fontWeight: "bold",
+                fontSize: "0.85rem",
+                fontFamily: fontBody,
+                cursor: aiLoading ? "default" : "pointer",
+              }}
+            >
+              {aiLoading ? "Талдау жасалуда..." : "🤖 AI қорытынды алу"}
+            </button>
+
+            {aiError ? (
+              <p style={{ marginTop: "10px", color: colors.lossBright, fontSize: "0.8rem" }}>{aiError}</p>
+            ) : null}
+
+            {aiSummary ? (
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                  fontSize: "0.85rem",
+                  color: colors.textPrimary,
+                  lineHeight: "1.5",
+                }}
+              >
+                {aiSummary}
+              </div>
+            ) : null}
+          </div>
 
           {/* ---------- ЖАНАЛЫҚТАР ---------- */}
           <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
