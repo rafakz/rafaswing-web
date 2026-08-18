@@ -1,14 +1,14 @@
 export async function POST(request) {
-  var apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return Response.json(
-      { error: "GEMINI_API_KEY орнатылмаган" },
-      { status: 500 }
-    );
-  }
-
   try {
+    var apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return Response.json(
+        { error: "GEMINI_API_KEY орнатылмаган", detail: "env var жок" },
+        { status: 200 }
+      );
+    }
+
     var body = await request.json();
 
     var symbol = body.symbol || "";
@@ -45,29 +45,46 @@ export async function POST(request) {
     var userMessage =
       "Сен қаржы деректерін талдайтын көмекшісің. Төмендегі деректер негізінде осы акция бойынша " +
       "3-4 сөйлемдік қысқа, түсінікті ҚАЗАҚ ТІЛІНДЕ қорытынды жаз. Инвестиция кеңесі бермей, тек " +
-      "деректерді қалай түсінуге болатынын түсіндір (мыс. техникалық көрсеткіштер не дегенді білдіреді, " +
-      "тәуекел қандай). Соңында 'Бұл ақпараттық сипатта, инвестиция кеңесі емес' деп қос.\n\n" +
-      "Деректер:\n" + dataText;
+      "деректерді қалай түсінуге болатынын түсіндір. Соңында 'Бұл ақпараттық сипатта, инвестиция " +
+      "кеңесі емес' деп қос.\n\nДеректер:\n" + dataText;
 
     var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey;
 
-    var geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userMessage }] }]
-      })
-    });
-
-    if (!geminiRes.ok) {
-      var errText = await geminiRes.text();
+    var geminiRes;
+    try {
+      geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userMessage }] }]
+        })
+      });
+    } catch (fetchErr) {
       return Response.json(
-        { error: "AI API катесi", status: geminiRes.status, detail: errText.slice(0, 300) },
-        { status: 502 }
+        { error: "Gemini-ге сұрау жіберу кезінде кате", detail: fetchErr.message },
+        { status: 200 }
       );
     }
 
-    var geminiData = await geminiRes.json();
+    var rawText = await geminiRes.text();
+
+    if (!geminiRes.ok) {
+      return Response.json(
+        { error: "AI API катесi", status: geminiRes.status, detail: rawText.slice(0, 500) },
+        { status: 200 }
+      );
+    }
+
+    var geminiData;
+    try {
+      geminiData = JSON.parse(rawText);
+    } catch (parseErr) {
+      return Response.json(
+        { error: "AI жауабын окуда кате", detail: rawText.slice(0, 500) },
+        { status: 200 }
+      );
+    }
+
     var summaryText = "";
 
     if (
@@ -85,11 +102,18 @@ export async function POST(request) {
       }
     }
 
-    return Response.json({ summary: summaryText || "Қорытынды алынбады." });
+    if (!summaryText) {
+      return Response.json(
+        { error: "Қорытынды бос келді", detail: rawText.slice(0, 500) },
+        { status: 200 }
+      );
+    }
+
+    return Response.json({ summary: summaryText });
   } catch (err) {
     return Response.json(
-      { error: "Қорытынды жасау кезінде кате шыкты", detail: err.message },
-      { status: 500 }
+      { error: "Жалпы кате", detail: (err && err.message) ? err.message : String(err) },
+      { status: 200 }
     );
   }
 }
