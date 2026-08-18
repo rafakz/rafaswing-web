@@ -48,7 +48,7 @@ export async function POST(request) {
       "деректерді қалай түсінуге болатынын түсіндір. Соңында 'Бұл ақпараттық сипатта, инвестиция " +
       "кеңесі емес' деп қос.\n\nДеректер:\n" + dataText;
 
-    var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey;
+    var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" + apiKey;
 
     var geminiRes;
     try {
