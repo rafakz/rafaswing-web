@@ -256,10 +256,12 @@ export default function Home() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        setAiError((json && json.error) || "Қате шықты");
+      if (json && json.error) {
+        setAiError(json.error + (json.detail ? " — " + json.detail : ""));
+      } else if (json && json.summary) {
+        setAiSummary(json.summary);
       } else {
-        setAiSummary(json.summary || "");
+        setAiError("Белгісіз жауап");
       }
     } catch (err) {
       setAiError("Байланыс қатесі");
