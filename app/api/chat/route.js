@@ -1,109 +1,161 @@
 export async function POST(request) {
   try {
-    var apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return Response.json(
-        { error: "GEMINI_API_KEY орнатылмаган" },
-        { status: 200 }
+        { error: "GEMINI_API_KEY орнатылмаған" },
+        { status: 500 }
       );
     }
 
-    var body = await request.json();
-    var messages = Array.isArray(body.messages) ? body.messages : [];
-    var stockContext = body.stockContext || null;
+    const body = await request.json();
+
+    const messages = Array.isArray(body.messages)
+      ? body.messages
+      : [];
+
+    const stockContext = body.stockContext || null;
 
     if (messages.length === 0) {
-      return Response.json({ error: "Хабарлама жок" }, { status: 200 });
+      return Response.json(
+        { error: "Хабарлама жоқ" },
+        { status: 400 }
+      );
     }
 
-    var systemNote =
-      "Сен 'Ноғай' атты қазақ тіліндегі swing-трейдинг платформасының көмекшісісің. " +
-      "Пайдаланушымен ҚАЗАҚ ТІЛІНДЕ сөйлес. Қаржы, акциялар, техникалық/фундаменталды анализ " +
-      "туралы сұрақтарға көмектес. Тікелей 'мына акцияны сатып ал' деген нақты кеңес берме, " +
-      "тек деректерді түсіндір және білім бер. Қысқа әрі нақты жауап бер.";
+    let systemNote =
+      "Сен 'Ноғай' атты қазақ тіліндегі swing-трейдинг платформасының AI көмекшісісің. " +
+      "Пайдаланушымен әрқашан ҚАЗАҚ ТІЛІНДЕ сөйлес. " +
+      "Акциялар, инвестиция, техникалық және фундаменталды анализ туралы түсіндір. " +
+      "Деректерді түсіндір, бірақ нақты 'мына акцияны сатып ал' немесе 'сат' деген жеке қаржылық кеңес берме. " +
+      "Жауаптарың қысқа, нақты және түсінікті болсын.";
 
     if (stockContext && stockContext.symbol) {
-      systemNote += "\n\nҚазір пайдаланушы қарап отырған акция: " + stockContext.symbol +
-        " (" + (stockContext.name || "") + "), баға: $" + stockContext.currentPrice +
-        ", RSI: " + (stockContext.technicals ? stockContext.technicals.rsi : "жок") +
-        ", MACD: " + (stockContext.technicals ? stockContext.technicals.macd : "жок") +
-        (typeof stockContext.swingScore === "number" ? ", Swing Score: " + stockContext.swingScore : "");
-    }
+      systemNote +=
+        "\n\nПайдаланушы қарап отырған акция: " +
+        stockContext.symbol +
+        " (" +
+        (stockContext.name || "") +
+        ")" +
+        "\nБағасы: $" +
+        (stockContext.currentPrice ?? "жоқ") +
+        "\nRSI: " +
+        (stockContext.technicals?.rsi ?? "жоқ") +
+        "\nMACD: " +
+        (stockContext.technicals?.macd ?? "жоқ");
 
-    var contents = [];
-    contents.push({ role: "user", parts: [{ text: systemNote }] });
-    contents.push({ role: "model", parts: [{ text: "Түсінікті, көмектесуге дайынмын." }] });
-
-    for (var i = 0; i < messages.length; i++) {
-      var m = messages[i];
-      var role = (m.role === "assistant") ? "model" : "user";
-      contents.push({ role: role, parts: [{ text: String(m.text || "") }] });
-    }
-
-    var geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" + apiKey;
-
-    var geminiRes;
-    try {
-      geminiRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: contents })
-      });
-    } catch (fetchErr) {
-      return Response.json(
-        { error: "Gemini-ге сұрау жіберу кезінде кате", detail: fetchErr.message },
-        { status: 200 }
-      );
-    }
-
-    var rawText = await geminiRes.text();
-
-    if (!geminiRes.ok) {
-      return Response.json(
-        { error: "AI API катесi", status: geminiRes.status, detail: rawText.slice(0, 500) },
-        { status: 200 }
-      );
-    }
-
-    var geminiData;
-    try {
-      geminiData = JSON.parse(rawText);
-    } catch (parseErr) {
-      return Response.json(
-        { error: "AI жауабын окуда кате", detail: rawText.slice(0, 500) },
-        { status: 200 }
-      );
-    }
-
-    var replyText = "";
-    if (
-      geminiData &&
-      Array.isArray(geminiData.candidates) &&
-      geminiData.candidates[0] &&
-      geminiData.candidates[0].content &&
-      Array.isArray(geminiData.candidates[0].content.parts)
-    ) {
-      for (var j = 0; j < geminiData.candidates[0].content.parts.length; j++) {
-        var part = geminiData.candidates[0].content.parts[j];
-        if (part && typeof part.text === "string") {
-          replyText += part.text;
-        }
+      if (typeof stockContext.swingScore === "number") {
+        systemNote +=
+          "\nSwing Score: " +
+          stockContext.swingScore;
       }
     }
 
-    if (!replyText) {
+    const contents = [];
+
+    for (const m of messages) {
+      const text = String(m.text || "").trim();
+
+      if (!text) continue;
+
+      contents.push({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [
+          {
+            text: text
+          }
+        ]
+      });
+    }
+
+    if (contents.length === 0) {
       return Response.json(
-        { error: "Жауап бос келді", detail: rawText.slice(0, 500) },
+        { error: "Жіберілетін хабарлама жоқ" },
+        { status: 400 }
+      );
+    }
+
+    const geminiUrl =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+
+    const geminiRes = await fetch(geminiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [
+            {
+              text: systemNote
+            }
+          ]
+        },
+        contents: contents
+      })
+    });
+
+    const rawText = await geminiRes.text();
+
+    if (!geminiRes.ok) {
+      return Response.json(
+        {
+          error: "Gemini API қатесі",
+          status: geminiRes.status,
+          detail: rawText.slice(0, 1000)
+        },
         { status: 200 }
       );
     }
 
-    return Response.json({ reply: replyText });
+    let geminiData;
+
+    try {
+      geminiData = JSON.parse(rawText);
+    } catch {
+      return Response.json(
+        {
+          error: "Gemini жауабын оқу кезінде қате",
+          detail: rawText.slice(0, 1000)
+        },
+        { status: 200 }
+      );
+    }
+
+    let replyText = "";
+
+    const parts =
+      geminiData?.candidates?.[0]?.content?.parts || [];
+
+    for (const part of parts) {
+      if (part && typeof part.text === "string") {
+        replyText += part.text;
+      }
+    }
+
+    if (!replyText.trim()) {
+      return Response.json(
+        {
+          error: "AI жауабы бос келді",
+          detail: rawText.slice(0, 1000)
+        },
+        { status: 200 }
+      );
+    }
+
+    return Response.json({
+      reply: replyText.trim()
+    });
+
   } catch (err) {
     return Response.json(
-      { error: "Жалпы кате", detail: (err && err.message) ? err.message : String(err) },
+      {
+        error: "Жалпы қате",
+        detail: err?.message || String(err)
+      },
       { status: 200 }
     );
   }
-}
+         }
