@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import NavMenu from "./NavMenu";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -354,6 +355,8 @@ export default function Home() {
         .noghai-input:focus { outline: none; border-color: ${colors.gold} !important; }
       `}</style>
 
+      <NavMenu />
+
       {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <NogaiMark size={40} />
@@ -593,6 +596,4 @@ export default function Home() {
                 <div>
                   MACD:{" "}
                   <span
-                    style={{
-                      color:
-                 
+                    sty
