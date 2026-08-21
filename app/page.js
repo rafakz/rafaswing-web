@@ -596,4 +596,371 @@ export default function Home() {
                 <div>
                   MACD:{" "}
                   <span
-                    sty
+                    style={{
+                      color:
+                        typeof data.technicals.macd === "number" && data.technicals.macd > 0
+                          ? colors.gain
+                          : colors.loss,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {safeNum(data.technicals.macd, 2)}
+                  </span>
+                </div>
+                <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
+                <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
+                {typeof data.technicals.ema20 === "number" || typeof data.technicals.ema50 === "number" || typeof data.technicals.ema200 === "number" ? (
+                  <>
+                    <div>EMA20: ${safeNum(data.technicals.ema20, 2)}</div>
+                    <div>EMA50: ${safeNum(data.technicals.ema50, 2)}</div>
+                    <div>EMA200: ${safeNum(data.technicals.ema200, 2)}</div>
+                  </>
+                ) : null}
+                {data.volume && typeof data.volume === "object" ? (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    Volume:{" "}
+                    <span
+                      style={{
+                        color:
+                          typeof data.volume.ratio === "number" && data.volume.ratio > 1.5
+                            ? colors.gainBright
+                            : typeof data.volume.ratio === "number" && data.volume.ratio < 0.7
+                            ? colors.textFaint
+                            : colors.textPrimary,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {typeof data.volume.latest === "number"
+                        ? (data.volume.latest / 1e6).toFixed(2) + "M"
+                        : "—"}
+                    </span>
+                    {typeof data.volume.ratio === "number" ? (
+                      <span style={{ color: colors.textFaint }}>
+                        {" "}
+                        (орташадан {data.volume.ratio}×)
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {signal ? (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    background: colors.bg,
+                    border: `1px solid ${signal.color}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "bold",
+                      color: signal.color,
+                      marginBottom: "6px",
+                      fontFamily: fontMono,
+                      letterSpacing: "0.3px",
+                    }}
+                  >
+                    Сигнал: {signal.label}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.78rem", color: colors.textMuted }}>
+                    {signal.reasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* ---------- SENTIMENT ---------- */}
+          {data.sentiment && typeof data.sentiment === "object" && typeof data.sentiment.bullishPercent === "number" ? (
+            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
+              Sentiment:{" "}
+              <span style={{ color: colors.gain, fontWeight: "bold" }}>▲ {data.sentiment.bullishPercent}%</span>
+              {"  "}
+              <span style={{ color: colors.loss, fontWeight: "bold" }}>▼ {data.sentiment.bearishPercent}%</span>
+            </div>
+          ) : null}
+
+          {/* ---------- SWING SCORE ---------- */}
+          {typeof data.swingScore === "number" ? (
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "14px",
+                borderRadius: "10px",
+                background: colors.bg,
+                border: `1px solid ${colors.border}`,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: "0.72rem", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "6px" }}>
+                Swing Score
+              </div>
+              <div
+                style={{
+                  fontSize: "2.2rem",
+                  fontWeight: "bold",
+                  fontFamily: fontMono,
+                  color:
+                    data.swingScore >= 65 ? colors.gain : data.swingScore <= 35 ? colors.loss : colors.hold,
+                }}
+              >
+                {data.swingScore}
+                <span style={{ fontSize: "1rem", color: colors.textFaint }}> /100</span>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ---------- ENTRY / STOP LOSS / TAKE PROFIT ---------- */}
+          {data.tradePlan && typeof data.tradePlan === "object" ? (
+            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: "bold",
+                  marginBottom: "12px",
+                  color: colors.gold,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                }}
+              >
+                Сауда жоспары
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  fontSize: "0.85rem",
+                  fontFamily: fontMono,
+                }}
+              >
+                <div style={{ color: colors.textPrimary }}>Entry: ${safeNum(data.tradePlan.entry, 2)}</div>
+                <div style={{ color: colors.loss }}>Stop Loss: ${safeNum(data.tradePlan.stopLoss, 2)}</div>
+                <div style={{ color: colors.gain }}>TP1: ${safeNum(data.tradePlan.takeProfit1, 2)}</div>
+                <div style={{ color: colors.gainBright }}>TP2: ${safeNum(data.tradePlan.takeProfit2, 2)}</div>
+              </div>
+              {typeof data.tradePlan.riskReward === "number" ? (
+                <div style={{ marginTop: "8px", fontSize: "0.78rem", color: colors.textFaint, fontFamily: fontMono }}>
+                  Risk/Reward: 1:{data.tradePlan.riskReward}
+                </div>
+              ) : null}
+              <div style={{ marginTop: "8px", fontSize: "0.68rem", color: colors.textFaint }}>
+                ⚠ Бұл автоматты есептеу, инвестиция кеңесі емес.
+              </div>
+            </div>
+          ) : null}
+
+          {/* ---------- AI ҚОРЫТЫНДЫ ---------- */}
+          <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+            <button
+              onClick={getAiSummary}
+              disabled={aiLoading}
+              className="noghai-search-btn"
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "10px",
+                border: `1px solid ${colors.gold}`,
+                background: "transparent",
+                color: colors.gold,
+                fontWeight: "bold",
+                fontSize: "0.85rem",
+                fontFamily: fontBody,
+                cursor: aiLoading ? "default" : "pointer",
+              }}
+            >
+              {aiLoading ? "Талдау жасалуда..." : "🤖 AI қорытынды алу"}
+            </button>
+
+            {aiError ? (
+              <p style={{ marginTop: "10px", color: colors.lossBright, fontSize: "0.8rem" }}>{aiError}</p>
+            ) : null}
+
+            {aiSummary ? (
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                  fontSize: "0.85rem",
+                  color: colors.textPrimary,
+                  lineHeight: "1.5",
+                }}
+              >
+                {aiSummary}
+              </div>
+            ) : null}
+          </div>
+
+          {/* ---------- ЖАНАЛЫҚТАР ---------- */}
+          <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+            <div
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                marginBottom: "12px",
+                color: colors.gold,
+                textTransform: "uppercase",
+                letterSpacing: "0.6px",
+              }}
+            >
+              Соңғы жаңалықтар
+            </div>
+
+            {newsLoading ? <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>Жаңалықтар жүктелуде...</p> : null}
+
+            {!newsLoading && !hasNews ? (
+              <p style={{ color: colors.textFaint, fontSize: "0.85rem" }}>Соңғы 7 күнде жаңалық табылмады.</p>
+            ) : null}
+
+            {!newsLoading && hasNews ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {news.map((item, i) => (
+                  <a
+                    key={i}
+                    href={item && item.url ? item.url : "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="noghai-news-item"
+                    style={{
+                      display: "block",
+                      textDecoration: "none",
+                      color: "inherit",
+                      background: colors.bg,
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      border: `1px solid ${colors.border}`,
+                    }}
+                  >
+                    <div style={{ fontSize: "0.85rem", color: colors.textPrimary, lineHeight: "1.35", marginBottom: "6px" }}>
+                      {item && item.headline ? item.headline : ""}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.68rem",
+                        color: colors.textFaint,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontFamily: fontMono,
+                      }}
+                    >
+                      <span>{item && item.source ? item.source : ""}</span>
+                      <span>{item ? formatNewsDate(item.datetime) : ""}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ---------- ЧАТ ---------- */}
+      <div
+        className="noghai-card"
+        style={{
+          marginTop: "26px",
+          width: "100%",
+          maxWidth: "360px",
+          background: colors.card,
+          borderRadius: "16px",
+          padding: "20px",
+          border: `1px solid ${colors.border}`,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: "bold",
+            marginBottom: "12px",
+            color: colors.gold,
+            textTransform: "uppercase",
+            letterSpacing: "0.6px",
+          }}
+        >
+          💬 AI-мен сөйлесу
+        </div>
+
+        {chatMessages.length === 0 ? (
+          <p style={{ color: colors.textFaint, fontSize: "0.8rem", marginBottom: "12px" }}>
+            Сауда, акциялар немесе талдау туралы сұрағыңды жаз.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
+            {chatMessages.map((m, i) => (
+              <div
+                key={i}
+                style={{
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                  background: m.role === "user" ? colors.gold : colors.bg,
+                  color: m.role === "user" ? colors.bg : colors.textPrimary,
+                  border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
+                  borderRadius: "10px",
+                  padding: "8px 12px",
+                  fontSize: "0.82rem",
+                  lineHeight: "1.4",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {m.text}
+              </div>
+            ))}
+            {chatLoading ? (
+              <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.8rem" }}>
+                Жазып жатыр...
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px" }}>
+          <input
+            className="noghai-input"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Сұрағыңды жаз..."
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: "10px",
+              border: `1px solid ${colors.border}`,
+              background: colors.bg,
+              color: colors.textPrimary,
+              fontSize: "0.85rem",
+              fontFamily: fontBody,
+            }}
+          />
+          <button
+            type="submit"
+            disabled={chatLoading}
+            className="noghai-search-btn"
+            style={{
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "none",
+              background: colors.gold,
+              color: colors.bg,
+              fontWeight: "bold",
+              fontSize: "0.85rem",
+              fontFamily: fontBody,
+              cursor: chatLoading ? "default" : "pointer",
+            }}
+          >
+            Жіберу
+          </button>
+        </form>
+      </div>
+
+      <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© Ноғай — дала рухымен сауда</p>
+    </main>
+  );
+}
