@@ -33,6 +33,11 @@ export default function NewsPage() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState({});
+
+  function toggleExpand(id) {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   async function loadNews() {
     setLoading(true);
@@ -93,45 +98,78 @@ export default function NewsPage() {
       {error ? <p style={{ color: "#E2764C" }}>{error}</p> : null}
 
       <div style={{ width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "14px" }}>
-        {news.map((item, i) => (
-          <a
-            key={item.id || i}
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "block",
-              textDecoration: "none",
-              color: colors.textPrimary,
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "12px",
-              padding: "14px",
-            }}
-          >
-            <div style={{ display: "flex", gap: "12px" }}>
-              {item.image ? (
-                <img
-                  src={item.image}
-                  alt=""
-                  width={72}
-                  height={72}
-                  style={{ borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
-                />
-              ) : null}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "0.9rem", fontWeight: "600", lineHeight: "1.3", marginBottom: "6px" }}>
-                  {item.headline}
-                </div>
-                <div style={{ fontSize: "0.7rem", color: colors.textFaint, display: "flex", gap: "8px" }}>
-                  <span>{item.source}</span>
-                  <span>·</span>
-                  <span>{timeAgo(item.datetime)}</span>
+        {news.map((item, i) => {
+          const id = item.id || i;
+          const isOpen = !!expanded[id];
+          return (
+            <div
+              key={id}
+              style={{
+                background: colors.card,
+                border: `1px solid ${colors.border}`,
+                borderRadius: "12px",
+                padding: "14px",
+              }}
+            >
+              <div
+                onClick={() => toggleExpand(id)}
+                style={{ display: "flex", gap: "12px", cursor: "pointer" }}
+              >
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt=""
+                    width={72}
+                    height={72}
+                    style={{ borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : null}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: "600", lineHeight: "1.3", marginBottom: "6px" }}>
+                    {item.headline}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: colors.textFaint, display: "flex", gap: "8px" }}>
+                    <span>{item.source}</span>
+                    <span>·</span>
+                    <span>{timeAgo(item.datetime)}</span>
+                    {item.summary ? (
+                      <span style={{ color: colors.gold, marginLeft: "auto" }}>
+                        {isOpen ? "Жасыру ▲" : "Толығырақ ▼"}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
+
+              {isOpen && item.summary ? (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    paddingTop: "10px",
+                    borderTop: `1px solid ${colors.border}`,
+                    fontSize: "0.82rem",
+                    color: colors.textMuted,
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {item.summary}
+                  {item.url ? (
+                    <div style={{ marginTop: "10px" }}>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: colors.goldBright, fontSize: "0.78rem", textDecoration: "none" }}
+                      >
+                        Түпнұсқа дереккөзге өту →
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-          </a>
-        ))}
+          );
+        })}
       </div>
 
       {!loading && news.length === 0 && !error ? (
