@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { supabase } from "./supabaseClient";
 
 const colors = {
   bg: "#0B0F1A",
@@ -17,12 +18,33 @@ const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const links = [
   { href: "/", label: "Басты бет", icon: "🏠" },
+  { href: "/watchlist", label: "Таңдаулылар", icon: "⭐" },
   { href: "/news", label: "Жаңалықтар", icon: "📰" },
   { href: "/lessons", label: "Уроки", icon: "🎓" },
 ];
 
 export default function NavMenu() {
   const [open, setOpen] = useState(false);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data ? data.session : null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => {
+      if (listener && listener.subscription) listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setOpen(false);
+  }
 
   return (
     <>
@@ -104,8 +126,61 @@ export default function NavMenu() {
           </Link>
         ))}
 
-        <div style={{ marginTop: "auto", padding: "0 22px", color: colors.textMuted, fontSize: "0.7rem" }}>
-          © Ноғай — дала рухымен сауда
+        <div style={{ marginTop: "auto", borderTop: `1px solid ${colors.border}`, paddingTop: "14px" }}>
+          {session && session.user ? (
+            <>
+              <div
+                style={{
+                  padding: "0 22px 10px 22px",
+                  color: colors.textMuted,
+                  fontSize: "0.72rem",
+                  wordBreak: "break-all",
+                }}
+              >
+                {session.user.email}
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "10px 22px",
+                  color: colors.textPrimary,
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "0.9rem",
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: "1.1rem" }}>🚪</span>
+                <span>Шығу</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 22px",
+                color: colors.goldBright,
+                textDecoration: "none",
+                fontSize: "0.9rem",
+              }}
+            >
+              <span style={{ fontSize: "1.1rem" }}>👤</span>
+              <span>Кіру / Тіркелу</span>
+            </Link>
+          )}
+
+          <div style={{ padding: "10px 22px 0 22px", color: colors.textMuted, fontSize: "0.65rem" }}>
+            © Ноғай — дала рухымен сауда
+          </div>
         </div>
       </nav>
     </>
