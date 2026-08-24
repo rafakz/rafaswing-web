@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import { supabase } from "./supabaseClient";
 
 const colors = {
-  bg: "#0B0F1A",
-  card: "#141B2E",
-  border: "#263248",
-  gold: "#C9A227",
+  bg: "#0B132B",
+  card: "#0F1A3D",
+  border: "#1E3A8A",
+  gold: "#D4AF37",
   goldBright: "#E8C468",
   accentBlue: "#1E3A8A",
   textPrimary: "#F5F1E6",
