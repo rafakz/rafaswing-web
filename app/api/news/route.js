@@ -1,14 +1,67 @@
-async function translateToKazakh(text) {
-  if (!text) return text;
+async function translateHeadlines(items, apiKey) {
+  if (!apiKey || items.length === 0) return items;
+
+  var numbered = items
+    .map(function (it, i) {
+      return (i + 1) + ". " + it.headline;
+    })
+    .join("\n");
+
+  var prompt =
+    "Мына акша-нарық жаңалықтарының тақырыптарын қазақ тіліне аудар. " +
+    "Тек аударманы қайтар, әр жолды нөмірімен бірге, басқа ешнәрсе жазба:\n\n" +
+    numbered;
+
+  var geminiUrl =
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+    apiKey;
+
   try {
-    var url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=kk&dt=t&q=" + encodeURIComponent(text);
-    var res = await fetch(url);
-    if (!res.ok) return text;
+    var res = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      }),
+    });
+
+    if (!res.ok) return items;
+
     var data = await res.json();
-    var translated = data[0].map(function (chunk) { return chunk[0]; }).join("");
-    return translated || text;
+    var text = "";
+    if (
+      data &&
+      Array.isArray(data.candidates) &&
+      data.candidates[0] &&
+      data.candidates[0].content &&
+      Array.isArray(data.candidates[0].content.parts)
+    ) {
+      for (var i = 0; i < data.candidates[0].content.parts.length; i++) {
+        var part = data.candidates[0].content.parts[i];
+        if (part && typeof part.text === "string") text += part.text;
+      }
+    }
+
+    if (!text) return items;
+
+    var lines = text.split("\n").filter(function (l) {
+      return l.trim().length > 0;
+    });
+
+    var translatedMap = {};
+    lines.forEach(function (line) {
+      var match = line.match(/^\s*(\d+)\.\s*(.+)$/);
+      if (match) {
+        translatedMap[parseInt(match[1], 10)] = match[2].trim();
+      }
+    });
+
+    return items.map(function (it, i) {
+      var translated = translatedMap[i + 1];
+      return translated ? Object.assign({}, it, { headline: translated }) : it;
+    });
   } catch (err) {
-    return text;
+    return items;
   }
 }
 
@@ -21,6 +74,7 @@ export async function GET(request) {
   }
 
   var apiKey = process.env.FINNHUB_API_KEY;
+  var geminiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return Response.json(
@@ -66,22 +120,19 @@ export async function GET(request) {
       return Response.json({ symbol: symbol, news: [] });
     }
 
-    var topItems = newsData.slice(0, 6);
+    var topItems = newsData.slice(0, 6).map(function (item) {
+      return {
+        headline: item.headline,
+        headlineOriginal: item.headline,
+        source: item.source,
+        url: item.url,
+        datetime: item.datetime,
+      };
+    });
 
-    var news = await Promise.all(
-      topItems.map(async function (item) {
-        var kkHeadline = await translateToKazakh(item.headline);
-        return {
-          headline: kkHeadline,
-          headlineOriginal: item.headline,
-          source: item.source,
-          url: item.url,
-          datetime: item.datetime
-        };
-      })
-    );
+    var translated = await translateHeadlines(topItems, geminiKey);
 
-    return Response.json({ symbol: symbol, news: news });
+    return Response.json({ symbol: symbol, news: translated });
   } catch (err) {
     return Response.json(
       {
