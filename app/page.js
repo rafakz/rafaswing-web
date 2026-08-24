@@ -5,10 +5,10 @@ import NavMenu from "./NavMenu";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
-  bg: "#0B0F1A",
-  card: "#141B2E",
-  border: "#263248",
-  gold: "#C9A227",
+  bg: "#0B132B",
+  card: "#0F1A3D",
+  border: "#1E3A8A",
+  gold: "#D4AF37",
   goldBright: "#E8C468",
   textPrimary: "#F5F1E6",
   textMuted: "#8A93A6",
@@ -25,7 +25,7 @@ const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
 
 /* ---------- Логотип ---------- */
-function NogaiMark({ size = 40 }) {
+function TradeIQMark({ size = 40 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="38" cy="9" r="3" fill={colors.gold} />
@@ -346,20 +346,20 @@ export default function Home() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .noghai-card { animation: fadeInUp 0.4s ease-out; }
-        .noghai-news-item { transition: border-color 0.15s ease, transform 0.15s ease; }
-        .noghai-news-item:hover { border-color: ${colors.gold} !important; transform: translateX(2px); }
-        .noghai-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
-        .noghai-search-btn:hover { filter: brightness(1.12); }
-        .noghai-search-btn:active { transform: scale(0.97); }
-        .noghai-input:focus { outline: none; border-color: ${colors.gold} !important; }
+        .tradeiq-card { animation: fadeInUp 0.4s ease-out; }
+        .tradeiq-news-item { transition: border-color 0.15s ease, transform 0.15s ease; }
+        .tradeiq-news-item:hover { border-color: ${colors.gold} !important; transform: translateX(2px); }
+        .tradeiq-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
+        .tradeiq-search-btn:hover { filter: brightness(1.12); }
+        .tradeiq-search-btn:active { transform: scale(0.97); }
+        .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
       `}</style>
 
       <NavMenu />
 
       {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <NogaiMark size={40} />
+        <TradeIQMark size={40} />
         <h1
           style={{
             fontFamily: fontDisplay,
@@ -370,11 +370,14 @@ export default function Home() {
             color: colors.textPrimary,
           }}
         >
-          Ноғай
+          TradeIQ
         </h1>
       </div>
-      <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.85rem", letterSpacing: "0.3px" }}>
-        Дала дәстүрінен жылдамдық пен дәлдік
+      <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.7rem", letterSpacing: "1.5px", fontWeight: "600" }}>
+        AI-POWERED TRADING
+      </p>
+      <p style={{ color: colors.textPrimary, marginTop: "10px", marginBottom: "2px", fontSize: "0.9rem" }}>
+        Ақылды инвестиция. Нақты талдау.
       </p>
       <p style={{ color: colors.textFaint, marginBottom: "26px", fontSize: "0.75rem" }}>
         Свинг-трейдинг және инвестиция платформасы
@@ -383,7 +386,7 @@ export default function Home() {
       {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
       <form onSubmit={searchStock} style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "360px" }}>
         <input
-          className="noghai-input"
+          className="tradeiq-input"
           value={ticker}
           onChange={(e) => setTicker(e.target.value)}
           placeholder="Ticker жаз (мыс. AAPL)"
@@ -400,7 +403,7 @@ export default function Home() {
         />
         <button
           type="submit"
-          className="noghai-search-btn"
+          className="tradeiq-search-btn"
           style={{
             padding: "12px 22px",
             borderRadius: "10px",
@@ -423,7 +426,7 @@ export default function Home() {
 
       {data ? (
         <div
-          className="noghai-card"
+          className="tradeiq-card"
           style={{
             marginTop: "26px",
             width: "100%",
@@ -761,7 +764,7 @@ export default function Home() {
             <button
               onClick={getAiSummary}
               disabled={aiLoading}
-              className="noghai-search-btn"
+              className="tradeiq-search-btn"
               style={{
                 width: "100%",
                 padding: "10px",
@@ -829,7 +832,7 @@ export default function Home() {
                     href={item && item.url ? item.url : "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="noghai-news-item"
+                    className="tradeiq-news-item"
                     style={{
                       display: "block",
                       textDecoration: "none",
@@ -865,7 +868,7 @@ export default function Home() {
 
       {/* ---------- ЧАТ ---------- */}
       <div
-        className="noghai-card"
+        className="tradeiq-card"
         style={{
           marginTop: "26px",
           width: "100%",
@@ -924,7 +927,7 @@ export default function Home() {
 
         <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px" }}>
           <input
-            className="noghai-input"
+            className="tradeiq-input"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Сұрағыңды жаз..."
@@ -942,7 +945,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={chatLoading}
-            className="noghai-search-btn"
+            className="tradeiq-search-btn"
             style={{
               padding: "10px 16px",
               borderRadius: "10px",
@@ -960,7 +963,7 @@ export default function Home() {
         </form>
       </div>
 
-      <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© Ноғай — дала рухымен сауда</p>
+      <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
     </main>
   );
 }
