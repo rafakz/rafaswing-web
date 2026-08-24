@@ -105,33 +105,12 @@ export default function NavMenu() {
           fontFamily: fontBody,
         }}
       >
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            onClick={() => setOpen(false)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "14px 22px",
-              color: colors.textPrimary,
-              textDecoration: "none",
-              fontSize: "0.95rem",
-              borderLeft: `3px solid transparent`,
-            }}
-          >
-            <span style={{ fontSize: "1.1rem" }}>{l.icon}</span>
-            <span>{l.label}</span>
-          </Link>
-        ))}
-
-        <div style={{ marginTop: "auto", borderTop: `1px solid ${colors.border}`, paddingTop: "14px" }}>
+        <div style={{ borderBottom: `1px solid ${colors.border}`, paddingBottom: "10px", marginBottom: "6px" }}>
           {session && session.user ? (
             <>
               <div
                 style={{
-                  padding: "0 22px 10px 22px",
+                  padding: "0 22px 8px 22px",
                   color: colors.textMuted,
                   fontSize: "0.72rem",
                   wordBreak: "break-all",
@@ -170,17 +149,39 @@ export default function NavMenu() {
                 padding: "10px 22px",
                 color: colors.goldBright,
                 textDecoration: "none",
-                fontSize: "0.9rem",
+                fontSize: "0.95rem",
+                fontWeight: "bold",
               }}
             >
               <span style={{ fontSize: "1.1rem" }}>👤</span>
               <span>Кіру / Тіркелу</span>
             </Link>
           )}
+        </div>
 
-          <div style={{ padding: "10px 22px 0 22px", color: colors.textMuted, fontSize: "0.65rem" }}>
-            © Ноғай — дала рухымен сауда
-          </div>
+        {links.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            onClick={() => setOpen(false)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "14px 22px",
+              color: colors.textPrimary,
+              textDecoration: "none",
+              fontSize: "0.95rem",
+              borderLeft: `3px solid transparent`,
+            }}
+          >
+            <span style={{ fontSize: "1.1rem" }}>{l.icon}</span>
+            <span>{l.label}</span>
+          </Link>
+        ))}
+
+        <div style={{ marginTop: "auto", padding: "10px 22px 0 22px", color: colors.textMuted, fontSize: "0.65rem" }}>
+          © Ноғай — дала рухымен сауда
         </div>
       </nav>
     </>
