@@ -5,10 +5,10 @@ import NavMenu from "./NavMenu";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
-  bg: "#0B132B",
-  card: "#0F1A3D",
-  border: "#1E3A8A",
-  gold: "#D4AF37",
+  bg: "#0B0F1A",
+  card: "#141B2E",
+  border: "#263248",
+  gold: "#C9A227",
   goldBright: "#E8C468",
   textPrimary: "#F5F1E6",
   textMuted: "#8A93A6",
@@ -25,945 +25,205 @@ const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
 
 /* ---------- Логотип ---------- */
-function TradeIQMark({ size = 40 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="38" cy="9" r="3" fill={colors.gold} />
-      <path
-        d="M3 33 L12 21 L18 27 L26 13 L34 23 L45 17"
-        stroke={colors.gold}
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <line x1="3" y1="40" x2="45" y2="40" stroke={colors.border} strokeWidth="1.4" />
-    </svg>
-  );
-}
+function NogaiMark({ size = 40 }) {
+  const tradeiqNav = [
+    { label: "Басты бет", icon: "⌂" },
+    { label: "Нарықтар", icon: "▥" },
+    { label: "Таңдаулылар", icon: "☆" },
+    { label: "Портфель", icon: "▣" },
+    { label: "Скринер", icon: "⌕" },
+    { label: "Жаңалықтар", icon: "▤" },
+    { label: "AI талдау", icon: "✦" },
+    { label: "Оқу орталығы", icon: "▢" },
+    { label: "Параметр", icon: "⚙" },
+  ];
 
-/* ---------- Sparkline (толығымен қорғалған) ---------- */
-function Sparkline({ history, isUp }) {
-  if (!Array.isArray(history) || history.length < 2) return null;
-
-  const closes = history
-    .map((h) => (h && typeof h.close === "number" ? h.close : null))
-    .filter((c) => c !== null && !isNaN(c));
-
-  if (closes.length < 2) return null;
-
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
-  const range = max - min || 1;
-
-  const width = 320;
-  const height = 64;
-  const padY = 6;
-
-  const points = closes.map((c, i) => {
-    const x = (i / (closes.length - 1)) * width;
-    const y = padY + (1 - (c - min) / range) * (height - padY * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-
-  const lineColor = isUp ? colors.gain : colors.loss;
-  const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
+  const marketCards = [
+    { symbol: "AAPL", name: "Apple Inc.", price: "178.85", change: "+2.34%", icon: "A" },
+    { symbol: "MSFT", name: "Microsoft Corp.", price: "426.78", change: "+1.87%", icon: "M" },
+    { symbol: "NVDA", name: "NVIDIA Corp.", price: "952.41", change: "+3.21%", icon: "N" },
+    { symbol: "TSLA", name: "Tesla, Inc.", price: "248.48", change: "+4.56%", icon: "T" },
+  ];
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      height={height}
-      preserveAspectRatio="none"
-      style={{ display: "block", marginTop: "14px" }}
-    >
-      <polygon points={areaPoints} fill={lineColor} opacity="0.08" />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/* ---------- Сигнал есептеу (толығымен қорғалған) ---------- */
-function getSignal(technicals, currentPrice) {
-  if (!technicals || typeof technicals !== "object") return null;
-
-  const rsi = typeof technicals.rsi === "number" ? technicals.rsi : null;
-  const sma20 = typeof technicals.sma20 === "number" ? technicals.sma20 : null;
-  const sma50 = typeof technicals.sma50 === "number" ? technicals.sma50 : null;
-  const macd = typeof technicals.macd === "number" ? technicals.macd : null;
-  const price = typeof currentPrice === "number" ? currentPrice : null;
-
-  let score = 0;
-  const reasons = [];
-
-  if (rsi !== null) {
-    if (rsi < 30) {
-      score += 2;
-      reasons.push("RSI артық сатылған аймақта (< 30)");
-    } else if (rsi > 70) {
-      score -= 2;
-      reasons.push("RSI артық сатып алынған аймақта (> 70)");
-    }
-  }
-
-  if (macd !== null) {
-    if (macd > 0) {
-      score += 1;
-      reasons.push("MACD оң аймақта — өсу үрдісі");
-    } else {
-      score -= 1;
-      reasons.push("MACD теріс аймақта — төмендеу үрдісі");
-    }
-  }
-
-  if (sma20 !== null && sma50 !== null) {
-    if (sma20 > sma50) {
-      score += 1;
-      reasons.push("SMA20 > SMA50 — қысқа мерзімді үрдіс жоғары");
-    } else {
-      score -= 1;
-      reasons.push("SMA20 < SMA50 — қысқа мерзімді үрдіс төмен");
-    }
-  }
-
-  if (sma20 !== null && price !== null) {
-    if (price > sma20) {
-      score += 1;
-    } else {
-      score -= 1;
-    }
-  }
-
-  if (reasons.length === 0) return null;
-
-  let label = "ҰСТАУ";
-  let color = colors.hold;
-
-  if (score >= 3) {
-    label = "СЕНІМДІ САТЫП АЛУ";
-    color = colors.gain;
-  } else if (score >= 1) {
-    label = "САТЫП АЛУ";
-    color = colors.gainBright;
-  } else if (score <= -3) {
-    label = "СЕНІМДІ САТУ";
-    color = colors.loss;
-  } else if (score <= -1) {
-    label = "САТУ";
-    color = colors.lossBright;
-  }
-
-  return { label, color, reasons };
-}
-
-function formatNewsDate(unixSeconds) {
-  if (!unixSeconds || typeof unixSeconds !== "number") return "";
-  try {
-    const d = new Date(unixSeconds * 1000);
-    return d.toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" });
-  } catch (e) {
-    return "";
-  }
-}
-
-function safeNum(v, digits) {
-  if (typeof v !== "number" || isNaN(v)) return "—";
-  return v.toFixed(digits);
-}
-
-export default function Home() {
-  const [ticker, setTicker] = useState("");
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [news, setNews] = useState([]);
-  const [newsLoading, setNewsLoading] = useState(false);
-
-  const [aiSummary, setAiSummary] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
-
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
-
-  async function searchStock(e) {
-    e.preventDefault();
-    if (!ticker.trim()) return;
-
-    const symbol = ticker.trim().toUpperCase();
-
-    setLoading(true);
-    setError("");
-    setData(null);
-    setNews([]);
-    setAiSummary("");
-    setAiError("");
-    setChatMessages([]);
-    setChatInput("");
-    setChatError("");
-
-    try {
-      const res = await fetch(`/api/stock?symbol=${symbol}`);
-      const json = await res.json();
-
-      if (!res.ok) {
-        setError((json && json.error) || "Қате шықты");
-      } else {
-        setData(json);
-      }
-    } catch (err) {
-      setError("Байланыс қатесі");
-    } finally {
-      setLoading(false);
-    }
-
-    setNewsLoading(true);
-    try {
-      const newsRes = await fetch(`/api/news?symbol=${symbol}`);
-      const newsJson = await newsRes.json();
-      if (newsRes.ok && newsJson && Array.isArray(newsJson.news)) {
-        setNews(newsJson.news);
-      }
-    } catch (err) {
-      // үнсіз қалдырамыз
-    } finally {
-      setNewsLoading(false);
-    }
-  }
-
-  async function getAiSummary() {
-    if (!data) return;
-    setAiLoading(true);
-    setAiError("");
-    setAiSummary("");
-
-    try {
-      const signal = getSignal(data.technicals, data.currentPrice);
-      const res = await fetch("/api/summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbol: data.symbol,
-          name: data.name,
-          currentPrice: data.currentPrice,
-          changePercent: data.changePercent,
-          technicals: data.technicals,
-          fundamentals: data.fundamentals,
-          swingScore: data.swingScore,
-          tradePlan: data.tradePlan,
-          signalLabel: signal ? signal.label : ""
-        }),
-      });
-      const json = await res.json();
-      if (json && json.error) {
-        setAiError(json.error + (json.detail ? " — " + json.detail : ""));
-      } else if (json && json.summary) {
-        setAiSummary(json.summary);
-      } else {
-        setAiError("Белгісіз жауап");
-      }
-    } catch (err) {
-      setAiError("Байланыс қатесі");
-    } finally {
-      setAiLoading(false);
-    }
-  }
-
-  async function sendChatMessage(e) {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text || chatLoading) return;
-
-    const newMessages = [...chatMessages, { role: "user", text: text }];
-    setChatMessages(newMessages);
-    setChatInput("");
-    setChatLoading(true);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages,
-          stockContext: data
-            ? {
-                symbol: data.symbol,
-                name: data.name,
-                currentPrice: data.currentPrice,
-                technicals: data.technicals,
-                swingScore: data.swingScore,
-              }
-            : null,
-        }),
-      });
-      const json = await res.json();
-      if (json && json.error) {
-        setChatMessages([
-          ...newMessages,
-          { role: "assistant", text: "Қате: " + json.error + (json.detail ? " — " + json.detail : "") },
-        ]);
-      } else if (json && json.reply) {
-        setChatMessages([...newMessages, { role: "assistant", text: json.reply }]);
-      }
-    } catch (err) {
-      setChatMessages([...newMessages, { role: "assistant", text: "Байланыс қатесі болды." }]);
-    } finally {
-      setChatLoading(false);
-    }
-  }
-
-  const isUp = !!(data && typeof data.change === "number" && data.change >= 0);
-  const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
-  const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
-  const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
-  const hasNews = Array.isArray(news) && news.length > 0;
-
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.textPrimary,
-        padding: "32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        fontFamily: fontBody,
-      }}
-    >
+    <main style={{ minHeight: "100vh", background: "#050B16", color: "#EEF5FF", fontFamily: fontBody }}>
       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .tradeiq-card { animation: fadeInUp 0.4s ease-out; }
-        .tradeiq-news-item { transition: border-color 0.15s ease, transform 0.15s ease; }
-        .tradeiq-news-item:hover { border-color: ${colors.gold} !important; transform: translateX(2px); }
-        .tradeiq-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
-        .tradeiq-search-btn:hover { filter: brightness(1.12); }
-        .tradeiq-search-btn:active { transform: scale(0.97); }
-        .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
+        *{box-sizing:border-box}
+        body{margin:0;background:#050B16}
+        .tq-shell{min-height:100vh;display:flex}
+        .tq-side{width:208px;flex:0 0 208px;background:#061022;border-right:1px solid #102447;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+        .tq-logo{text-align:center;margin-bottom:28px}
+        .tq-logo-mark{font-size:30px;font-weight:900;color:#2684FF;letter-spacing:-5px}
+        .tq-logo-name{font-size:23px;font-weight:800;letter-spacing:2px;margin-top:4px}
+        .tq-logo-sub{font-size:7px;color:#7186A4;letter-spacing:1px;margin-top:4px}
+        .tq-nav{display:flex;flex-direction:column;gap:4px}
+        .tq-nav button{border:1px solid transparent;background:transparent;color:#AABBD1;padding:10px;border-radius:9px;display:flex;gap:11px;align-items:center;text-align:left;font-size:11px;cursor:pointer}
+        .tq-nav button:hover,.tq-nav button.active{background:#0A1D3D;border-color:#123E80;color:#fff}
+        .tq-nav button.active{box-shadow:inset 2px 0 #2182FF}
+        .tq-nav-icon{width:19px;text-align:center;color:#7E93B0;font-size:16px}
+        .tq-nav button.active .tq-nav-icon{color:#2584FF}
+        .tq-side-bottom{margin-top:auto}
+        .tq-side-note{border:1px solid #102447;border-radius:8px;padding:9px;color:#7F92AF;font-size:9px;display:flex;justify-content:space-between}
+        .tq-profile{margin-top:9px;border:1px solid #102447;border-radius:9px;padding:10px;display:flex;gap:8px;align-items:center}
+        .tq-avatar{width:30px;height:30px;border-radius:50%;background:#163A69;display:flex;align-items:center;justify-content:center}
+        .tq-main{flex:1;min-width:0;max-width:1500px;margin:auto;padding:25px 25px 70px;width:100%}
+        .tq-top{display:flex;justify-content:space-between;gap:20px}
+        .tq-title{font-size:24px;font-weight:500;line-height:1.2}
+        .tq-subtitle{color:#7E92AE;font-size:11px;margin-top:7px}
+        .tq-indices{display:flex;gap:28px}
+        .tq-index span{display:block;color:#70839F;font-size:8px;margin-bottom:5px}
+        .tq-index strong{font-size:11px;font-weight:500;display:block}
+        .tq-up{color:#18D27B}
+        .tq-searchbar{display:flex;gap:9px;margin:22px 0 15px}
+        .tq-search{height:44px;flex:1;min-width:0;border:1px solid #163157;background:#07152A;border-radius:9px;color:#fff;padding:0 15px;font-size:12px}
+        .tq-search:focus{outline:none;border-color:#1677FF}
+        .tq-btn{height:44px;border:0;border-radius:9px;background:#1267D8;color:white;font-weight:600;padding:0 22px;cursor:pointer}
+        .tq-grid{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:13px}
+        .tq-card{background:#061329;border:1px solid #10294D;border-radius:12px}
+        .tq-head{display:flex;justify-content:space-between;align-items:center;padding:13px 15px}
+        .tq-head strong{font-size:13px}
+        .tq-link{color:#2681FF;font-size:9px}
+        .tq-markets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 8px 11px}
+        .tq-market{border:1px solid #122B50;background:#07172E;border-radius:9px;padding:10px;cursor:pointer}
+        .tq-market:hover{border-color:#1769D9}
+        .tq-market-top{display:flex;gap:7px;align-items:center}
+        .tq-market-icon{width:25px;height:25px;border-radius:7px;background:#0D2344;display:flex;align-items:center;justify-content:center;color:#DDEAFF;font-weight:700}
+        .tq-market-symbol{font-size:11px}.tq-market-name{font-size:7px;color:#657994;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .tq-price{font-size:16px;margin-top:10px}.tq-mini{font-size:8px;color:#18D27B;margin-top:3px}
+        .tq-mini-chart{height:22px;margin-top:4px}
+        .tq-stock{padding:15px;margin-top:13px}
+        .tq-stock-head{display:flex;justify-content:space-between;gap:10px}
+        .tq-stock-left{display:flex;gap:9px;align-items:center}.tq-stock-logo{width:32px;height:32px;background:#F2F6FC;color:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .tq-symbol{font-size:19px}.tq-company{font-size:9px;color:#70839F;margin-top:3px}
+        .tq-fav{border:1px solid #123E78;background:#07172E;color:#5D9FFF;border-radius:7px;padding:7px 10px;font-size:9px}
+        .tq-current{display:flex;align-items:baseline;gap:9px;margin-top:13px}.tq-current-price{font-size:24px}.tq-current-change{font-size:10px;color:#18D27B}
+        .tq-periods{display:flex;gap:5px;margin-top:11px}.tq-period{background:#07162C;border:1px solid #102B51;color:#7F93AF;border-radius:5px;padding:5px 9px;font-size:8px}.tq-period.active{background:#1267D8;color:#fff;border-color:#1267D8}
+        .tq-chart{height:205px;margin-top:7px;border-top:1px solid #0D2343;border-bottom:1px solid #0D2343;display:flex;align-items:center;overflow:hidden;background:repeating-linear-gradient(to bottom,transparent 0,transparent 50px,rgba(44,83,133,.12) 51px),repeating-linear-gradient(to right,transparent 0,transparent 78px,rgba(44,83,133,.08) 79px)}
+        .tq-data{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 0;border-bottom:1px solid #10294D}.tq-data span,.tq-stat span{display:block;color:#6F829D;font-size:7px;margin-bottom:5px}.tq-data strong,.tq-stat strong{font-size:10px;font-weight:500}
+        .tq-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:11px}.tq-stat{border:1px solid #10294D;background:#07172E;padding:8px;border-radius:7px}
+        .tq-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.tq-action{border:1px solid #12396C;background:#07172E;color:#3288FF;padding:9px;border-radius:7px;text-align:left}.tq-action strong{display:block;font-size:9px}.tq-action span{display:block;color:#7185A0;font-size:7px;margin-top:3px}
+        .tq-ai{padding:14px}.tq-ai-head{display:flex;justify-content:space-between}.tq-ai-head strong{font-size:13px}.tq-beta{color:#2681FF;font-size:7px}
+        .tq-orb{width:105px;height:105px;border-radius:50%;margin:25px auto 17px;border:1px solid #1769D9;box-shadow:0 0 35px rgba(25,116,255,.18),inset 0 0 25px rgba(25,116,255,.12);display:flex;align-items:center;justify-content:center;color:#1D8AFF;font-size:40px}
+        .tq-ai-text{color:#A2B2C9;font-size:9px;line-height:1.6;text-align:center}.tq-suggest{width:100%;border:1px solid #15345F;background:#07172E;color:#398CFF;border-radius:7px;padding:8px;text-align:left;margin-top:7px;font-size:8px}
+        .tq-chat{display:flex;gap:5px;margin-top:8px}.tq-chat input{flex:1;min-width:0;background:#050F20;border:1px solid #15345F;color:#fff;border-radius:7px;padding:8px;font-size:8px}.tq-chat button{width:34px;border:0;border-radius:7px;background:#1267D8;color:#fff}
+        .tq-bottom{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:13px;margin-top:13px}.tq-list{padding:0 14px 13px}
+        .tq-news{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #0E2546}.tq-thumb{width:52px;height:36px;background:#0C2343;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#438EFF;flex:0 0 auto}.tq-news-title{font-size:8px;line-height:1.4}.tq-news-meta{font-size:6px;color:#647995;margin-top:3px}
+        .tq-table{width:100%;border-collapse:collapse;font-size:8px}.tq-table th{color:#657A97;font-weight:400;text-align:left;padding:7px}.tq-table td{padding:8px;border-top:1px solid #0E2546}
+        .tq-portfolio{padding:0 14px 14px}.tq-value{font-size:20px;margin:7px 0}.tq-donut{width:108px;height:108px;border-radius:50%;margin:13px auto;background:conic-gradient(#1769D9 0 40%,#2B7DE9 40% 65%,#12B7B0 65% 80%,#A8C23C 80% 90%,#F2B94B 90% 100%);position:relative}.tq-donut:after{content:"";position:absolute;inset:25px;background:#061329;border-radius:50%}
+        .tq-holding{display:flex;justify-content:space-between;color:#A6B5C9;font-size:8px;margin:5px 0}
+        .tq-error{color:#FF785F;font-size:10px;margin:7px 0}.tq-empty{color:#647995;font-size:9px;padding:15px 0}
+        @media(max-width:1000px){.tq-side{width:70px;flex-basis:70px}.tq-logo-name,.tq-logo-sub,.tq-nav button span:last-child,.tq-side-note span:first-child,.tq-profile>div:last-child{display:none}.tq-nav button{justify-content:center}.tq-nav-icon{width:auto}.tq-grid{grid-template-columns:1fr}.tq-ai{min-height:0}}
+        @media(max-width:700px){.tq-shell{display:block}.tq-side{display:none}.tq-main{padding:15px 9px 72px}.tq-top{display:block}.tq-indices{margin-top:13px;justify-content:space-between;gap:6px}.tq-searchbar{margin:15px 0 11px}.tq-markets{grid-template-columns:repeat(2,1fr)}.tq-data{grid-template-columns:repeat(3,1fr)}.tq-stats{grid-template-columns:repeat(3,1fr)}.tq-bottom{grid-template-columns:1fr}.tq-chart{height:170px}.tq-mobile{display:flex!important}}
+        .tq-mobile{display:none;position:fixed;left:0;right:0;bottom:0;height:58px;background:#061329;border-top:1px solid #123055;z-index:90;justify-content:space-around;align-items:center}.tq-mobile button{border:0;background:none;color:#7488A5;font-size:7px}.tq-mobile b{display:block;font-size:17px;margin-bottom:2px}
       `}</style>
 
-      <NavMenu />
-
-      {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <TradeIQMark size={40} />
-        <h1
-          style={{
-            fontFamily: fontDisplay,
-            fontSize: "2.1rem",
-            fontWeight: "bold",
-            letterSpacing: "0.5px",
-            margin: 0,
-            color: colors.textPrimary,
-          }}
-        >
-          TradeIQ
-        </h1>
-      </div>
-      <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.7rem", letterSpacing: "1.5px", fontWeight: "600" }}>
-        AI-POWERED TRADING
-      </p>
-      <p style={{ color: colors.textPrimary, marginTop: "10px", marginBottom: "2px", fontSize: "0.9rem" }}>
-        Ақылды инвестиция. Нақты талдау.
-      </p>
-      <p style={{ color: colors.textFaint, marginBottom: "26px", fontSize: "0.75rem" }}>
-        Свинг-трейдинг және инвестиция платформасы
-      </p>
-
-      {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
-      <form onSubmit={searchStock} style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "360px" }}>
-        <input
-          className="tradeiq-input"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value)}
-          placeholder="Ticker жаз (мыс. AAPL)"
-          style={{
-            flex: 1,
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: `1px solid ${colors.border}`,
-            background: colors.card,
-            color: colors.textPrimary,
-            fontSize: "1rem",
-            fontFamily: fontBody,
-          }}
-        />
-        <button
-          type="submit"
-          className="tradeiq-search-btn"
-          style={{
-            padding: "12px 22px",
-            borderRadius: "10px",
-            border: "none",
-            background: colors.gold,
-            color: colors.bg,
-            fontWeight: "bold",
-            fontSize: "1rem",
-            fontFamily: fontBody,
-            cursor: "pointer",
-          }}
-        >
-          Іздеу
-        </button>
-      </form>
-
-      {loading && <p style={{ marginTop: "24px", color: colors.textMuted }}>Жүктелуде...</p>}
-
-      {error ? <p style={{ marginTop: "24px", color: colors.lossBright }}>{error}</p> : null}
-
-      {data ? (
-        <div
-          className="tradeiq-card"
-          style={{
-            marginTop: "26px",
-            width: "100%",
-            maxWidth: "360px",
-            background: colors.card,
-            borderRadius: "16px",
-            padding: "20px",
-            border: `1px solid ${colors.border}`,
-          }}
-        >
-          {/* ---------- НЕГІЗГІ АҚПАРАТ ---------- */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {data.logo ? (
-              <img src={data.logo} alt={data.symbol || ""} width={36} height={36} style={{ borderRadius: "8px" }} />
-            ) : null}
-            <div>
-              <div style={{ fontWeight: "bold", fontSize: "1.1rem", fontFamily: fontMono, letterSpacing: "0.5px" }}>
-                {data.symbol || "—"}
-              </div>
-              <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name || ""}</div>
-            </div>
+      <div className="tq-shell">
+        <aside className="tq-side">
+          <div className="tq-logo">
+            <div className="tq-logo-mark">◒↗</div>
+            <div className="tq-logo-name">TRADEIQ</div>
+            <div className="tq-logo-sub">AI-POWERED TRADING</div>
           </div>
-
-          <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px", fontFamily: fontMono }}>
-            <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>${safeNum(data.currentPrice, 2)}</span>
-            <span style={{ fontSize: "1rem", color: isUp ? colors.gain : colors.loss }}>
-              {isUp ? "▲" : "▼"} {safeNum(data.change, 2)} ({safeNum(data.changePercent, 2)}%)
-            </span>
-          </div>
-
-          {/* ---------- SPARKLINE ГРАФИК ---------- */}
-          {hasHistory ? (
-            <>
-              <Sparkline history={data.history} isUp={isUp} />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "0.68rem",
-                  color: colors.textFaint,
-                  fontFamily: fontMono,
-                  marginTop: "2px",
-                }}
-              >
-                <span>{data.history.length} күн</span>
-                <span>соңғы баға үрдісі</span>
-              </div>
-            </>
-          ) : null}
-
-          <div
-            style={{
-              marginTop: "16px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "10px",
-              fontSize: "0.85rem",
-              color: colors.textMuted,
-              fontFamily: fontMono,
-            }}
-          >
-            <div>Ашылу: ${safeNum(data.open, 2)}</div>
-            <div>Жабылу (алдыңғы): ${safeNum(data.previousClose, 2)}</div>
-            <div>Максимум: ${safeNum(data.high, 2)}</div>
-            <div>Минимум: ${safeNum(data.low, 2)}</div>
-            {typeof data.marketCap === "number" ? <div>Market Cap: ${data.marketCap.toFixed(0)}M</div> : null}
-            {data.industry ? <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div> : null}
-          </div>
-
-          {/* ---------- ФУНДАМЕНТАЛДЫ КӨРСЕТКІШТЕР ---------- */}
-          {data.fundamentals && typeof data.fundamentals === "object" ? (
-            <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Фундаменталды көрсеткіштер
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  color: colors.textMuted,
-                  fontFamily: fontMono,
-                }}
-              >
-                <div>P/E: {safeNum(data.fundamentals.pe, 2)}</div>
-                <div>EPS: ${safeNum(data.fundamentals.eps, 2)}</div>
-                <div>ROE: {safeNum(data.fundamentals.roe, 1)}%</div>
-                <div>Таза маржа: {safeNum(data.fundamentals.netMargin, 1)}%</div>
-                <div>Кіріс өсімі: {safeNum(data.fundamentals.revenueGrowth, 1)}%</div>
-                <div>EPS өсімі: {safeNum(data.fundamentals.epsGrowth, 1)}%</div>
-                <div>Дивиденд: {safeNum(data.fundamentals.dividendYield, 2)}%</div>
-                <div>Beta: {safeNum(data.fundamentals.beta, 2)}</div>
-                <div>52 апта макс: ${safeNum(data.fundamentals.week52High, 2)}</div>
-                <div>52 апта мин: ${safeNum(data.fundamentals.week52Low, 2)}</div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- EARNINGS ---------- */}
-          {data.earnings && (data.earnings.nextDate || data.earnings.lastDate) ? (
-            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
-              {data.earnings.nextDate ? (
-                <div style={{ color: colors.hold, fontWeight: "bold" }}>
-                  ⚠ Алдағы есеп: {data.earnings.nextDate}
-                </div>
-              ) : null}
-              {data.earnings.lastDate && typeof data.earnings.lastEpsActual === "number" && typeof data.earnings.lastEpsEstimate === "number" ? (
-                <div style={{ marginTop: "4px" }}>
-                  Соңғы есеп ({data.earnings.lastDate}): факт ${data.earnings.lastEpsActual.toFixed(2)} / болжам ${data.earnings.lastEpsEstimate.toFixed(2)}{" "}
-                  <span style={{ color: data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? colors.gain : colors.loss, fontWeight: "bold" }}>
-                    {data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? "(асып түсті)" : "(төмен шықты)"}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
-          {hasTechnicals ? (
-            <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Техникалық анализ
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  color: colors.textMuted,
-                  fontFamily: fontMono,
-                }}
-              >
-                <div>
-                  RSI (14):{" "}
-                  <span
-                    style={{
-                      color:
-                        typeof data.technicals.rsi === "number" && data.technicals.rsi > 70
-                          ? colors.loss
-                          : typeof data.technicals.rsi === "number" && data.technicals.rsi < 30
-                          ? colors.gain
-                          : colors.textPrimary,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {safeNum(data.technicals.rsi, 2)}
-                  </span>
-                </div>
-                <div>
-                  MACD:{" "}
-                  <span
-                    style={{
-                      color:
-                        typeof data.technicals.macd === "number" && data.technicals.macd > 0
-                          ? colors.gain
-                          : colors.loss,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {safeNum(data.technicals.macd, 2)}
-                  </span>
-                </div>
-                <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
-                <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
-                {typeof data.technicals.ema20 === "number" || typeof data.technicals.ema50 === "number" || typeof data.technicals.ema200 === "number" ? (
-                  <>
-                    <div>EMA20: ${safeNum(data.technicals.ema20, 2)}</div>
-                    <div>EMA50: ${safeNum(data.technicals.ema50, 2)}</div>
-                    <div>EMA200: ${safeNum(data.technicals.ema200, 2)}</div>
-                  </>
-                ) : null}
-                {data.volume && typeof data.volume === "object" ? (
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    Volume:{" "}
-                    <span
-                      style={{
-                        color:
-                          typeof data.volume.ratio === "number" && data.volume.ratio > 1.5
-                            ? colors.gainBright
-                            : typeof data.volume.ratio === "number" && data.volume.ratio < 0.7
-                            ? colors.textFaint
-                            : colors.textPrimary,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {typeof data.volume.latest === "number"
-                        ? (data.volume.latest / 1e6).toFixed(2) + "M"
-                        : "—"}
-                    </span>
-                    {typeof data.volume.ratio === "number" ? (
-                      <span style={{ color: colors.textFaint }}>
-                        {" "}
-                        (орташадан {data.volume.ratio}×)
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {signal ? (
-                <div
-                  style={{
-                    marginTop: "14px",
-                    padding: "12px 14px",
-                    borderRadius: "10px",
-                    background: colors.bg,
-                    border: `1px solid ${signal.color}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.95rem",
-                      fontWeight: "bold",
-                      color: signal.color,
-                      marginBottom: "6px",
-                      fontFamily: fontMono,
-                      letterSpacing: "0.3px",
-                    }}
-                  >
-                    Сигнал: {signal.label}
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.78rem", color: colors.textMuted }}>
-                    {signal.reasons.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* ---------- SENTIMENT ---------- */}
-          {data.sentiment && typeof data.sentiment === "object" && typeof data.sentiment.bullishPercent === "number" ? (
-            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
-              Sentiment:{" "}
-              <span style={{ color: colors.gain, fontWeight: "bold" }}>▲ {data.sentiment.bullishPercent}%</span>
-              {"  "}
-              <span style={{ color: colors.loss, fontWeight: "bold" }}>▼ {data.sentiment.bearishPercent}%</span>
-            </div>
-          ) : null}
-
-          {/* ---------- SWING SCORE ---------- */}
-          {typeof data.swingScore === "number" ? (
-            <div
-              style={{
-                marginTop: "18px",
-                padding: "14px",
-                borderRadius: "10px",
-                background: colors.bg,
-                border: `1px solid ${colors.border}`,
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "0.72rem", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "6px" }}>
-                Swing Score
-              </div>
-              <div
-                style={{
-                  fontSize: "2.2rem",
-                  fontWeight: "bold",
-                  fontFamily: fontMono,
-                  color:
-                    data.swingScore >= 65 ? colors.gain : data.swingScore <= 35 ? colors.loss : colors.hold,
-                }}
-              >
-                {data.swingScore}
-                <span style={{ fontSize: "1rem", color: colors.textFaint }}> /100</span>
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- ENTRY / STOP LOSS / TAKE PROFIT ---------- */}
-          {data.tradePlan && typeof data.tradePlan === "object" ? (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Сауда жоспары
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  fontFamily: fontMono,
-                }}
-              >
-                <div style={{ color: colors.textPrimary }}>Entry: ${safeNum(data.tradePlan.entry, 2)}</div>
-                <div style={{ color: colors.loss }}>Stop Loss: ${safeNum(data.tradePlan.stopLoss, 2)}</div>
-                <div style={{ color: colors.gain }}>TP1: ${safeNum(data.tradePlan.takeProfit1, 2)}</div>
-                <div style={{ color: colors.gainBright }}>TP2: ${safeNum(data.tradePlan.takeProfit2, 2)}</div>
-              </div>
-              {typeof data.tradePlan.riskReward === "number" ? (
-                <div style={{ marginTop: "8px", fontSize: "0.78rem", color: colors.textFaint, fontFamily: fontMono }}>
-                  Risk/Reward: 1:{data.tradePlan.riskReward}
-                </div>
-              ) : null}
-              <div style={{ marginTop: "8px", fontSize: "0.68rem", color: colors.textFaint }}>
-                ⚠ Бұл автоматты есептеу, инвестиция кеңесі емес.
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- AI ҚОРЫТЫНДЫ ---------- */}
-          <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-            <button
-              onClick={getAiSummary}
-              disabled={aiLoading}
-              className="tradeiq-search-btn"
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "10px",
-                border: `1px solid ${colors.gold}`,
-                background: "transparent",
-                color: colors.gold,
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                cursor: aiLoading ? "default" : "pointer",
-              }}
-            >
-              {aiLoading ? "Талдау жасалуда..." : "🤖 AI қорытынды алу"}
-            </button>
-
-            {aiError ? (
-              <p style={{ marginTop: "10px", color: colors.lossBright, fontSize: "0.8rem" }}>{aiError}</p>
-            ) : null}
-
-            {aiSummary ? (
-              <div
-                style={{
-                  marginTop: "12px",
-                  padding: "12px 14px",
-                  borderRadius: "10px",
-                  background: colors.bg,
-                  border: `1px solid ${colors.border}`,
-                  fontSize: "0.85rem",
-                  color: colors.textPrimary,
-                  lineHeight: "1.5",
-                }}
-              >
-                {aiSummary}
-              </div>
-            ) : null}
-          </div>
-
-          {/* ---------- ЖАНАЛЫҚТАР ---------- */}
-          <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-            <div
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-                marginBottom: "12px",
-                color: colors.gold,
-                textTransform: "uppercase",
-                letterSpacing: "0.6px",
-              }}
-            >
-              Соңғы жаңалықтар
-            </div>
-
-            {newsLoading ? <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>Жаңалықтар жүктелуде...</p> : null}
-
-            {!newsLoading && !hasNews ? (
-              <p style={{ color: colors.textFaint, fontSize: "0.85rem" }}>Соңғы 7 күнде жаңалық табылмады.</p>
-            ) : null}
-
-            {!newsLoading && hasNews ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {news.map((item, i) => (
-                  <a
-                    key={i}
-                    href={item && item.url ? item.url : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tradeiq-news-item"
-                    style={{
-                      display: "block",
-                      textDecoration: "none",
-                      color: "inherit",
-                      background: colors.bg,
-                      borderRadius: "10px",
-                      padding: "10px 12px",
-                      border: `1px solid ${colors.border}`,
-                    }}
-                  >
-                    <div style={{ fontSize: "0.85rem", color: colors.textPrimary, lineHeight: "1.35", marginBottom: "6px" }}>
-                      {item && item.headline ? item.headline : ""}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.68rem",
-                        color: colors.textFaint,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontFamily: fontMono,
-                      }}
-                    >
-                      <span>{item && item.source ? item.source : ""}</span>
-                      <span>{item ? formatNewsDate(item.datetime) : ""}</span>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      {/* ---------- ЧАТ ---------- */}
-      <div
-        className="tradeiq-card"
-        style={{
-          marginTop: "26px",
-          width: "100%",
-          maxWidth: "360px",
-          background: colors.card,
-          borderRadius: "16px",
-          padding: "20px",
-          border: `1px solid ${colors.border}`,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            marginBottom: "12px",
-            color: colors.gold,
-            textTransform: "uppercase",
-            letterSpacing: "0.6px",
-          }}
-        >
-          💬 AI-мен сөйлесу
-        </div>
-
-        {chatMessages.length === 0 ? (
-          <p style={{ color: colors.textFaint, fontSize: "0.8rem", marginBottom: "12px" }}>
-            Сауда, акциялар немесе талдау туралы сұрағыңды жаз.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
-            {chatMessages.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                  background: m.role === "user" ? colors.gold : colors.bg,
-                  color: m.role === "user" ? colors.bg : colors.textPrimary,
-                  border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
-                  borderRadius: "10px",
-                  padding: "8px 12px",
-                  fontSize: "0.82rem",
-                  lineHeight: "1.4",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {m.text}
-              </div>
+          <nav className="tq-nav">
+            {tradeiqNav.map((item, i) => (
+              <button key={item.label} className={i === 0 ? "active" : ""} type="button">
+                <span className="tq-nav-icon">{item.icon}</span><span>{item.label}</span>
+              </button>
             ))}
-            {chatLoading ? (
-              <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.8rem" }}>
-                Жазып жатыр...
-              </div>
-            ) : null}
+          </nav>
+          <div className="tq-side-bottom">
+            <div className="tq-side-note"><span>Күндізгі режим</span><span>☼</span></div>
+            <div className="tq-profile"><div className="tq-avatar">👤</div><div><div style={{fontSize:9}}>Профиль</div><div style={{fontSize:7,color:"#607694"}}>Аккаунт</div></div></div>
           </div>
-        )}
+        </aside>
 
-        <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px" }}>
-          <input
-            className="tradeiq-input"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Сұрағыңды жаз..."
-            style={{
-              flex: 1,
-              padding: "10px 12px",
-              borderRadius: "10px",
-              border: `1px solid ${colors.border}`,
-              background: colors.bg,
-              color: colors.textPrimary,
-              fontSize: "0.85rem",
-              fontFamily: fontBody,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={chatLoading}
-            className="tradeiq-search-btn"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              background: colors.gold,
-              color: colors.bg,
-              fontWeight: "bold",
-              fontSize: "0.85rem",
-              fontFamily: fontBody,
-              cursor: chatLoading ? "default" : "pointer",
-            }}
-          >
-            Жіберу
-          </button>
-        </form>
+        <section className="tq-main">
+          <header className="tq-top">
+            <div><div className="tq-title">Қош келдіңіз!</div><div className="tq-subtitle">Ақылды инвестиция. Нақты талдау.</div></div>
+            <div className="tq-indices">
+              <div className="tq-index"><span>S&amp;P 500</span><strong>5,280.70</strong><strong className="tq-up">+1.32%</strong></div>
+              <div className="tq-index"><span>NASDAQ</span><strong>16,735.02</strong><strong className="tq-up">+1.85%</strong></div>
+              <div className="tq-index"><span>DOW JONES</span><strong>38,873.12</strong><strong className="tq-up">+0.92%</strong></div>
+            </div>
+          </header>
+
+          <form onSubmit={searchStock} className="tq-searchbar">
+            <input className="tq-search" value={ticker} onChange={(e)=>setTicker(e.target.value)} placeholder="⌕  Акция немесе тикер іздеу (мыс. AAPL)" />
+            <button className="tq-btn" type="submit" disabled={loading}>{loading ? "..." : "Іздеу"}</button>
+          </form>
+          {error ? <div className="tq-error">{error}</div> : null}
+
+          <div className="tq-grid">
+            <div>
+              <div className="tq-card">
+                <div className="tq-head"><strong>Нарық шолуы</strong><span className="tq-link">Барлығын көру ›</span></div>
+                <div className="tq-markets">
+                  {marketCards.map((m)=><div key={m.symbol} className="tq-market" onClick={()=>setTicker(m.symbol)}>
+                    <div className="tq-market-top"><div className="tq-market-icon">{m.icon}</div><div><div className="tq-market-symbol">{m.symbol}</div><div className="tq-market-name">{m.name}</div></div></div>
+                    <div className="tq-price">{m.price}</div><div className="tq-mini">{m.change}</div>
+                    <div className="tq-mini-chart"><svg viewBox="0 0 120 25" preserveAspectRatio="none"><polyline points="0,20 12,16 23,19 35,12 47,16 59,9 70,12 83,5 96,8 108,3 120,5" fill="none" stroke="#18D27B" strokeWidth="1.5"/></svg></div>
+                  </div>)}
+                </div>
+              </div>
+
+              <div className="tq-card tq-stock">
+                {data ? <>
+                  <div className="tq-stock-head">
+                    <div className="tq-stock-left">
+                      {data.logo ? <img src={data.logo} alt={data.symbol || ""} width={32} height={32} style={{borderRadius:8}}/> : <div className="tq-stock-logo">◉</div>}
+                      <div><div className="tq-symbol">{data.symbol || "—"}</div><div className="tq-company">{data.name || ""}</div></div>
+                    </div>
+                    <button type="button" className="tq-fav">☆ Таңдаулылар</button>
+                  </div>
+                  <div className="tq-current"><span className="tq-current-price">${safeNum(data.currentPrice,2)}</span><span className="tq-current-change">{isUp?"+":""}{safeNum(data.changePercent,2)}%</span></div>
+                  <div className="tq-periods">{["1D","1W","1M","3M","6M","1Y","5Y","MAX"].map((p,i)=><span key={p} className={`tq-period ${i===0?"active":""}`}>{p}</span>)}</div>
+                  <div className="tq-chart">{hasHistory ? <Sparkline history={data.history} isUp={isUp}/> : <div className="tq-empty" style={{width:"100%",textAlign:"center"}}>График дерегі жүктелмеді</div>}</div>
+                  <div className="tq-data">
+                    <div><span>Ашылуы</span><strong>{safeNum(data.open,2)}</strong></div><div><span>Жоғарғы</span><strong>{safeNum(data.high,2)}</strong></div><div><span>Төменгі</span><strong>{safeNum(data.low,2)}</strong></div><div><span>Алдыңғы жабылуы</span><strong>{safeNum(data.previousClose,2)}</strong></div><div><span>Көлем</span><strong>{data.volume?.latest?(data.volume.latest/1e6).toFixed(2)+"M":"—"}</strong></div><div><span>Market Cap</span><strong>{typeof data.marketCap==="number"?(data.marketCap/1000).toFixed(1)+"B":"—"}</strong></div>
+                  </div>
+                  {data.fundamentals ? <div className="tq-stats">
+                    <div className="tq-stat"><span>P/E</span><strong>{safeNum(data.fundamentals.pe,2)}</strong></div><div className="tq-stat"><span>EPS</span><strong>{safeNum(data.fundamentals.eps,2)}</strong></div><div className="tq-stat"><span>ROE</span><strong>{safeNum(data.fundamentals.roe,1)}%</strong></div><div className="tq-stat"><span>Beta</span><strong>{safeNum(data.fundamentals.beta,2)}</strong></div><div className="tq-stat"><span>52 апта max</span><strong>{safeNum(data.fundamentals.week52High,2)}</strong></div><div className="tq-stat"><span>52 апта min</span><strong>{safeNum(data.fundamentals.week52Low,2)}</strong></div>
+                  </div>:null}
+                  <div className="tq-actions"><button type="button" className="tq-action" onClick={getAiSummary}><strong>▥ Фундаменталды талдау</strong><span>Қаржылық көрсеткіштер</span></button><button type="button" className="tq-action" onClick={getAiSummary}><strong>⌁ Техникалық талдау</strong><span>Индикаторлар мен тренд</span></button></div>
+                  {signal?<div style={{marginTop:10,padding:9,border:`1px solid ${signal.color}`,borderRadius:7,color:signal.color,fontSize:9}}>Сигнал: <strong>{signal.label}</strong></div>:null}
+                  {aiError?<div className="tq-error">{aiError}</div>:null}
+                  {aiSummary?<div style={{marginTop:9,padding:9,borderRadius:7,background:"#07172E",fontSize:9,lineHeight:1.5}}>{aiSummary}</div>:null}
+                </> : <div className="tq-empty">Акцияны іздеңіз — толық график, фундаменталды және техникалық талдау осы жерде көрсетіледі.</div>}
+              </div>
+            </div>
+
+            <aside className="tq-card tq-ai">
+              <div className="tq-ai-head"><strong>AI талдау</strong><span className="tq-beta">BETA</span></div>
+              <div className="tq-orb">✦</div>
+              <div className="tq-ai-text">Сәлем! Мен TradeIQ AI.<br/>Акцияларды талдауға және нарықты түсіндіруге көмектесемін.</div>
+              {data?<button type="button" className="tq-suggest" onClick={getAiSummary}>{data.symbol} акциясына талдау жаса</button>:null}
+              <button type="button" className="tq-suggest" onClick={()=>setChatInput("Нарық жағдайы қалай?")}>Нарық жағдайы қалай?</button>
+              <button type="button" className="tq-suggest" onClick={()=>setChatInput("Swing trading бойынша кеңес бер")}>Swing trading бойынша кеңес бер</button>
+              {chatMessages.length>0?<div style={{marginTop:9,maxHeight:175,overflowY:"auto"}}>{chatMessages.map((m,i)=><div key={i} style={{padding:7,marginBottom:4,borderRadius:6,background:m.role==="user"?"#1267D8":"#07172E",fontSize:8,whiteSpace:"pre-wrap"}}>{m.text}</div>)}{chatLoading?<div style={{fontSize:8,color:"#7185A0"}}>Жауап дайындалуда...</div>:null}</div>:null}
+              <form className="tq-chat" onSubmit={sendChatMessage}><input value={chatInput} onChange={(e)=>setChatInput(e.target.value)} placeholder="Сұрағыңызды жазыңыз..."/><button type="submit" disabled={chatLoading}>➤</button></form>
+            </aside>
+          </div>
+
+          <div className="tq-bottom">
+            <div className="tq-card"><div className="tq-head"><strong>Нарық жаңалықтары</strong><span className="tq-link">Барлығын көру</span></div><div className="tq-list">
+              {hasNews?news.slice(0,4).map((item,i)=><a key={i} href={item?.url||"#"} target="_blank" rel="noopener noreferrer" className="tq-news" style={{textDecoration:"none",color:"inherit"}}><div className="tq-thumb">📰</div><div><div className="tq-news-title">{item?.headline||"Жаңалық"}</div><div className="tq-news-meta">{item?.source||""} · {formatNewsDate(item?.datetime)}</div></div></a>):<div className="tq-empty">Акция іздегеннен кейін жаңалықтар осы жерде шығады.</div>}
+            </div></div>
+
+            <div className="tq-card"><div className="tq-head"><strong>Скринер</strong><span className="tq-link">Барлығын көру</span></div><div className="tq-list"><table className="tq-table"><thead><tr><th>ТИКЕР</th><th>АТЫ</th><th>P/E</th><th>ӨСІМ</th></tr></thead><tbody>
+              <tr><td>AMD</td><td>Advanced Micro Devices</td><td>18.35</td><td className="tq-up">+2.45%</td></tr><tr><td>INTC</td><td>Intel Corporation</td><td>15.42</td><td className="tq-up">+1.12%</td></tr><tr><td>CRM</td><td>Salesforce</td><td>19.81</td><td className="tq-up">+1.89%</td></tr><tr><td>QCOM</td><td>QUALCOMM</td><td>17.28</td><td className="tq-up">+1.73%</td></tr>
+            </tbody></table></div></div>
+
+            <div className="tq-card"><div className="tq-head"><strong>Менің портфелім</strong><span className="tq-link">Барлығын көру</span></div><div className="tq-portfolio">
+              <div style={{fontSize:8,color:"#7387A2"}}>Жалпы құны</div><div className="tq-value">$152,560.45</div><div className="tq-up" style={{fontSize:9}}>+4.32% (6,321.45)</div><div className="tq-donut"></div>
+              <div className="tq-holding"><span>AAPL</span><span>40.2%</span></div><div className="tq-holding"><span>MSFT</span><span>25.1%</span></div><div className="tq-holding"><span>NVDA</span><span>15.3%</span></div><div className="tq-holding"><span>AMZN</span><span>10.2%</span></div>
+            </div></div>
+          </div>
+        </section>
       </div>
 
-      <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
+      <div className="tq-mobile">
+        {tradeiqNav.slice(0,5).map((item)=><button key={item.label}><b>{item.icon}</b>{item.label}</button>)}
+      </div>
     </main>
   );
 }
