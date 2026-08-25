@@ -204,6 +204,42 @@ export default function Home() {
   const [homeNews, setHomeNews] = useState([]);
   const [homeNewsLoading, setHomeNewsLoading] = useState(true);
 
+  const [screenerResults, setScreenerResults] = useState([]);
+  const [screenerLoading, setScreenerLoading] = useState(true);
+  const [screenerFilter, setScreenerFilter] = useState("all");
+
+  const SCREENER_FILTERS = [
+    { key: "all", label: "Барлық нарық", query: "" },
+    { key: "pe", label: "P/E < 20", query: "maxPE=20" },
+    { key: "roe", label: "ROE > 15%", query: "minROE=15" },
+  ];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadScreener() {
+      setScreenerLoading(true);
+      const active = SCREENER_FILTERS.find((f) => f.key === screenerFilter);
+      const qs = active && active.query ? "?" + active.query : "";
+      try {
+        const res = await fetch("/api/screener" + qs);
+        const json = await res.json();
+        if (!cancelled && res.ok && Array.isArray(json.results)) {
+          setScreenerResults(json.results);
+        }
+      } catch (err) {
+        // үнсіз қалдырамыз
+      } finally {
+        if (!cancelled) setScreenerLoading(false);
+      }
+    }
+
+    loadScreener();
+    return () => {
+      cancelled = true;
+    };
+  }, [screenerFilter]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1142,37 +1178,64 @@ export default function Home() {
               flexWrap: "wrap",
             }}
           >
-            {["Барлық нарық", "P/E < 20", "ROE > 15%"].map((label) => (
-              <div
-                key={label}
+            {SCREENER_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setScreenerFilter(f.key)}
                 style={{
                   fontSize: "0.68rem",
-                  color: colors.textMuted,
-                  border: `1px solid ${colors.border}`,
+                  color: screenerFilter === f.key ? colors.bg : colors.textMuted,
+                  background: screenerFilter === f.key ? colors.gold : "transparent",
+                  border: `1px solid ${screenerFilter === f.key ? colors.gold : colors.border}`,
                   borderRadius: "8px",
                   padding: "5px 10px",
+                  cursor: "pointer",
+                  fontWeight: screenerFilter === f.key ? "700" : "400",
+                  fontFamily: fontBody,
                 }}
               >
-                {label}
-              </div>
+                {f.label}
+              </button>
             ))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {["AMD", "INTC", "CRM"].map((sym) => (
-              <div
-                key={sym}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "0.75rem",
-                  color: colors.textMuted,
-                  fontFamily: fontMono,
-                }}
-              >
-                <span style={{ color: colors.textPrimary }}>{sym}</span>
-                <span>—</span>
-              </div>
-            ))}
+            {screenerLoading && screenerResults.length === 0 ? (
+              <div style={{ fontSize: "0.75rem", color: colors.textFaint }}>Жүктелуде...</div>
+            ) : screenerResults.length === 0 ? (
+              <div style={{ fontSize: "0.75rem", color: colors.textFaint }}>Сәйкес акция табылмады</div>
+            ) : (
+              screenerResults.map((r) => {
+                const up = typeof r.changePercent === "number" && r.changePercent >= 0;
+                return (
+                  <button
+                    key={r.symbol}
+                    onClick={() => loadFromOverview(r.symbol)}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: "0.75rem",
+                      color: colors.textMuted,
+                      fontFamily: fontMono,
+                      background: "transparent",
+                      border: "none",
+                      padding: "2px 0",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span style={{ color: colors.textPrimary }}>{r.symbol}</span>
+                    <span style={{ display: "flex", gap: "10px" }}>
+                      {typeof r.pe === "number" ? (
+                        <span>P/E {r.pe.toFixed(1)}</span>
+                      ) : null}
+                      <span style={{ color: up ? colors.gain : colors.loss }}>
+                        {typeof r.changePercent === "number" ? `${up ? "▲" : "▼"} ${r.changePercent.toFixed(2)}%` : "—"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
