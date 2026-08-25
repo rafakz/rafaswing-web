@@ -44,19 +44,27 @@ export default function Header({ overview }) {
   const indices = Array.isArray(overview) ? overview : [];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "14px",
-        padding: "16px 24px",
-        background: colors.card,
-        borderBottom: `1px solid ${colors.border}`,
-        width: "100%",
-      }}
-    >
+    <>
+      <style>{`
+        .tradeiq-header-bar { padding-left: 68px; }
+        @media (min-width: 1024px) {
+          .tradeiq-header-bar { padding-left: 24px; }
+        }
+      `}</style>
+      <div
+        className="tradeiq-header-bar"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px",
+          padding: "16px 24px 16px 68px",
+          background: colors.card,
+          borderBottom: `1px solid ${colors.border}`,
+          width: "100%",
+        }}
+      >
       {/* ---- Сәлемдесу ---- */}
       <div style={{ fontSize: "0.95rem", fontWeight: "600", color: colors.textPrimary, minWidth: "160px" }}>
         {displayName ? (
@@ -104,6 +112,7 @@ export default function Header({ overview }) {
       >
         👑 Pro жоспар
       </button>
-    </div>
+      </div>
+    </>
   );
 }
