@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import NavMenu from "./NavMenu";
+import Header from "./Header";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -379,10 +380,6 @@ export default function Home() {
         minHeight: "100vh",
         background: colors.bg,
         color: colors.textPrimary,
-        padding: "32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
         fontFamily: fontBody,
       }}
     >
@@ -398,9 +395,25 @@ export default function Home() {
         .tradeiq-search-btn:hover { filter: brightness(1.12); }
         .tradeiq-search-btn:active { transform: scale(0.97); }
         .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
+        .tradeiq-content-shell { margin-left: 0; }
+        @media (min-width: 1024px) {
+          .tradeiq-content-shell { margin-left: 240px; }
+        }
       `}</style>
 
       <NavMenu />
+
+      <div className="tradeiq-content-shell">
+        <Header overview={overview} />
+
+        <div
+          style={{
+            padding: "32px 16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
 
       {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1101,6 +1114,9 @@ export default function Home() {
       </div>
 
       <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
+
+        </div>
+      </div>
     </main>
   );
 }
