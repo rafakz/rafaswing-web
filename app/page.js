@@ -200,10 +200,10 @@ export default function Home() {
   const [overviewLoading, setOverviewLoading] = useState(true);
 
   const OVERVIEW_SYMBOLS = [
-    { symbol: "^IXIC", label: "NASDAQ" },
+    { symbol: "ONEQ", label: "NASDAQ" },
     { symbol: "QQQ", label: "QQQ" },
-    { symbol: "^GSPC", label: "SPX" },
-    { symbol: "^NDX", label: "NDX" },
+    { symbol: "SPY", label: "SPX" },
+    { symbol: "QQQM", label: "NDX" },
   ];
 
   useEffect(() => {
