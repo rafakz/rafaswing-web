@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "RafaSwing",
-  description: "Swing trading & investment platform",
+  title: "TradeIQ",
+  description: "AI-Powered Trading — swing trading & investment platform",
 };
 
 export default function RootLayout({ children }) {
