@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import NavMenu from "./NavMenu";
 import Header from "./Header";
+import FloatingChat from "./FloatingChat";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -1016,107 +1017,20 @@ export default function Home() {
         </div>
       ) : null}
 
-      {/* ---------- ЧАТ ---------- */}
-      <div
-        className="tradeiq-card"
-        style={{
-          marginTop: "26px",
-          width: "100%",
-          maxWidth: "360px",
-          background: colors.card,
-          borderRadius: "16px",
-          padding: "20px",
-          border: `1px solid ${colors.border}`,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            marginBottom: "12px",
-            color: colors.gold,
-            textTransform: "uppercase",
-            letterSpacing: "0.6px",
-          }}
-        >
-          💬 AI-мен сөйлесу
-        </div>
-
-        {chatMessages.length === 0 ? (
-          <p style={{ color: colors.textFaint, fontSize: "0.8rem", marginBottom: "12px" }}>
-            Сауда, акциялар немесе талдау туралы сұрағыңды жаз.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
-            {chatMessages.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                  background: m.role === "user" ? colors.gold : colors.bg,
-                  color: m.role === "user" ? colors.bg : colors.textPrimary,
-                  border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
-                  borderRadius: "10px",
-                  padding: "8px 12px",
-                  fontSize: "0.82rem",
-                  lineHeight: "1.4",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {m.text}
-              </div>
-            ))}
-            {chatLoading ? (
-              <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.8rem" }}>
-                Жазып жатыр...
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px" }}>
-          <input
-            className="tradeiq-input"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Сұрағыңды жаз..."
-            style={{
-              flex: 1,
-              padding: "10px 12px",
-              borderRadius: "10px",
-              border: `1px solid ${colors.border}`,
-              background: colors.bg,
-              color: colors.textPrimary,
-              fontSize: "0.85rem",
-              fontFamily: fontBody,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={chatLoading}
-            className="tradeiq-search-btn"
-            style={{
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: "none",
-              background: colors.gold,
-              color: colors.bg,
-              fontWeight: "bold",
-              fontSize: "0.85rem",
-              fontFamily: fontBody,
-              cursor: chatLoading ? "default" : "pointer",
-            }}
-          >
-            Жіберу
-          </button>
-        </form>
-      </div>
 
       <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
 
         </div>
       </div>
+
+      <FloatingChat
+        chatMessages={chatMessages}
+        chatInput={chatInput}
+        setChatInput={setChatInput}
+        chatLoading={chatLoading}
+        chatError={chatError}
+        onSubmit={sendChatMessage}
+      />
     </main>
   );
 }
