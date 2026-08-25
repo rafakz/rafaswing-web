@@ -201,6 +201,33 @@ export default function Home() {
   const [overview, setOverview] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
+  const [homeNews, setHomeNews] = useState([]);
+  const [homeNewsLoading, setHomeNewsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadHomeNews() {
+      setHomeNewsLoading(true);
+      try {
+        const res = await fetch("/api/news?symbol=SPY");
+        const json = await res.json();
+        if (!cancelled && res.ok && Array.isArray(json.news)) {
+          setHomeNews(json.news.slice(0, 3));
+        }
+      } catch (err) {
+        // үнсіз қалдырамыз, блок бос көрінеді
+      } finally {
+        if (!cancelled) setHomeNewsLoading(false);
+      }
+    }
+
+    loadHomeNews();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const OVERVIEW_SYMBOLS = [
     { symbol: "ONEQ", label: "NASDAQ" },
     { symbol: "QQQ", label: "QQQ" },
@@ -1017,6 +1044,171 @@ export default function Home() {
         </div>
       ) : null}
 
+      {/* ---------- ТӨМЕНГІ 3 БЛОК ---------- */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "1100px",
+          marginTop: "32px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "16px",
+        }}
+      >
+        {/* ---- Нарық жаңалықтары ---- */}
+        <div
+          className="tradeiq-card"
+          style={{
+            background: colors.card,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "16px",
+            padding: "20px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <div style={{ fontSize: "0.9rem", fontWeight: "bold", color: colors.textPrimary }}>Нарық жаңалықтары</div>
+            <a href="/news" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+              Барлығын көру →
+            </a>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {homeNewsLoading && homeNews.length === 0 ? (
+              <div style={{ fontSize: "0.78rem", color: colors.textFaint }}>Жүктелуде...</div>
+            ) : homeNews.length === 0 ? (
+              <div style={{ fontSize: "0.78rem", color: colors.textFaint }}>Жаңалықтар табылмады</div>
+            ) : (
+              homeNews.map((item, i) => (
+                <a
+                  key={i}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tradeiq-news-item"
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    alignItems: "flex-start",
+                    textDecoration: "none",
+                    border: "1px solid transparent",
+                    borderRadius: "8px",
+                    padding: "4px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "8px",
+                      background: colors.bg,
+                      border: `1px solid ${colors.border}`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "0.78rem", color: colors.textPrimary, lineHeight: "1.3" }}>
+                      {item.headline}
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: colors.textFaint, marginTop: "2px" }}>
+                      {item.source} · {formatNewsDate(item.datetime)}
+                    </div>
+                  </div>
+                </a>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ---- Скринер ---- */}
+        <div
+          className="tradeiq-card"
+          style={{
+            background: colors.card,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "16px",
+            padding: "20px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <div style={{ fontSize: "0.9rem", fontWeight: "bold", color: colors.textPrimary }}>Скринер</div>
+            <a href="/screener" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+              Толық ашу →
+            </a>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              marginBottom: "14px",
+              flexWrap: "wrap",
+            }}
+          >
+            {["Барлық нарық", "P/E < 20", "ROE > 15%"].map((label) => (
+              <div
+                key={label}
+                style={{
+                  fontSize: "0.68rem",
+                  color: colors.textMuted,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "8px",
+                  padding: "5px 10px",
+                }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {["AMD", "INTC", "CRM"].map((sym) => (
+              <div
+                key={sym}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "0.75rem",
+                  color: colors.textMuted,
+                  fontFamily: fontMono,
+                }}
+              >
+                <span style={{ color: colors.textPrimary }}>{sym}</span>
+                <span>—</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ---- Портфель ---- */}
+        <div
+          className="tradeiq-card"
+          style={{
+            background: colors.card,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "16px",
+            padding: "20px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <div style={{ fontSize: "0.9rem", fontWeight: "bold", color: colors.textPrimary }}>Менің портфелім</div>
+            <a href="/portfolio" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+              Басқару →
+            </a>
+          </div>
+          <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: colors.textPrimary, fontFamily: fontMono }}>
+            $—
+          </div>
+          <div style={{ fontSize: "0.78rem", color: colors.textFaint, marginBottom: "14px" }}>
+            Портфель деректері әлі қосылмаған
+          </div>
+          <div
+            style={{
+              width: "100%",
+              height: "10px",
+              borderRadius: "6px",
+              background: colors.bg,
+              border: `1px solid ${colors.border}`,
+            }}
+          />
+        </div>
+      </div>
 
       <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
 
