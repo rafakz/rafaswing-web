@@ -63,6 +63,7 @@ export default function Header({ overview }) {
           background: colors.card,
           borderBottom: `1px solid ${colors.border}`,
           width: "100%",
+          boxSizing: "border-box",
         }}
       >
       {/* ---- Сәлемдесу ---- */}
