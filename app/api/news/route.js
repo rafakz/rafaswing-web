@@ -13,19 +13,25 @@ async function translateHeadlines(items, apiKey) {
     numbered;
 
   var geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-    apiKey;
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
   try {
     var res = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       }),
     });
 
-    if (!res.ok) return items;
+    if (!res.ok) {
+      var errBody = await res.text();
+      console.error("Gemini translate error:", res.status, errBody.slice(0, 500));
+      return items;
+    }
 
     var data = await res.json();
     var text = "";
@@ -61,6 +67,7 @@ async function translateHeadlines(items, apiKey) {
       return translated ? Object.assign({}, it, { headline: translated }) : it;
     });
   } catch (err) {
+    console.error("Gemini translate exception:", err.message);
     return items;
   }
 }
