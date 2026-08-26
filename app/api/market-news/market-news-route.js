@@ -18,20 +18,26 @@ async function translateItems(items, apiKey) {
     numbered;
 
   var geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-    apiKey;
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
   try {
     var res = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       }),
       next: { revalidate: 3600 },
     });
 
-    if (!res.ok) return items;
+    if (!res.ok) {
+      var errBody = await res.text();
+      console.error("Gemini translate error (market-news):", res.status, errBody.slice(0, 500));
+      return items;
+    }
 
     var data = await res.json();
     var text = "";
@@ -76,6 +82,7 @@ async function translateItems(items, apiKey) {
       });
     });
   } catch (err) {
+    console.error("Gemini translate exception (market-news):", err.message);
     return items;
   }
 }
