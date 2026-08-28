@@ -23,6 +23,7 @@ const links = [
   { href: "/markets", label: "Нарықтар", icon: "📊" },
   { href: "/watchlist", label: "Таңдаулылар", icon: "⭐" },
   { href: "/portfolio", label: "Портфель", icon: "💼" },
+  { href: "/alerts", label: "Дабылдар", icon: "🔔" },
   { href: "/screener", label: "Скринер", icon: "🛡️" },
   { href: "/news", label: "Жаңалықтар", icon: "📰" },
   { href: "/ai", label: "AI талдау", icon: "➕" },
