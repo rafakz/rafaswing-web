@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import NavMenu from "./NavMenu";
 import Header from "./Header";
 import FloatingChat from "./FloatingChat";
+import { supabase } from "./supabaseClient";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -204,6 +205,59 @@ export default function Home() {
   const [homeNews, setHomeNews] = useState([]);
   const [homeNewsLoading, setHomeNewsLoading] = useState(true);
 
+  const [session, setSession] = useState(null);
+  const [watchlistSymbols, setWatchlistSymbols] = useState([]);
+  const [watchlistBusy, setWatchlistBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data ? data.session : null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => {
+      if (listener && listener.subscription) listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWatchlist() {
+      if (!session || !session.user) {
+        setWatchlistSymbols([]);
+        return;
+      }
+      const { data: rows } = await supabase.from("watchlist").select("symbol");
+      if (!cancelled && rows) {
+        setWatchlistSymbols(rows.map((r) => r.symbol));
+      }
+    }
+    loadWatchlist();
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  async function toggleWatchlist(symbol) {
+    if (!session || !session.user || !symbol) return;
+    setWatchlistBusy(true);
+    const inList = watchlistSymbols.includes(symbol);
+    try {
+      if (inList) {
+        await supabase.from("watchlist").delete().eq("user_id", session.user.id).eq("symbol", symbol);
+        setWatchlistSymbols((prev) => prev.filter((s) => s !== symbol));
+      } else {
+        await supabase.from("watchlist").insert({ user_id: session.user.id, symbol });
+        setWatchlistSymbols((prev) => [...prev, symbol]);
+      }
+    } catch (err) {
+      // үнсіз
+    } finally {
+      setWatchlistBusy(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -268,6 +322,16 @@ export default function Home() {
     setTicker(symbol);
     searchStock({ preventDefault: () => {} }, symbol);
   }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const symbolParam = params.get("symbol");
+    if (symbolParam) {
+      loadFromOverview(symbolParam.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function searchStock(e, symbolOverride) {
     e.preventDefault();
@@ -616,16 +680,35 @@ export default function Home() {
           }}
         >
           {/* ---------- НЕГІЗГІ АҚПАРАТ ---------- */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {data.logo ? (
-              <img src={data.logo} alt={data.symbol || ""} width={36} height={36} style={{ borderRadius: "8px" }} />
-            ) : null}
-            <div>
-              <div style={{ fontWeight: "bold", fontSize: "1.1rem", fontFamily: fontMono, letterSpacing: "0.5px" }}>
-                {data.symbol || "—"}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {data.logo ? (
+                <img src={data.logo} alt={data.symbol || ""} width={36} height={36} style={{ borderRadius: "8px" }} />
+              ) : null}
+              <div>
+                <div style={{ fontWeight: "bold", fontSize: "1.1rem", fontFamily: fontMono, letterSpacing: "0.5px" }}>
+                  {data.symbol || "—"}
+                </div>
+                <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name || ""}</div>
               </div>
-              <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name || ""}</div>
             </div>
+            {session && session.user && data.symbol ? (
+              <button
+                onClick={() => toggleWatchlist(data.symbol)}
+                disabled={watchlistBusy}
+                aria-label="Таңдаулыларға қосу"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "1.4rem",
+                  cursor: watchlistBusy ? "default" : "pointer",
+                  color: watchlistSymbols.includes(data.symbol) ? colors.gold : colors.textFaint,
+                  flexShrink: 0,
+                }}
+              >
+                {watchlistSymbols.includes(data.symbol) ? "★" : "☆"}
+              </button>
+            ) : null}
           </div>
 
           <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px", fontFamily: fontMono }}>
