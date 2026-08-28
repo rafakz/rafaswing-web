@@ -16,8 +16,84 @@ const colors = {
   textMuted: "#8A93A6",
   textFaint: "#5B6478",
   gain: "#4FA98B",
+  gainBright: "#6FCBA8",
   loss: "#C2542D",
+  lossBright: "#E2764C",
+  hold: "#D4A24C",
 };
+
+/* ---------- Сигнал есептеу (page.js-тен көшірілген) ---------- */
+function getSignal(technicals, currentPrice) {
+  if (!technicals || typeof technicals !== "object") return null;
+
+  const rsi = typeof technicals.rsi === "number" ? technicals.rsi : null;
+  const sma20 = typeof technicals.sma20 === "number" ? technicals.sma20 : null;
+  const sma50 = typeof technicals.sma50 === "number" ? technicals.sma50 : null;
+  const macd = typeof technicals.macd === "number" ? technicals.macd : null;
+  const price = typeof currentPrice === "number" ? currentPrice : null;
+
+  let score = 0;
+  const reasons = [];
+
+  if (rsi !== null) {
+    if (rsi < 30) {
+      score += 2;
+      reasons.push("RSI артық сатылған аймақта (< 30)");
+    } else if (rsi > 70) {
+      score -= 2;
+      reasons.push("RSI артық сатып алынған аймақта (> 70)");
+    }
+  }
+
+  if (macd !== null) {
+    if (macd > 0) {
+      score += 1;
+      reasons.push("MACD оң аймақта — өсу үрдісі");
+    } else {
+      score -= 1;
+      reasons.push("MACD теріс аймақта — төмендеу үрдісі");
+    }
+  }
+
+  if (sma20 !== null && sma50 !== null) {
+    if (sma20 > sma50) {
+      score += 1;
+      reasons.push("SMA20 > SMA50 — қысқа мерзімді үрдіс жоғары");
+    } else {
+      score -= 1;
+      reasons.push("SMA20 < SMA50 — қысқа мерзімді үрдіс төмен");
+    }
+  }
+
+  if (sma20 !== null && price !== null) {
+    if (price > sma20) {
+      score += 1;
+    } else {
+      score -= 1;
+    }
+  }
+
+  if (reasons.length === 0) return null;
+
+  let label = "ҰСТАУ";
+  let color = colors.hold;
+
+  if (score >= 3) {
+    label = "СЕНІМДІ САТЫП АЛУ";
+    color = colors.gain;
+  } else if (score >= 1) {
+    label = "САТЫП АЛУ";
+    color = colors.gainBright;
+  } else if (score <= -3) {
+    label = "СЕНІМДІ САТУ";
+    color = colors.loss;
+  } else if (score <= -1) {
+    label = "САТУ";
+    color = colors.lossBright;
+  }
+
+  return { label, color, reasons };
+}
 
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Roboto Mono', monospace";
@@ -123,6 +199,8 @@ export default function PortfolioPage() {
               priceMap[sym] = {
                 currentPrice: json.currentPrice,
                 changePercent: json.changePercent,
+                technicals: json.technicals,
+                swingScore: json.swingScore,
               };
             }
           } catch {
@@ -423,13 +501,14 @@ export default function PortfolioPage() {
                   background: colors.card,
                   border: `1px solid ${colors.border}`,
                   borderRadius: "16px",
-                  overflow: "hidden",
+                  overflowX: "auto",
                 }}
               >
+                <div style={{ minWidth: "620px" }}>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 90px 100px 110px 110px 40px",
+                    gridTemplateColumns: "1fr 80px 90px 100px 130px 110px 40px",
                     padding: "12px 18px",
                     fontSize: "0.68rem",
                     color: colors.textFaint,
@@ -442,6 +521,7 @@ export default function PortfolioPage() {
                   <span>Дана</span>
                   <span>Орт. баға</span>
                   <span>Ағымд. баға</span>
+                  <span>Сигнал</span>
                   <span style={{ textAlign: "right" }}>Пайда/зиян</span>
                   <span></span>
                 </div>
@@ -466,6 +546,7 @@ export default function PortfolioPage() {
                     const positionGain =
                       currentPrice !== null ? (currentPrice - h.avg_price) * h.shares : null;
                     const positionUp = positionGain !== null && positionGain >= 0;
+                    const signal = live ? getSignal(live.technicals, currentPrice) : null;
 
                     return (
                       <div
@@ -473,7 +554,7 @@ export default function PortfolioPage() {
                         className="tradeiq-holding-row"
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "1fr 90px 100px 110px 110px 40px",
+                          gridTemplateColumns: "1fr 80px 90px 100px 130px 110px 40px",
                           padding: "14px 18px",
                           fontSize: "0.82rem",
                           fontFamily: fontMono,
@@ -486,6 +567,15 @@ export default function PortfolioPage() {
                         <span style={{ color: colors.textMuted }}>${safeNum(h.avg_price, 2)}</span>
                         <span style={{ color: colors.textMuted }}>
                           {currentPrice !== null ? `$${safeNum(currentPrice, 2)}` : "—"}
+                        </span>
+                        <span
+                          style={{
+                            color: signal ? signal.color : colors.textFaint,
+                            fontWeight: signal ? "700" : "400",
+                            fontSize: "0.7rem",
+                          }}
+                        >
+                          {signal ? signal.label : "—"}
                         </span>
                         <span
                           style={{
@@ -516,6 +606,7 @@ export default function PortfolioPage() {
                     );
                   })
                 )}
+                </div>
               </div>
             </>
           )}
