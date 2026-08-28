@@ -209,6 +209,11 @@ export default function Home() {
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
 
+  const [alertPrice, setAlertPrice] = useState("");
+  const [alertDirection, setAlertDirection] = useState("above");
+  const [alertSubmitting, setAlertSubmitting] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data ? data.session : null);
@@ -255,6 +260,43 @@ export default function Home() {
       // үнсіз
     } finally {
       setWatchlistBusy(false);
+    }
+  }
+
+  async function createAlert(e) {
+    e.preventDefault();
+    setAlertMessage("");
+
+    if (!session || !session.user) {
+      setAlertMessage("Алдымен кіру керек");
+      return;
+    }
+    if (!data || !data.symbol) return;
+
+    const price = parseFloat(alertPrice);
+    if (!price || price <= 0) {
+      setAlertMessage("Дұрыс баға енгіз");
+      return;
+    }
+
+    setAlertSubmitting(true);
+    try {
+      const { error: insertError } = await supabase.from("price_alerts").insert({
+        user_id: session.user.id,
+        symbol: data.symbol,
+        direction: alertDirection,
+        target_price: price,
+      });
+      if (insertError) {
+        setAlertMessage(insertError.message);
+      } else {
+        setAlertPrice("");
+        setAlertMessage("Дабыл қойылды ✓");
+      }
+    } catch (err) {
+      setAlertMessage("Қате шықты");
+    } finally {
+      setAlertSubmitting(false);
     }
   }
 
@@ -710,6 +752,75 @@ export default function Home() {
               </button>
             ) : null}
           </div>
+
+          {session && session.user && data.symbol ? (
+            <form
+              onSubmit={createAlert}
+              style={{
+                marginTop: "14px",
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontSize: "0.78rem", color: colors.textFaint }}>🔔 Дабыл:</span>
+              <select
+                value={alertDirection}
+                onChange={(e) => setAlertDirection(e.target.value)}
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: "8px",
+                  border: `1px solid ${colors.border}`,
+                  background: colors.bg,
+                  color: colors.textPrimary,
+                  fontSize: "0.78rem",
+                  fontFamily: fontBody,
+                }}
+              >
+                <option value="above">жоғары болса</option>
+                <option value="below">төмен болса</option>
+              </select>
+              <input
+                value={alertPrice}
+                onChange={(e) => setAlertPrice(e.target.value)}
+                placeholder="Баға ($)"
+                type="number"
+                step="any"
+                style={{
+                  width: "100px",
+                  padding: "6px 8px",
+                  borderRadius: "8px",
+                  border: `1px solid ${colors.border}`,
+                  background: colors.bg,
+                  color: colors.textPrimary,
+                  fontSize: "0.78rem",
+                  fontFamily: fontBody,
+                  boxSizing: "border-box",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={alertSubmitting}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: colors.gold,
+                  color: colors.bg,
+                  fontWeight: "bold",
+                  fontSize: "0.78rem",
+                  fontFamily: fontBody,
+                  cursor: alertSubmitting ? "default" : "pointer",
+                }}
+              >
+                Қою
+              </button>
+              {alertMessage ? (
+                <span style={{ fontSize: "0.72rem", color: colors.textFaint }}>{alertMessage}</span>
+              ) : null}
+            </form>
+          ) : null}
 
           <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px", fontFamily: fontMono }}>
             <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>${safeNum(data.currentPrice, 2)}</span>
