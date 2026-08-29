@@ -5,6 +5,7 @@ import NavMenu from "./NavMenu";
 import Header from "./Header";
 import FloatingChat from "./FloatingChat";
 import { supabase } from "./supabaseClient";
+import { getSignal, SIGNAL_COLOR_KEY } from "../lib/tradeiq-engine";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -93,78 +94,7 @@ function Sparkline({ history, isUp }) {
   );
 }
 
-/* ---------- Сигнал есептеу (толығымен қорғалған) ---------- */
-function getSignal(technicals, currentPrice) {
-  if (!technicals || typeof technicals !== "object") return null;
-
-  const rsi = typeof technicals.rsi === "number" ? technicals.rsi : null;
-  const sma20 = typeof technicals.sma20 === "number" ? technicals.sma20 : null;
-  const sma50 = typeof technicals.sma50 === "number" ? technicals.sma50 : null;
-  const macd = typeof technicals.macd === "number" ? technicals.macd : null;
-  const price = typeof currentPrice === "number" ? currentPrice : null;
-
-  let score = 0;
-  const reasons = [];
-
-  if (rsi !== null) {
-    if (rsi < 30) {
-      score += 2;
-      reasons.push("RSI артық сатылған аймақта (< 30)");
-    } else if (rsi > 70) {
-      score -= 2;
-      reasons.push("RSI артық сатып алынған аймақта (> 70)");
-    }
-  }
-
-  if (macd !== null) {
-    if (macd > 0) {
-      score += 1;
-      reasons.push("MACD оң аймақта — өсу үрдісі");
-    } else {
-      score -= 1;
-      reasons.push("MACD теріс аймақта — төмендеу үрдісі");
-    }
-  }
-
-  if (sma20 !== null && sma50 !== null) {
-    if (sma20 > sma50) {
-      score += 1;
-      reasons.push("SMA20 > SMA50 — қысқа мерзімді үрдіс жоғары");
-    } else {
-      score -= 1;
-      reasons.push("SMA20 < SMA50 — қысқа мерзімді үрдіс төмен");
-    }
-  }
-
-  if (sma20 !== null && price !== null) {
-    if (price > sma20) {
-      score += 1;
-    } else {
-      score -= 1;
-    }
-  }
-
-  if (reasons.length === 0) return null;
-
-  let label = "ҰСТАУ";
-  let color = colors.hold;
-
-  if (score >= 3) {
-    label = "СЕНІМДІ САТЫП АЛУ";
-    color = colors.gain;
-  } else if (score >= 1) {
-    label = "САТЫП АЛУ";
-    color = colors.gainBright;
-  } else if (score <= -3) {
-    label = "СЕНІМДІ САТУ";
-    color = colors.loss;
-  } else if (score <= -1) {
-    label = "САТУ";
-    color = colors.lossBright;
-  }
-
-  return { label, color, reasons };
-}
+/* ---------- Сигнал есептеу енді ортақ Core Engine-де ---------- */
 
 function formatNewsDate(unixSeconds) {
   if (!unixSeconds || typeof unixSeconds !== "number") return "";
@@ -1026,14 +956,14 @@ export default function Home() {
                     padding: "12px 14px",
                     borderRadius: "10px",
                     background: colors.bg,
-                    border: `1px solid ${signal.color}`,
+                    border: `1px solid ${colors[SIGNAL_COLOR_KEY[signal.level]]}`,
                   }}
                 >
                   <div
                     style={{
                       fontSize: "0.95rem",
                       fontWeight: "bold",
-                      color: signal.color,
+                      color: colors[SIGNAL_COLOR_KEY[signal.level]],
                       marginBottom: "6px",
                       fontFamily: fontMono,
                       letterSpacing: "0.3px",
