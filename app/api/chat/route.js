@@ -43,12 +43,52 @@ export async function POST(request) {
         "\nRSI: " +
         (stockContext.technicals?.rsi ?? "жоқ") +
         "\nMACD: " +
-        (stockContext.technicals?.macd ?? "жоқ");
+        (stockContext.technicals?.macd ?? "жоқ") +
+        "\nSMA20: " +
+        (stockContext.technicals?.sma20 ?? "жоқ") +
+        "\nSMA50: " +
+        (stockContext.technicals?.sma50 ?? "жоқ") +
+        "\nEMA20/50/200: " +
+        (stockContext.technicals?.ema20 ?? "жоқ") + " / " +
+        (stockContext.technicals?.ema50 ?? "жоқ") + " / " +
+        (stockContext.technicals?.ema200 ?? "жоқ");
 
       if (typeof stockContext.swingScore === "number") {
+        systemNote += "\nSwing Score (жалпы): " + stockContext.swingScore + "/100";
+      }
+
+      if (stockContext.swingScoreBreakdown) {
+        const b = stockContext.swingScoreBreakdown;
         systemNote +=
-          "\nSwing Score: " +
-          stockContext.swingScore;
+          "\nSwing Score құрамдас бөліктері (әрқайсысы 0-100, салмағымен):" +
+          "\n  - Technical (35%): " + (b.technical ?? "жоқ") +
+          "\n  - Momentum (20%): " + (b.momentum ?? "жоқ") +
+          "\n  - Fundamental (20%): " + (b.fundamental ?? "жоқ") +
+          "\n  - Volume (10%): " + (b.volume ?? "жоқ") +
+          "\n  - Sentiment (10%): " + (b.sentiment ?? "жоқ") +
+          "\n  - Risk/Beta (5%): " + (b.risk ?? "жоқ") +
+          "\nПайдаланушы 'неге бұл score' деп сұраса, дәл осы бөліктерге сүйеніп, " +
+          "қайсысы score-ды көтергенін немесе төмендеткенін нақты түсіндір.";
+      }
+
+      if (stockContext.fundamentals) {
+        const f = stockContext.fundamentals;
+        systemNote +=
+          "\nФундаментал көрсеткіштер: P/E=" + (f.pe ?? "жоқ") +
+          ", ROE=" + (f.roe ?? "жоқ") +
+          ", кіріс өсімі=" + (f.revenueGrowth ?? "жоқ") +
+          ", EPS өсімі=" + (f.epsGrowth ?? "жоқ") +
+          ", Beta=" + (f.beta ?? "жоқ");
+      }
+
+      if (stockContext.tradePlan) {
+        const t = stockContext.tradePlan;
+        systemNote +=
+          "\nСауда жоспары: Entry=$" + (t.entry ?? "жоқ") +
+          ", Stop Loss=$" + (t.stopLoss ?? "жоқ") +
+          ", TP1=$" + (t.takeProfit1 ?? "жоқ") +
+          ", TP2=$" + (t.takeProfit2 ?? "жоқ") +
+          ", Risk/Reward=" + (t.riskReward ?? "жоқ");
       }
     }
 
