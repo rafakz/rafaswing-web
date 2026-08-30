@@ -412,6 +412,9 @@ export default function Home() {
                 currentPrice: data.currentPrice,
                 technicals: data.technicals,
                 swingScore: data.swingScore,
+                swingScoreBreakdown: data.swingScoreBreakdown,
+                fundamentals: data.fundamentals,
+                tradePlan: data.tradePlan,
               }
             : null,
         }),
