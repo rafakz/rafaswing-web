@@ -3,6 +3,7 @@ import {
   computePivot,
   calculateSwingScoreV2,
   calculateROC,
+  calculateEMASeries,
   computeTradePlan,
 } from "../../../lib/tradeiq-engine";
 
@@ -126,6 +127,7 @@ export async function GET(request) {
     // ---------- Core Engine арқылы техникалық деректер ----------
     var technicals = null;
     var history = [];
+    var chartData = [];
     var volumeInfo = null;
     var pivot = null;
 
@@ -156,6 +158,27 @@ export async function GET(request) {
         history = last30dates.map(function (d) {
           return { date: d, close: parseFloat(series[d]["4. close"]) };
         });
+
+        // ---------- Кәсіби chart үшін OHLCV + EMA overlay ----------
+        var ema20Series = calculateEMASeries(closes, 20);
+        var ema50Series = calculateEMASeries(closes, 50);
+
+        var chartWindow = 90;
+        var startIdx = Math.max(0, calcDates.length - chartWindow);
+        for (var ci = startIdx; ci < calcDates.length; ci++) {
+          var cd = calcDates[ci];
+          var cDay = series[cd];
+          chartData.push({
+            date: cd,
+            open: parseFloat(cDay["1. open"]),
+            high: parseFloat(cDay["2. high"]),
+            low: parseFloat(cDay["3. low"]),
+            close: parseFloat(cDay["4. close"]),
+            volume: parseFloat(cDay["5. volume"]),
+            ema20: ema20Series[ci] !== null && ema20Series[ci] !== undefined ? Number(ema20Series[ci].toFixed(2)) : null,
+            ema50: ema50Series[ci] !== null && ema50Series[ci] !== undefined ? Number(ema50Series[ci].toFixed(2)) : null,
+          });
+        }
 
         // Support/Resistance: классикалық pivot point (соңғы толық сауда күні бойынша)
         var lastDateKey = allDates[allDates.length - 1];
@@ -211,6 +234,7 @@ export async function GET(request) {
       industry: profile.finnhubIndustry || null,
       technicals: technicals,
       history: history,
+      chartData: chartData,
       volume: volumeInfo,
       pivot: pivot,
       sentiment: sentimentInfo,
