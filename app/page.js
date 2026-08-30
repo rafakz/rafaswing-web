@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import NavMenu from "./NavMenu";
 import Header from "./Header";
 import FloatingChat from "./FloatingChat";
+import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
 import { getSignal, SIGNAL_COLOR_KEY } from "../lib/tradeiq-engine";
 
@@ -762,8 +763,17 @@ export default function Home() {
             </span>
           </div>
 
-          {/* ---------- SPARKLINE ГРАФИК ---------- */}
-          {hasHistory ? (
+          {/* ---------- КӘСІБИ CHART ---------- */}
+          {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
+            <div style={{ marginTop: "10px" }}>
+              <ProChart
+                chartData={data.chartData}
+                pivot={data.pivot}
+                tradePlan={data.tradePlan}
+                colors={colors}
+              />
+            </div>
+          ) : hasHistory ? (
             <>
               <Sparkline history={data.history} isUp={isUp} />
               <div
