@@ -1,7 +1,8 @@
 import {
   computeTechnicals,
   computePivot,
-  calculateSwingScore,
+  calculateSwingScoreV2,
+  calculateROC,
   computeTradePlan,
   getSignal,
 } from "../../../lib/tradeiq-engine";
@@ -33,16 +34,33 @@ function numOrNull(v) {
 async function scanSymbol(symbol, finnhubKey, alphaKey) {
   try {
     const quoteUrl = "https://finnhub.io/api/v1/quote?symbol=" + symbol + "&token=" + finnhubKey;
-    const quoteRes = await fetch(quoteUrl, { next: { revalidate: 3600 } });
+    const metricUrl = "https://finnhub.io/api/v1/stock/metric?symbol=" + symbol + "&metric=all&token=" + finnhubKey;
+
+    const [quoteRes, metricRes] = await Promise.all([
+      fetch(quoteUrl, { next: { revalidate: 3600 } }),
+      fetch(metricUrl, { next: { revalidate: 86400 } }),
+    ]);
+
     if (!quoteRes.ok) return { symbol, error: true };
     const quote = await quoteRes.json();
     if (!quote || typeof quote.c !== "number" || quote.c === 0) {
       return { symbol, error: true };
     }
 
+    const metricData = metricRes.ok ? await metricRes.json() : null;
+    const metric = metricData && metricData.metric ? metricData.metric : {};
+    const fundamentals = {
+      pe: numOrNull(metric.peExclExtraTTM) ?? numOrNull(metric.peTTM) ?? numOrNull(metric.peNormalizedAnnual),
+      roe: numOrNull(metric.roeTTM),
+      revenueGrowth: numOrNull(metric.revenueGrowthTTMYoy),
+      epsGrowth: numOrNull(metric.epsGrowthTTMYoy),
+      beta: numOrNull(metric.beta),
+    };
+
     let technicals = null;
     let volumeInfo = null;
     let pivot = null;
+    let roc = null;
 
     if (alphaKey) {
       const alphaUrl =
@@ -63,6 +81,7 @@ async function scanSymbol(symbol, finnhubKey, alphaKey) {
         const computed = computeTechnicals(closes, volumes);
         technicals = computed.technicals;
         volumeInfo = computed.volumeInfo;
+        roc = calculateROC(closes, 10);
 
         const lastDateKey = allDates[allDates.length - 1];
         const lastDay = series[lastDateKey];
@@ -74,7 +93,14 @@ async function scanSymbol(symbol, finnhubKey, alphaKey) {
       }
     }
 
-    const swingScore = calculateSwingScore(technicals, volumeInfo, null);
+    const scoreResult = calculateSwingScoreV2({
+      technicals,
+      volumeInfo,
+      sentimentInfo: null,
+      fundamentals,
+      roc,
+    });
+    const swingScore = scoreResult ? scoreResult.score : null;
     const tradePlan = computeTradePlan(pivot, quote.c);
     const signal = technicals ? getSignal(technicals, quote.c) : null;
 
