@@ -1,7 +1,8 @@
 import {
   computeTechnicals,
   computePivot,
-  calculateSwingScore,
+  calculateSwingScoreV2,
+  calculateROC,
   computeTradePlan,
 } from "../../../lib/tradeiq-engine";
 
@@ -189,7 +190,10 @@ export async function GET(request) {
       };
     }
 
-    var swingScore = calculateSwingScore(technicals, volumeInfo, sentimentInfo);
+    var roc = (typeof closes !== "undefined" && closes) ? calculateROC(closes, 10) : null;
+    var scoreResult = calculateSwingScoreV2({ technicals, volumeInfo, sentimentInfo, fundamentals, roc });
+    var swingScore = scoreResult ? scoreResult.score : null;
+    var swingScoreBreakdown = scoreResult ? scoreResult.breakdown : null;
     var tradePlan = computeTradePlan(pivot, quote.c);
 
     return Response.json({
@@ -211,6 +215,7 @@ export async function GET(request) {
       pivot: pivot,
       sentiment: sentimentInfo,
       swingScore: swingScore,
+      swingScoreBreakdown: swingScoreBreakdown,
       tradePlan: tradePlan,
       fundamentals: fundamentals,
       earnings: earningsInfo
