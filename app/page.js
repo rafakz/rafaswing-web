@@ -6,7 +6,7 @@ import Header from "./Header";
 import FloatingChat from "./FloatingChat";
 import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
-import { getSignal, SIGNAL_COLOR_KEY } from "../lib/tradeiq-engine";
+import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts } from "../lib/tradeiq-engine";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -438,6 +438,14 @@ export default function Home() {
 
   const isUp = !!(data && typeof data.change === "number" && data.change >= 0);
   const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
+  const smartAlerts = data
+    ? generateSmartAlerts({
+        technicals: data.technicals,
+        volumeInfo: data.volume,
+        currentPrice: data.currentPrice,
+        signal,
+      })
+    : [];
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
   const hasNews = Array.isArray(news) && news.length > 0;
@@ -991,6 +999,44 @@ export default function Home() {
                   </ul>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {/* ---------- SMART ALERTS ---------- */}
+          {smartAlerts.length > 0 ? (
+            <div
+              style={{
+                marginTop: "16px",
+                padding: "14px",
+                borderRadius: "12px",
+                background: colors.card,
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: "bold",
+                  color: colors.gold,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: "10px",
+                }}
+              >
+                🚨 Smart Alerts
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {smartAlerts.map((a, i) => {
+                  const dotColor =
+                    a.level === "bullish" ? colors.gain : a.level === "bearish" ? colors.loss : colors.textMuted;
+                  return (
+                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "0.8rem" }}>
+                      <span style={{ color: dotColor, flexShrink: 0 }}>●</span>
+                      <span style={{ color: colors.textMuted }}>{a.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 
