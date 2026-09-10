@@ -6,7 +6,7 @@ import Header from "./Header";
 import FloatingChat from "./FloatingChat";
 import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
-import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts } from "../lib/tradeiq-engine";
+import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts, calculatePositionSize } from "../lib/tradeiq-engine";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -133,6 +133,9 @@ export default function Home() {
   const [overview, setOverview] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
+  const [sectors, setSectors] = useState([]);
+  const [sectorsLoading, setSectorsLoading] = useState(true);
+
   const [homeNews, setHomeNews] = useState([]);
   const [homeNewsLoading, setHomeNewsLoading] = useState(true);
 
@@ -144,6 +147,9 @@ export default function Home() {
   const [alertDirection, setAlertDirection] = useState("above");
   const [alertSubmitting, setAlertSubmitting] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+
+  const [riskCapital, setRiskCapital] = useState("");
+  const [riskPercent, setRiskPercent] = useState("2");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -286,6 +292,30 @@ export default function Home() {
     }
 
     loadOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSectors() {
+      setSectorsLoading(true);
+      try {
+        const res = await fetch("/api/sectors");
+        const json = await res.json();
+        if (!cancelled && res.ok && Array.isArray(json.sectors)) {
+          setSectors(json.sectors);
+        }
+      } catch (err) {
+        // үнсіз
+      } finally {
+        if (!cancelled) setSectorsLoading(false);
+      }
+    }
+
+    loadSectors();
     return () => {
       cancelled = true;
     };
@@ -644,6 +674,79 @@ export default function Home() {
                 );
               })}
         </div>
+      </div>
+
+      {/* ---------- СЕКТОРЛАР (money flow) ---------- */}
+      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
+        <div
+          style={{
+            fontSize: "0.85rem",
+            fontWeight: "bold",
+            color: colors.textPrimary,
+            marginBottom: "12px",
+          }}
+        >
+          Секторлар — ақша қай жаққа құйылып жатыр
+        </div>
+        {sectorsLoading && sectors.length === 0 ? (
+          <div style={{ fontSize: "0.8rem", color: colors.textFaint }}>Жүктелуде...</div>
+        ) : sectors.length === 0 ? (
+          <div style={{ fontSize: "0.8rem", color: colors.textFaint }}>Сектор деректері жоқ</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {sectors.map((s) => {
+              const up = typeof s.changePercent === "number" && s.changePercent >= 0;
+              const magnitude = Math.min(Math.abs(s.changePercent || 0) / 2, 1);
+              return (
+                <div
+                  key={s.symbol}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    fontSize: "0.78rem",
+                    fontFamily: fontMono,
+                  }}
+                >
+                  <span style={{ width: "140px", color: colors.textMuted, flexShrink: 0 }}>{s.label}</span>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: "16px",
+                      background: colors.card,
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${Math.max(4, magnitude * 100)}%`,
+                        height: "100%",
+                        background: up ? colors.gain : colors.loss,
+                        opacity: 0.75,
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      width: "56px",
+                      textAlign: "right",
+                      color: up ? colors.gain : colors.loss,
+                      fontWeight: "600",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {up ? "▲" : "▼"} {safeNum(Math.abs(s.changePercent), 2)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p style={{ color: colors.textFaint, fontSize: "0.65rem", marginTop: "8px" }}>
+          Бүгінгі % өзгеріс бойынша сектор ETF-тері салыстырылады (қаржы секторы қосылмаған).
+        </p>
       </div>
 
       {loading && <p style={{ marginTop: "24px", color: colors.textMuted }}>Жүктелуде...</p>}
@@ -1116,6 +1219,118 @@ export default function Home() {
               ) : null}
               <div style={{ marginTop: "8px", fontSize: "0.68rem", color: colors.textFaint }}>
                 ⚠ Бұл автоматты есептеу, инвестиция кеңесі емес.
+              </div>
+
+              {/* ---------- POSITION SIZE CALCULATOR ---------- */}
+              <div
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "14px",
+                  borderTop: `1px solid ${colors.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: "bold",
+                    color: colors.gold,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  💰 Позиция көлемі
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }}>
+                  <input
+                    value={riskCapital}
+                    onChange={(e) => setRiskCapital(e.target.value)}
+                    placeholder="Капитал ($)"
+                    type="number"
+                    step="any"
+                    style={{
+                      flex: "1 1 120px",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: `1px solid ${colors.border}`,
+                      background: colors.bg,
+                      color: colors.textPrimary,
+                      fontSize: "0.8rem",
+                      fontFamily: fontBody,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <input
+                    value={riskPercent}
+                    onChange={(e) => setRiskPercent(e.target.value)}
+                    placeholder="Тәуекел %"
+                    type="number"
+                    step="any"
+                    style={{
+                      flex: "1 1 100px",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: `1px solid ${colors.border}`,
+                      background: colors.bg,
+                      color: colors.textPrimary,
+                      fontSize: "0.8rem",
+                      fontFamily: fontBody,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                {(() => {
+                  const cap = parseFloat(riskCapital);
+                  const risk = parseFloat(riskPercent);
+                  const sizing =
+                    cap > 0 && risk > 0
+                      ? calculatePositionSize({
+                          capital: cap,
+                          riskPercent: risk,
+                          entry: data.tradePlan.entry,
+                          stopLoss: data.tradePlan.stopLoss,
+                        })
+                      : null;
+
+                  if (!riskCapital) {
+                    return (
+                      <p style={{ color: colors.textFaint, fontSize: "0.75rem", margin: 0 }}>
+                        Капиталыңды енгізсең, осы Entry/Stop бойынша қанша дана алу керегін есептеп берейін.
+                      </p>
+                    );
+                  }
+                  if (!sizing) {
+                    return (
+                      <p style={{ color: colors.loss, fontSize: "0.75rem", margin: 0 }}>
+                        Есептеу мүмкін болмады — мәндерді тексер.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "8px",
+                        fontSize: "0.8rem",
+                        fontFamily: fontMono,
+                      }}
+                    >
+                      <div style={{ color: colors.textPrimary }}>
+                        Дана саны: <strong>{sizing.shares}</strong>
+                      </div>
+                      <div style={{ color: colors.textMuted }}>
+                        Позиция құны: ${sizing.positionValue}
+                      </div>
+                      <div style={{ color: colors.loss }}>
+                        Тәуекел ($): ${sizing.riskAmount}
+                      </div>
+                      <div style={{ color: colors.textMuted }}>
+                        Капиталдан %: {sizing.percentOfCapital}%
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ) : null}
