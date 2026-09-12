@@ -18,17 +18,134 @@ const colors = {
 
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
+/* ---------- Бренд белгісі (homepage-тегі TradeIQMark-пен үйлесімді) ---------- */
+function NavLogoMark({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="19" cy="5" r="1.6" fill={colors.gold} />
+      <path
+        d="M2 16.5L6 11l3 3 4-7 4 5 5-3"
+        stroke={colors.gold}
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+/* ---------- Навигация иконкалары — бір стильде, сызықты (line icon) ---------- */
+function IconHome({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11.5L12 4l8 7.5" />
+      <path d="M6 10v8a1 1 0 001 1h3v-5.5h4V19h3a1 1 0 001-1v-8" />
+    </svg>
+  );
+}
+function IconMarkets({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="13" width="3.2" height="7" rx="0.8" fill={color} />
+      <rect x="10.4" y="9" width="3.2" height="11" rx="0.8" fill={color} />
+      <rect x="16.8" y="5" width="3.2" height="15" rx="0.8" fill={color} />
+    </svg>
+  );
+}
+function IconStar({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round">
+      <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 6-5.2-2.8-5.2 2.8 1-6-4.3-4.2 5.9-.8L12 3.5z" />
+    </svg>
+  );
+}
+function IconBriefcase({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="8" width="17" height="11" rx="1.8" />
+      <path d="M8.5 8V6.5a1.5 1.5 0 011.5-1.5h4a1.5 1.5 0 011.5 1.5V8" />
+      <path d="M3.5 13h17" />
+    </svg>
+  );
+}
+function IconBell({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 10.5a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14.5 6 10.5z" />
+      <path d="M10 19a2 2 0 004 0" />
+    </svg>
+  );
+}
+function IconFunnel({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinejoin="round">
+      <path d="M4 5h16l-6 7.5V18l-4 2v-7.5L4 5z" />
+    </svg>
+  );
+}
+function IconNews({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="5" width="13" height="14" rx="1.2" strokeWidth="1.6" />
+      <path d="M17 8.5h2.2a0.8 0.8 0 01.8.8V18a1 1 0 01-1 1H8" strokeWidth="1.6" />
+      <path d="M7 9h7M7 12h7M7 15h4" strokeWidth="1.4" />
+    </svg>
+  );
+}
+function IconSparkle({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeLinejoin="round">
+      <path d="M12 3.5l1.3 4.2 4.2 1.3-4.2 1.3-1.3 4.2-1.3-4.2-4.2-1.3 4.2-1.3L12 3.5z" strokeWidth="1.5" />
+      <path d="M18.5 15l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6.6-1.9z" strokeWidth="1.2" />
+    </svg>
+  );
+}
+function IconBook({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.5c2-1 5-1 8 .5 3-1.5 6-1.5 8-.5v13c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5v-13z" />
+      <path d="M12 6v13" />
+    </svg>
+  );
+}
+function IconGear({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round">
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M17.7 6.3l-1.5 1.5M7.8 16.2l-1.5 1.5M17.7 17.7l-1.5-1.5M7.8 7.8L6.3 6.3" />
+    </svg>
+  );
+}
+function IconUser({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="3.4" />
+      <path d="M4.5 19.5c1.4-3.4 4.2-5 7.5-5s6.1 1.6 7.5 5" />
+    </svg>
+  );
+}
+function IconLogout({ size = 18, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 4H6a1.5 1.5 0 00-1.5 1.5v13A1.5 1.5 0 006 20h3" />
+      <path d="M14 16l4-4-4-4" />
+      <path d="M18 12H9" />
+    </svg>
+  );
+}
+
 const links = [
-  { href: "/", label: "Басты бет", icon: "🏠" },
-  { href: "/markets", label: "Нарықтар", icon: "📊" },
-  { href: "/watchlist", label: "Таңдаулылар", icon: "⭐" },
-  { href: "/portfolio", label: "Портфель", icon: "💼" },
-  { href: "/alerts", label: "Дабылдар", icon: "🔔" },
-  { href: "/screener", label: "Скринер", icon: "🛡️" },
-  { href: "/news", label: "Жаңалықтар", icon: "📰" },
-  { href: "/ai", label: "AI талдау", icon: "➕" },
-  { href: "/lessons", label: "Оқу орталығы", icon: "📖" },
-  { href: "/settings", label: "Параметрлер", icon: "⚙️" },
+  { href: "/", label: "Басты бет", Icon: IconHome },
+  { href: "/markets", label: "Нарықтар", Icon: IconMarkets },
+  { href: "/watchlist", label: "Таңдаулылар", Icon: IconStar },
+  { href: "/portfolio", label: "Портфель", Icon: IconBriefcase },
+  { href: "/alerts", label: "Дабылдар", Icon: IconBell },
+  { href: "/screener", label: "Скринер", Icon: IconFunnel },
+  { href: "/news", label: "Жаңалықтар", Icon: IconNews },
+  { href: "/ai", label: "AI талдау", Icon: IconSparkle },
+  { href: "/lessons", label: "Оқу орталығы", Icon: IconBook },
+  { href: "/settings", label: "Параметрлер", Icon: IconGear },
 ];
 
 const SIDEBAR_WIDTH = "240px";
@@ -139,7 +256,7 @@ export default function NavMenu() {
             gap: "10px",
           }}
         >
-          <span style={{ fontSize: "1.6rem" }}>📈</span>
+          <NavLogoMark size={24} />
           <div>
             <div
               style={{
@@ -169,6 +286,7 @@ export default function NavMenu() {
         <div style={{ flex: 1, overflowY: "auto", padding: "10px 0" }}>
           {links.map((l) => {
             const active = pathname === l.href;
+            const iconColor = active ? colors.goldBright : colors.textPrimary;
             return (
               <Link
                 key={l.href}
@@ -187,7 +305,7 @@ export default function NavMenu() {
                   borderLeft: `3px solid ${active ? colors.gold : "transparent"}`,
                 }}
               >
-                <span style={{ fontSize: "1.05rem" }}>{l.icon}</span>
+                <l.Icon size={18} color={iconColor} />
                 <span>{l.label}</span>
               </Link>
             );
@@ -220,7 +338,7 @@ export default function NavMenu() {
                     flexShrink: 0,
                   }}
                 >
-                  👤
+                  <IconUser size={16} color={colors.textPrimary} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div
@@ -254,7 +372,7 @@ export default function NavMenu() {
                   cursor: "pointer",
                 }}
               >
-                <span style={{ fontSize: "1rem" }}>🚪</span>
+                <IconLogout size={16} color={colors.textMuted} />
                 <span>Шығу</span>
               </button>
             </>
@@ -272,7 +390,7 @@ export default function NavMenu() {
                 fontWeight: "bold",
               }}
             >
-              <span style={{ fontSize: "1.05rem" }}>👤</span>
+              <IconUser size={17} color={colors.goldBright} />
               <span>Кіру / Тіркелу</span>
             </Link>
           )}
