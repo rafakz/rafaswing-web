@@ -500,6 +500,8 @@ export default function Home() {
         .tradeiq-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
         .tradeiq-search-btn:hover { filter: brightness(1.12); }
         .tradeiq-search-btn:active { transform: scale(0.97); }
+        .tradeiq-overview-card { transition: transform 0.15s ease, border-color 0.15s ease; }
+        .tradeiq-overview-card:hover { transform: translateY(-2px); border-color: ${colors.gold} !important; }
         .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
         .tradeiq-content-shell { margin-left: 0; }
         @media (min-width: 1024px) {
@@ -626,7 +628,7 @@ export default function Home() {
                   <button
                     key={item.symbol}
                     onClick={() => loadFromOverview(item.symbol)}
-                    className="tradeiq-card"
+                    className="tradeiq-card tradeiq-overview-card"
                     style={{
                       textAlign: "left",
                       background: colors.card,
@@ -635,9 +637,40 @@ export default function Home() {
                       padding: "14px",
                       cursor: "pointer",
                       fontFamily: fontBody,
+                      boxShadow: "0 6px 16px rgba(3, 8, 26, 0.45)",
                     }}
                   >
-                    <div style={{ color: colors.gold, fontSize: "0.78rem", fontWeight: "600" }}>{item.label}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {item.logo ? (
+                        <img
+                          src={item.logo}
+                          alt=""
+                          width={20}
+                          height={20}
+                          style={{ borderRadius: "6px", flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: "6px",
+                            background: colors.border,
+                            color: colors.gold,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "0.6rem",
+                            fontWeight: "bold",
+                            fontFamily: fontMono,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {item.label.slice(0, 2)}
+                        </div>
+                      )}
+                      <div style={{ color: colors.gold, fontSize: "0.78rem", fontWeight: "600" }}>{item.label}</div>
+                    </div>
                     {item.error ? (
                       <div style={{ color: colors.textFaint, fontSize: "0.78rem", marginTop: "10px" }}>
                         Деректер жоқ
@@ -650,7 +683,7 @@ export default function Home() {
                             fontSize: "1.05rem",
                             fontWeight: "bold",
                             fontFamily: fontMono,
-                            marginTop: "6px",
+                            marginTop: "8px",
                           }}
                         >
                           {safeNum(item.currentPrice, 2)}
