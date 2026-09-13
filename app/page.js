@@ -142,6 +142,8 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
+  const [watchlistQuotes, setWatchlistQuotes] = useState([]);
+  const [watchlistQuotesLoading, setWatchlistQuotesLoading] = useState(false);
 
   const [alertPrice, setAlertPrice] = useState("");
   const [alertDirection, setAlertDirection] = useState("above");
@@ -180,6 +182,37 @@ export default function Home() {
       cancelled = true;
     };
   }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWatchlistQuotes() {
+      if (!watchlistSymbols || watchlistSymbols.length === 0) {
+        setWatchlistQuotes([]);
+        return;
+      }
+      setWatchlistQuotesLoading(true);
+      const results = await Promise.all(
+        watchlistSymbols.map(async (sym) => {
+          try {
+            const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+            const json = await res.json();
+            if (!res.ok) return { symbol: sym, error: true };
+            return { symbol: sym, ...json };
+          } catch (err) {
+            return { symbol: sym, error: true };
+          }
+        })
+      );
+      if (!cancelled) {
+        setWatchlistQuotes(results);
+        setWatchlistQuotesLoading(false);
+      }
+    }
+    loadWatchlistQuotes();
+    return () => {
+      cancelled = true;
+    };
+  }, [watchlistSymbols]);
 
   async function toggleWatchlist(symbol) {
     if (!session || !session.user || !symbol) return;
@@ -707,6 +740,178 @@ export default function Home() {
                 );
               })}
         </div>
+      </div>
+
+      {/* ---------- ТАҢДАУЛЫЛАР ---------- */}
+      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
+            Таңдаулылар
+          </div>
+          <a href="/watchlist" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+            Барлығын көру →
+          </a>
+        </div>
+
+        {!session || !session.user ? (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "14px",
+              padding: "16px",
+              fontSize: "0.8rem",
+              color: colors.textFaint,
+            }}
+          >
+            Таңдаулы акцияларды сақтау үшін{" "}
+            <a href="/login" style={{ color: colors.goldBright }}>
+              кіру керек
+            </a>
+            .
+          </div>
+        ) : watchlistSymbols.length === 0 ? (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "14px",
+              padding: "16px",
+              fontSize: "0.8rem",
+              color: colors.textFaint,
+            }}
+          >
+            Әлі таңдаулы акция жоқ. Кез келген акцияны іздеп, ★ басып қос.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "10px",
+            }}
+          >
+            {watchlistQuotesLoading && watchlistQuotes.length === 0
+              ? watchlistSymbols.map((sym) => (
+                  <div
+                    key={sym}
+                    className="tradeiq-card"
+                    style={{
+                      background: colors.card,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: "12px",
+                      padding: "12px",
+                      fontSize: "0.8rem",
+                      color: colors.textFaint,
+                    }}
+                  >
+                    {sym} — жүктелуде...
+                  </div>
+                ))
+              : watchlistQuotes.map((item) => {
+                  const up = typeof item.change === "number" && item.change >= 0;
+                  return (
+                    <button
+                      key={item.symbol}
+                      onClick={() => loadFromOverview(item.symbol)}
+                      className="tradeiq-card tradeiq-overview-card"
+                      style={{
+                        textAlign: "left",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        background: colors.card,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: "12px",
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        fontFamily: fontBody,
+                      }}
+                    >
+                      {item.logo ? (
+                        <img
+                          src={item.logo}
+                          alt=""
+                          width={26}
+                          height={26}
+                          style={{ borderRadius: "7px", flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: "7px",
+                            background: colors.border,
+                            color: colors.gold,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "0.62rem",
+                            fontWeight: "bold",
+                            fontFamily: fontMono,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {item.symbol.slice(0, 2)}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: "700",
+                            fontFamily: fontMono,
+                            color: colors.textPrimary,
+                          }}
+                        >
+                          {item.symbol}
+                        </div>
+                        {item.name ? (
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: colors.textFaint,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {item.name}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: "700",
+                            fontFamily: fontMono,
+                            color: colors.textPrimary,
+                          }}
+                        >
+                          {item.error ? "—" : safeNum(item.currentPrice, 2)}
+                        </div>
+                        {!item.error && typeof item.changePercent === "number" ? (
+                          <div
+                            style={{
+                              fontSize: "0.72rem",
+                              fontFamily: fontMono,
+                              fontWeight: "600",
+                              color: up ? colors.gain : colors.loss,
+                            }}
+                          >
+                            {up ? "▲" : "▼"} {safeNum(Math.abs(item.changePercent), 2)}%
+                          </div>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+          </div>
+        )}
       </div>
 
       {/* ---------- СЕКТОРЛАР (money flow) ---------- */}
