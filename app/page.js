@@ -25,6 +25,17 @@ const colors = {
   hold: "#D4A24C",
 };
 
+const DONUT_COLORS = [
+  colors.gold,
+  colors.gain,
+  "#6C8EEF",
+  "#B07CE8",
+  colors.loss,
+  colors.goldBright,
+  "#4FA9C7",
+  "#E89B4C",
+];
+
 const fontDisplay = "'Georgia', 'Times New Roman', serif";
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
@@ -95,6 +106,42 @@ function Sparkline({ history, isUp }) {
   );
 }
 
+/* ---------- Портфель donut диаграммасы (кітапханасыз, таза SVG) ---------- */
+function PortfolioDonut({ slices, size = 110, strokeWidth = 16 }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
+  let cumulativePercent = 0;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.bg} strokeWidth={strokeWidth} />
+      {total > 0
+        ? slices.map((s, i) => {
+            const percent = s.value / total;
+            const dashArray = `${percent * circumference} ${circumference}`;
+            const dashOffset = -cumulativePercent * circumference;
+            cumulativePercent += percent;
+            return (
+              <circle
+                key={s.symbol + i}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={dashArray}
+                strokeDashoffset={dashOffset}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              />
+            );
+          })
+        : null}
+    </svg>
+  );
+}
+
 /* ---------- Сигнал есептеу енді ортақ Core Engine-де ---------- */
 
 function formatNewsDate(unixSeconds) {
@@ -144,6 +191,10 @@ export default function Home() {
   const [watchlistBusy, setWatchlistBusy] = useState(false);
   const [watchlistQuotes, setWatchlistQuotes] = useState([]);
   const [watchlistQuotesLoading, setWatchlistQuotesLoading] = useState(false);
+
+  const [holdings, setHoldings] = useState([]);
+  const [holdingsLiveData, setHoldingsLiveData] = useState({});
+  const [holdingsLoading, setHoldingsLoading] = useState(false);
 
   const [alertPrice, setAlertPrice] = useState("");
   const [alertDirection, setAlertDirection] = useState("above");
@@ -213,6 +264,53 @@ export default function Home() {
       cancelled = true;
     };
   }, [watchlistSymbols]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadHoldings() {
+      if (!session || !session.user) {
+        setHoldings([]);
+        setHoldingsLiveData({});
+        return;
+      }
+      setHoldingsLoading(true);
+      try {
+        const { data: rows, error: dbError } = await supabase
+          .from("portfolio_holdings")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!cancelled && !dbError && rows) {
+          setHoldings(rows);
+
+          const uniqueSymbols = [...new Set(rows.map((h) => h.symbol))];
+          const priceMap = {};
+          await Promise.all(
+            uniqueSymbols.map(async (sym) => {
+              try {
+                const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+                const json = await res.json();
+                if (res.ok) {
+                  priceMap[sym] = { currentPrice: json.currentPrice };
+                }
+              } catch (err) {
+                // үнсіз
+              }
+            })
+          );
+          if (!cancelled) setHoldingsLiveData(priceMap);
+        }
+      } catch (err) {
+        // үнсіз
+      } finally {
+        if (!cancelled) setHoldingsLoading(false);
+      }
+    }
+    loadHoldings();
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   async function toggleWatchlist(symbol) {
     if (!session || !session.user || !symbol) return;
@@ -512,6 +610,27 @@ export default function Home() {
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
   const hasNews = Array.isArray(news) && news.length > 0;
+
+  let portfolioTotalValue = 0;
+  let portfolioTotalCost = 0;
+  holdings.forEach((h) => {
+    const live = holdingsLiveData[h.symbol];
+    const price = live && typeof live.currentPrice === "number" ? live.currentPrice : h.avg_price;
+    portfolioTotalValue += price * h.shares;
+    portfolioTotalCost += h.avg_price * h.shares;
+  });
+  const portfolioTotalGain = portfolioTotalValue - portfolioTotalCost;
+  const portfolioTotalGainPercent = portfolioTotalCost > 0 ? (portfolioTotalGain / portfolioTotalCost) * 100 : 0;
+  const portfolioGainUp = portfolioTotalGain >= 0;
+  const donutSlices = holdings.map((h, i) => {
+    const live = holdingsLiveData[h.symbol];
+    const price = live && typeof live.currentPrice === "number" ? live.currentPrice : h.avg_price;
+    return {
+      symbol: h.symbol,
+      value: price * h.shares,
+      color: DONUT_COLORS[i % DONUT_COLORS.length],
+    };
+  });
 
   return (
     <main
@@ -910,6 +1029,141 @@ export default function Home() {
                     </button>
                   );
                 })}
+          </div>
+        )}
+      </div>
+
+      {/* ---------- ПОРТФЕЛЬ ---------- */}
+      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
+            Менің портфелім
+          </div>
+          <a href="/portfolio" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+            Барлығын көру →
+          </a>
+        </div>
+
+        {!session || !session.user ? (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "14px",
+              padding: "16px",
+              fontSize: "0.8rem",
+              color: colors.textFaint,
+            }}
+          >
+            Портфельді бақылау үшін{" "}
+            <a href="/login" style={{ color: colors.goldBright }}>
+              кіру керек
+            </a>
+            .
+          </div>
+        ) : holdingsLoading && holdings.length === 0 ? (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "14px",
+              padding: "16px",
+              fontSize: "0.8rem",
+              color: colors.textFaint,
+            }}
+          >
+            Жүктелуде...
+          </div>
+        ) : holdings.length === 0 ? (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "14px",
+              padding: "16px",
+              fontSize: "0.8rem",
+              color: colors.textFaint,
+            }}
+          >
+            Портфель бос.{" "}
+            <a href="/portfolio" style={{ color: colors.goldBright }}>
+              Алғашқы акцияңды қос
+            </a>
+            .
+          </div>
+        ) : (
+          <div
+            className="tradeiq-card"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: "16px",
+              padding: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "20px",
+              flexWrap: "wrap",
+            }}
+          >
+            <PortfolioDonut slices={donutSlices} size={110} strokeWidth={16} />
+            <div style={{ flex: 1, minWidth: "180px" }}>
+              <div style={{ fontSize: "0.72rem", color: colors.textFaint, marginBottom: "4px" }}>
+                Жалпы құны
+              </div>
+              <div style={{ fontSize: "1.5rem", fontWeight: "bold", fontFamily: fontMono, color: colors.textPrimary }}>
+                ${safeNum(portfolioTotalValue, 2)}
+              </div>
+              {portfolioTotalCost > 0 ? (
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    fontFamily: fontMono,
+                    fontWeight: "600",
+                    color: portfolioGainUp ? colors.gain : colors.loss,
+                    marginTop: "2px",
+                  }}
+                >
+                  {portfolioGainUp ? "▲" : "▼"} ${safeNum(Math.abs(portfolioTotalGain), 2)} (
+                  {safeNum(Math.abs(portfolioTotalGainPercent), 2)}%)
+                </div>
+              ) : null}
+              <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "12px" }}>
+                {donutSlices.slice(0, 5).map((s) => (
+                  <div
+                    key={s.symbol}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      fontSize: "0.74rem",
+                      fontFamily: fontMono,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: s.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{s.symbol}</span>
+                    <span style={{ color: colors.textFaint, marginLeft: "auto" }}>
+                      {portfolioTotalValue > 0 ? ((s.value / portfolioTotalValue) * 100).toFixed(1) : "0.0"}%
+                    </span>
+                  </div>
+                ))}
+                {donutSlices.length > 5 ? (
+                  <div style={{ fontSize: "0.7rem", color: colors.textFaint }}>
+                    + тағы {donutSlices.length - 5}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         )}
       </div>
