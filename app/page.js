@@ -36,6 +36,12 @@ const DONUT_COLORS = [
   "#E89B4C",
 ];
 
+const SCREENER_FILTERS = [
+  { key: "all", label: "Барлық нарық", query: "" },
+  { key: "pe", label: "P/E < 20", query: "maxPE=20" },
+  { key: "roe", label: "ROE > 15%", query: "minROE=15" },
+];
+
 const fontDisplay = "'Georgia', 'Times New Roman', serif";
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
@@ -196,6 +202,10 @@ export default function Home() {
   const [holdingsLiveData, setHoldingsLiveData] = useState({});
   const [holdingsLoading, setHoldingsLoading] = useState(false);
 
+  const [screenerResults, setScreenerResults] = useState([]);
+  const [screenerLoading, setScreenerLoading] = useState(true);
+  const [screenerFilter, setScreenerFilter] = useState("all");
+
   const [alertPrice, setAlertPrice] = useState("");
   const [alertDirection, setAlertDirection] = useState("above");
   const [alertSubmitting, setAlertSubmitting] = useState(false);
@@ -311,6 +321,30 @@ export default function Home() {
       cancelled = true;
     };
   }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadScreener() {
+      setScreenerLoading(true);
+      const active = SCREENER_FILTERS.find((f) => f.key === screenerFilter);
+      const qs = active && active.query ? "?" + active.query : "";
+      try {
+        const res = await fetch("/api/screener" + qs);
+        const json = await res.json();
+        if (!cancelled && res.ok && Array.isArray(json.results)) {
+          setScreenerResults(json.results);
+        }
+      } catch (err) {
+        // үнсіз
+      } finally {
+        if (!cancelled) setScreenerLoading(false);
+      }
+    }
+    loadScreener();
+    return () => {
+      cancelled = true;
+    };
+  }, [screenerFilter]);
 
   async function toggleWatchlist(symbol) {
     if (!session || !session.user || !symbol) return;
@@ -654,6 +688,7 @@ export default function Home() {
         .tradeiq-search-btn:active { transform: scale(0.97); }
         .tradeiq-overview-card { transition: transform 0.15s ease, border-color 0.15s ease; }
         .tradeiq-overview-card:hover { transform: translateY(-2px); border-color: ${colors.gold} !important; }
+        .tradeiq-row:hover { background: rgba(212,175,55,0.06); }
         .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
         .tradeiq-content-shell { margin-left: 0; }
         @media (min-width: 1024px) {
@@ -1166,6 +1201,116 @@ export default function Home() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ---------- СКРИНЕР ---------- */}
+      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
+            Скринер
+          </div>
+          <a href="/screener" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
+            Барлығын көру →
+          </a>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+          {SCREENER_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setScreenerFilter(f.key)}
+              className="tradeiq-search-btn"
+              style={{
+                fontSize: "0.74rem",
+                color: screenerFilter === f.key ? colors.bg : colors.textMuted,
+                background: screenerFilter === f.key ? colors.gold : "transparent",
+                border: `1px solid ${screenerFilter === f.key ? colors.gold : colors.border}`,
+                borderRadius: "8px",
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontWeight: screenerFilter === f.key ? "700" : "400",
+                fontFamily: fontBody,
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          className="tradeiq-card"
+          style={{
+            background: colors.card,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "16px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 70px 70px 90px",
+              padding: "10px 16px",
+              fontSize: "0.66rem",
+              color: colors.textFaint,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              borderBottom: `1px solid ${colors.border}`,
+            }}
+          >
+            <span>Тикер</span>
+            <span>P/E</span>
+            <span>ROE</span>
+            <span style={{ textAlign: "right" }}>Өзгеріс</span>
+          </div>
+
+          {screenerLoading && screenerResults.length === 0 ? (
+            <div style={{ padding: "18px 16px", color: colors.textFaint, fontSize: "0.8rem" }}>
+              Жүктелуде...
+            </div>
+          ) : screenerResults.length === 0 ? (
+            <div style={{ padding: "18px 16px", color: colors.textFaint, fontSize: "0.8rem" }}>
+              Сәйкес акция табылмады
+            </div>
+          ) : (
+            screenerResults.slice(0, 5).map((r) => {
+              const up = typeof r.changePercent === "number" && r.changePercent >= 0;
+              return (
+                <button
+                  key={r.symbol}
+                  onClick={() => loadFromOverview(r.symbol)}
+                  className="tradeiq-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 70px 70px 90px",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "11px 16px",
+                    fontSize: "0.8rem",
+                    fontFamily: fontMono,
+                    alignItems: "center",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: `1px solid ${colors.border}`,
+                    cursor: "pointer",
+                    color: "inherit",
+                  }}
+                >
+                  <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{r.symbol}</span>
+                  <span style={{ color: colors.textMuted }}>
+                    {typeof r.pe === "number" ? r.pe.toFixed(1) : "—"}
+                  </span>
+                  <span style={{ color: colors.textMuted }}>
+                    {typeof r.roe === "number" ? (r.roe * 100).toFixed(1) + "%" : "—"}
+                  </span>
+                  <span style={{ textAlign: "right", color: up ? colors.gain : colors.loss, fontWeight: "600" }}>
+                    {typeof r.changePercent === "number" ? `${up ? "▲" : "▼"} ${r.changePercent.toFixed(2)}%` : "—"}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* ---------- СЕКТОРЛАР (money flow) ---------- */}
