@@ -24,23 +24,6 @@ const colors = {
   hold: "#D4A24C",
 };
 
-const DONUT_COLORS = [
-  colors.gold,
-  colors.gain,
-  "#6C8EEF",
-  "#B07CE8",
-  colors.loss,
-  colors.goldBright,
-  "#4FA9C7",
-  "#E89B4C",
-];
-
-const SCREENER_FILTERS = [
-  { key: "all", label: "Барлық нарық", query: "" },
-  { key: "pe", label: "P/E < 20", query: "maxPE=20" },
-  { key: "roe", label: "ROE > 15%", query: "minROE=15" },
-];
-
 const AI_SUGGESTIONS = [
   "AAPL акциясына талдау жаса",
   "Нарық жағдайы қалай?",
@@ -51,20 +34,18 @@ const fontDisplay = "'Georgia', 'Times New Roman', serif";
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
 
-/* ---------- Логотип ---------- */
+/* ---------- Логотип (жапон свичалары) ---------- */
 function TradeIQMark({ size = 40 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="38" cy="9" r="3" fill={colors.gold} />
-      <path
-        d="M3 33 L12 21 L18 27 L26 13 L34 23 L45 17"
-        stroke={colors.gold}
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <line x1="3" y1="40" x2="45" y2="40" stroke={colors.border} strokeWidth="1.4" />
+      <line x1="12" y1="18" x2="12" y2="38" stroke={colors.loss} strokeWidth="2.4" strokeLinecap="round" />
+      <rect x="9" y="24" width="6" height="10" rx="1.5" fill={colors.loss} />
+
+      <line x1="24" y1="10" x2="24" y2="40" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" />
+      <rect x="21" y="18" width="6" height="16" rx="1.5" fill={colors.gain} />
+
+      <line x1="36" y1="6" x2="36" y2="32" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" />
+      <rect x="33" y="12" width="6" height="14" rx="1.5" fill={colors.gain} />
     </svg>
   );
 }
@@ -127,42 +108,6 @@ function Sparkline({ history, isUp }) {
   );
 }
 
-/* ---------- Портфель donut диаграммасы (кітапханасыз, таза SVG) ---------- */
-function PortfolioDonut({ slices, size = 110, strokeWidth = 16 }) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const total = slices.reduce((sum, s) => sum + s.value, 0);
-  let cumulativePercent = 0;
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={colors.bg} strokeWidth={strokeWidth} />
-      {total > 0
-        ? slices.map((s, i) => {
-            const percent = s.value / total;
-            const dashArray = `${percent * circumference} ${circumference}`;
-            const dashOffset = -cumulativePercent * circumference;
-            cumulativePercent += percent;
-            return (
-              <circle
-                key={s.symbol + i}
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
-                transform={`rotate(-90 ${size / 2} ${size / 2})`}
-              />
-            );
-          })
-        : null}
-    </svg>
-  );
-}
-
 /* ---------- Сигнал есептеу енді ортақ Core Engine-де ---------- */
 
 function formatNewsDate(unixSeconds) {
@@ -210,16 +155,6 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
-  const [watchlistQuotes, setWatchlistQuotes] = useState([]);
-  const [watchlistQuotesLoading, setWatchlistQuotesLoading] = useState(false);
-
-  const [holdings, setHoldings] = useState([]);
-  const [holdingsLiveData, setHoldingsLiveData] = useState({});
-  const [holdingsLoading, setHoldingsLoading] = useState(false);
-
-  const [screenerResults, setScreenerResults] = useState([]);
-  const [screenerLoading, setScreenerLoading] = useState(true);
-  const [screenerFilter, setScreenerFilter] = useState("all");
 
   const [alertPrice, setAlertPrice] = useState("");
   const [alertDirection, setAlertDirection] = useState("above");
@@ -258,108 +193,6 @@ export default function Home() {
       cancelled = true;
     };
   }, [session]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadWatchlistQuotes() {
-      if (!watchlistSymbols || watchlistSymbols.length === 0) {
-        setWatchlistQuotes([]);
-        return;
-      }
-      setWatchlistQuotesLoading(true);
-      const results = await Promise.all(
-        watchlistSymbols.map(async (sym) => {
-          try {
-            const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
-            const json = await res.json();
-            if (!res.ok) return { symbol: sym, error: true };
-            return { symbol: sym, ...json };
-          } catch (err) {
-            return { symbol: sym, error: true };
-          }
-        })
-      );
-      if (!cancelled) {
-        setWatchlistQuotes(results);
-        setWatchlistQuotesLoading(false);
-      }
-    }
-    loadWatchlistQuotes();
-    return () => {
-      cancelled = true;
-    };
-  }, [watchlistSymbols]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadHoldings() {
-      if (!session || !session.user) {
-        setHoldings([]);
-        setHoldingsLiveData({});
-        return;
-      }
-      setHoldingsLoading(true);
-      try {
-        const { data: rows, error: dbError } = await supabase
-          .from("portfolio_holdings")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (!cancelled && !dbError && rows) {
-          setHoldings(rows);
-
-          const uniqueSymbols = [...new Set(rows.map((h) => h.symbol))];
-          const priceMap = {};
-          await Promise.all(
-            uniqueSymbols.map(async (sym) => {
-              try {
-                const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
-                const json = await res.json();
-                if (res.ok) {
-                  priceMap[sym] = { currentPrice: json.currentPrice };
-                }
-              } catch (err) {
-                // үнсіз
-              }
-            })
-          );
-          if (!cancelled) setHoldingsLiveData(priceMap);
-        }
-      } catch (err) {
-        // үнсіз
-      } finally {
-        if (!cancelled) setHoldingsLoading(false);
-      }
-    }
-    loadHoldings();
-    return () => {
-      cancelled = true;
-    };
-  }, [session]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadScreener() {
-      setScreenerLoading(true);
-      const active = SCREENER_FILTERS.find((f) => f.key === screenerFilter);
-      const qs = active && active.query ? "?" + active.query : "";
-      try {
-        const res = await fetch("/api/screener" + qs);
-        const json = await res.json();
-        if (!cancelled && res.ok && Array.isArray(json.results)) {
-          setScreenerResults(json.results);
-        }
-      } catch (err) {
-        // үнсіз
-      } finally {
-        if (!cancelled) setScreenerLoading(false);
-      }
-    }
-    loadScreener();
-    return () => {
-      cancelled = true;
-    };
-  }, [screenerFilter]);
 
   async function toggleWatchlist(symbol) {
     if (!session || !session.user || !symbol) return;
@@ -660,27 +493,6 @@ export default function Home() {
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
   const hasNews = Array.isArray(news) && news.length > 0;
 
-  let portfolioTotalValue = 0;
-  let portfolioTotalCost = 0;
-  holdings.forEach((h) => {
-    const live = holdingsLiveData[h.symbol];
-    const price = live && typeof live.currentPrice === "number" ? live.currentPrice : h.avg_price;
-    portfolioTotalValue += price * h.shares;
-    portfolioTotalCost += h.avg_price * h.shares;
-  });
-  const portfolioTotalGain = portfolioTotalValue - portfolioTotalCost;
-  const portfolioTotalGainPercent = portfolioTotalCost > 0 ? (portfolioTotalGain / portfolioTotalCost) * 100 : 0;
-  const portfolioGainUp = portfolioTotalGain >= 0;
-  const donutSlices = holdings.map((h, i) => {
-    const live = holdingsLiveData[h.symbol];
-    const price = live && typeof live.currentPrice === "number" ? live.currentPrice : h.avg_price;
-    return {
-      symbol: h.symbol,
-      value: price * h.shares,
-      color: DONUT_COLORS[i % DONUT_COLORS.length],
-    };
-  });
-
   return (
     <main
       style={{
@@ -703,7 +515,6 @@ export default function Home() {
         .tradeiq-search-btn:active { transform: scale(0.97); }
         .tradeiq-overview-card { transition: transform 0.15s ease, border-color 0.15s ease; }
         .tradeiq-overview-card:hover { transform: translateY(-2px); border-color: ${colors.gold} !important; }
-        .tradeiq-row:hover { background: rgba(212,175,55,0.06); }
         .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
         .tradeiq-content-shell { margin-left: 0; }
         @media (min-width: 1024px) {
@@ -726,19 +537,19 @@ export default function Home() {
         >
 
       {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <TradeIQMark size={40} />
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <TradeIQMark size={46} />
         <h1
           style={{
             fontFamily: fontDisplay,
-            fontSize: "2.1rem",
-            fontWeight: "bold",
+            fontSize: "2.3rem",
+            fontWeight: "800",
             letterSpacing: "0.5px",
             margin: 0,
             color: colors.textPrimary,
           }}
         >
-          TradeIQ
+          Trade<span style={{ color: colors.gold }}>IQ</span>
         </h1>
       </div>
       <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.7rem", letterSpacing: "1.5px", fontWeight: "600" }}>
@@ -1050,423 +861,6 @@ export default function Home() {
               Жіберу
             </button>
           </form>
-        </div>
-      </div>
-
-      {/* ---------- ТАҢДАУЛЫЛАР ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
-            Таңдаулылар
-          </div>
-          <a href="/watchlist" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
-            Барлығын көру →
-          </a>
-        </div>
-
-        {!session || !session.user ? (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "14px",
-              padding: "16px",
-              fontSize: "0.8rem",
-              color: colors.textFaint,
-            }}
-          >
-            Таңдаулы акцияларды сақтау үшін{" "}
-            <a href="/login" style={{ color: colors.goldBright }}>
-              кіру керек
-            </a>
-            .
-          </div>
-        ) : watchlistSymbols.length === 0 ? (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "14px",
-              padding: "16px",
-              fontSize: "0.8rem",
-              color: colors.textFaint,
-            }}
-          >
-            Әлі таңдаулы акция жоқ. Кез келген акцияны іздеп, ★ басып қос.
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "10px",
-            }}
-          >
-            {watchlistQuotesLoading && watchlistQuotes.length === 0
-              ? watchlistSymbols.map((sym) => (
-                  <div
-                    key={sym}
-                    className="tradeiq-card"
-                    style={{
-                      background: colors.card,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: "12px",
-                      padding: "12px",
-                      fontSize: "0.8rem",
-                      color: colors.textFaint,
-                    }}
-                  >
-                    {sym} — жүктелуде...
-                  </div>
-                ))
-              : watchlistQuotes.map((item) => {
-                  const up = typeof item.change === "number" && item.change >= 0;
-                  return (
-                    <button
-                      key={item.symbol}
-                      onClick={() => loadFromOverview(item.symbol)}
-                      className="tradeiq-card tradeiq-overview-card"
-                      style={{
-                        textAlign: "left",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        background: colors.card,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: "12px",
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        fontFamily: fontBody,
-                      }}
-                    >
-                      {item.logo ? (
-                        <img
-                          src={item.logo}
-                          alt=""
-                          width={26}
-                          height={26}
-                          style={{ borderRadius: "7px", flexShrink: 0 }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: "7px",
-                            background: colors.border,
-                            color: colors.gold,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "0.62rem",
-                            fontWeight: "bold",
-                            fontFamily: fontMono,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {item.symbol.slice(0, 2)}
-                        </div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            fontWeight: "700",
-                            fontFamily: fontMono,
-                            color: colors.textPrimary,
-                          }}
-                        >
-                          {item.symbol}
-                        </div>
-                        {item.name ? (
-                          <div
-                            style={{
-                              fontSize: "0.68rem",
-                              color: colors.textFaint,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {item.name}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            fontWeight: "700",
-                            fontFamily: fontMono,
-                            color: colors.textPrimary,
-                          }}
-                        >
-                          {item.error ? "—" : safeNum(item.currentPrice, 2)}
-                        </div>
-                        {!item.error && typeof item.changePercent === "number" ? (
-                          <div
-                            style={{
-                              fontSize: "0.72rem",
-                              fontFamily: fontMono,
-                              fontWeight: "600",
-                              color: up ? colors.gain : colors.loss,
-                            }}
-                          >
-                            {up ? "▲" : "▼"} {safeNum(Math.abs(item.changePercent), 2)}%
-                          </div>
-                        ) : null}
-                      </div>
-                    </button>
-                  );
-                })}
-          </div>
-        )}
-      </div>
-
-      {/* ---------- ПОРТФЕЛЬ ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
-            Менің портфелім
-          </div>
-          <a href="/portfolio" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
-            Барлығын көру →
-          </a>
-        </div>
-
-        {!session || !session.user ? (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "14px",
-              padding: "16px",
-              fontSize: "0.8rem",
-              color: colors.textFaint,
-            }}
-          >
-            Портфельді бақылау үшін{" "}
-            <a href="/login" style={{ color: colors.goldBright }}>
-              кіру керек
-            </a>
-            .
-          </div>
-        ) : holdingsLoading && holdings.length === 0 ? (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "14px",
-              padding: "16px",
-              fontSize: "0.8rem",
-              color: colors.textFaint,
-            }}
-          >
-            Жүктелуде...
-          </div>
-        ) : holdings.length === 0 ? (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "14px",
-              padding: "16px",
-              fontSize: "0.8rem",
-              color: colors.textFaint,
-            }}
-          >
-            Портфель бос.{" "}
-            <a href="/portfolio" style={{ color: colors.goldBright }}>
-              Алғашқы акцияңды қос
-            </a>
-            .
-          </div>
-        ) : (
-          <div
-            className="tradeiq-card"
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "16px",
-              padding: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "20px",
-              flexWrap: "wrap",
-            }}
-          >
-            <PortfolioDonut slices={donutSlices} size={110} strokeWidth={16} />
-            <div style={{ flex: 1, minWidth: "180px" }}>
-              <div style={{ fontSize: "0.72rem", color: colors.textFaint, marginBottom: "4px" }}>
-                Жалпы құны
-              </div>
-              <div style={{ fontSize: "1.5rem", fontWeight: "bold", fontFamily: fontMono, color: colors.textPrimary }}>
-                ${safeNum(portfolioTotalValue, 2)}
-              </div>
-              {portfolioTotalCost > 0 ? (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    fontFamily: fontMono,
-                    fontWeight: "600",
-                    color: portfolioGainUp ? colors.gain : colors.loss,
-                    marginTop: "2px",
-                  }}
-                >
-                  {portfolioGainUp ? "▲" : "▼"} ${safeNum(Math.abs(portfolioTotalGain), 2)} (
-                  {safeNum(Math.abs(portfolioTotalGainPercent), 2)}%)
-                </div>
-              ) : null}
-              <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "12px" }}>
-                {donutSlices.slice(0, 5).map((s) => (
-                  <div
-                    key={s.symbol}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "7px",
-                      fontSize: "0.74rem",
-                      fontFamily: fontMono,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        background: s.color,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{s.symbol}</span>
-                    <span style={{ color: colors.textFaint, marginLeft: "auto" }}>
-                      {portfolioTotalValue > 0 ? ((s.value / portfolioTotalValue) * 100).toFixed(1) : "0.0"}%
-                    </span>
-                  </div>
-                ))}
-                {donutSlices.length > 5 ? (
-                  <div style={{ fontSize: "0.7rem", color: colors.textFaint }}>
-                    + тағы {donutSlices.length - 5}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ---------- СКРИНЕР ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary }}>
-            Скринер
-          </div>
-          <a href="/screener" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
-            Барлығын көру →
-          </a>
-        </div>
-
-        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-          {SCREENER_FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setScreenerFilter(f.key)}
-              className="tradeiq-search-btn"
-              style={{
-                fontSize: "0.74rem",
-                color: screenerFilter === f.key ? colors.bg : colors.textMuted,
-                background: screenerFilter === f.key ? colors.gold : "transparent",
-                border: `1px solid ${screenerFilter === f.key ? colors.gold : colors.border}`,
-                borderRadius: "8px",
-                padding: "6px 12px",
-                cursor: "pointer",
-                fontWeight: screenerFilter === f.key ? "700" : "400",
-                fontFamily: fontBody,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div
-          className="tradeiq-card"
-          style={{
-            background: colors.card,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 70px 70px 90px",
-              padding: "10px 16px",
-              fontSize: "0.66rem",
-              color: colors.textFaint,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              borderBottom: `1px solid ${colors.border}`,
-            }}
-          >
-            <span>Тикер</span>
-            <span>P/E</span>
-            <span>ROE</span>
-            <span style={{ textAlign: "right" }}>Өзгеріс</span>
-          </div>
-
-          {screenerLoading && screenerResults.length === 0 ? (
-            <div style={{ padding: "18px 16px", color: colors.textFaint, fontSize: "0.8rem" }}>
-              Жүктелуде...
-            </div>
-          ) : screenerResults.length === 0 ? (
-            <div style={{ padding: "18px 16px", color: colors.textFaint, fontSize: "0.8rem" }}>
-              Сәйкес акция табылмады
-            </div>
-          ) : (
-            screenerResults.slice(0, 5).map((r) => {
-              const up = typeof r.changePercent === "number" && r.changePercent >= 0;
-              return (
-                <button
-                  key={r.symbol}
-                  onClick={() => loadFromOverview(r.symbol)}
-                  className="tradeiq-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 70px 70px 90px",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "11px 16px",
-                    fontSize: "0.8rem",
-                    fontFamily: fontMono,
-                    alignItems: "center",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: `1px solid ${colors.border}`,
-                    cursor: "pointer",
-                    color: "inherit",
-                  }}
-                >
-                  <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{r.symbol}</span>
-                  <span style={{ color: colors.textMuted }}>
-                    {typeof r.pe === "number" ? r.pe.toFixed(1) : "—"}
-                  </span>
-                  <span style={{ color: colors.textMuted }}>
-                    {typeof r.roe === "number" ? (r.roe * 100).toFixed(1) + "%" : "—"}
-                  </span>
-                  <span style={{ textAlign: "right", color: up ? colors.gain : colors.loss, fontWeight: "600" }}>
-                    {typeof r.changePercent === "number" ? `${up ? "▲" : "▼"} ${r.changePercent.toFixed(2)}%` : "—"}
-                  </span>
-                </button>
-              );
-            })
-          )}
         </div>
       </div>
 
@@ -2173,7 +1567,7 @@ export default function Home() {
             ) : null}
           </div>
 
-          {/* ---------- ЖАНАЛЫҚТАР ---------- */}
+          {/* ---------- ЖАҢАЛЫҚТАР ---------- */}
           <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
             <div
               style={{
