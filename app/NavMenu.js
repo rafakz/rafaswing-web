@@ -14,23 +14,24 @@ const colors = {
   accentBlue: "#1E3A8A",
   textPrimary: "#F5F1E6",
   textMuted: "#8A93A6",
+  gain: "#4FA98B",
+  loss: "#C2542D",
 };
 
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-/* ---------- Бренд белгісі (homepage-тегі TradeIQMark-пен үйлесімді) ---------- */
-function NavLogoMark({ size = 24 }) {
+/* ---------- Бренд белгісі: жапон свичалары (homepage-тегі TradeIQMark-пен бірдей) ---------- */
+function NavLogoMark({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="19" cy="5" r="1.6" fill={colors.gold} />
-      <path
-        d="M2 16.5L6 11l3 3 4-7 4 5 5-3"
-        stroke={colors.gold}
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="11" y1="16" x2="11" y2="39" stroke={colors.loss} strokeWidth="3" strokeLinecap="round" />
+      <rect x="7.5" y="24" width="7" height="11" rx="1.5" fill={colors.loss} />
+
+      <line x1="24" y1="8" x2="24" y2="41" stroke={colors.gain} strokeWidth="3" strokeLinecap="round" />
+      <rect x="20.5" y="17" width="7" height="18" rx="1.5" fill={colors.gain} />
+
+      <line x1="37" y1="4" x2="37" y2="33" stroke={colors.gain} strokeWidth="3" strokeLinecap="round" />
+      <rect x="33.5" y="11" width="7" height="16" rx="1.5" fill={colors.gain} />
     </svg>
   );
 }
@@ -253,21 +254,21 @@ export default function NavMenu() {
             borderBottom: `1px solid ${colors.border}`,
             display: "flex",
             alignItems: "center",
-            gap: "10px",
+            gap: "11px",
           }}
         >
-          <NavLogoMark size={24} />
+          <NavLogoMark size={28} />
           <div>
             <div
               style={{
-                fontSize: "1.15rem",
+                fontSize: "1.2rem",
                 fontWeight: "800",
                 letterSpacing: "0.5px",
                 color: colors.textPrimary,
                 lineHeight: 1.1,
               }}
             >
-              TradeIQ
+              Trade<span style={{ color: colors.gold }}>IQ</span>
             </div>
             <div
               style={{
