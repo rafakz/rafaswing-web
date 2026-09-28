@@ -10,14 +10,7 @@ const colors = {
   gold: "#D4AF37",
   goldBright: "#E8C468",
   textPrimary: "#F5F1E6",
-  textMuted: "#8A93A6",
-  gain: "#4FA98B",
-  loss: "#C2542D",
 };
-
-function safeNum(v, digits) {
-  return typeof v === "number" && !isNaN(v) ? v.toFixed(digits) : "—";
-}
 
 /* ---------- NavMenu-мен бірдей иконка тілі ---------- */
 function IconBell({ size = 17, color }) {
@@ -36,7 +29,7 @@ function IconCrown({ size = 14, color }) {
   );
 }
 
-export default function Header({ overview }) {
+export default function Header() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
@@ -58,8 +51,6 @@ export default function Header({ overview }) {
       ? (session.user.user_metadata && session.user.user_metadata.full_name) ||
         session.user.email
       : null;
-
-  const indices = Array.isArray(overview) ? overview : [];
 
   return (
     <>
@@ -95,31 +86,6 @@ export default function Header({ overview }) {
         ) : (
           "Қош келдіңіз!"
         )}
-      </div>
-
-      {/* ---- Индекстер ---- */}
-      <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
-        {indices.map((item) => {
-          const up = typeof item.change === "number" && item.change >= 0;
-          return (
-            <div key={item.symbol} style={{ fontSize: "0.78rem", whiteSpace: "nowrap" }}>
-              <span style={{ color: colors.textMuted }}>{item.label}</span>{" "}
-              <span
-                style={{
-                  fontWeight: "700",
-                  color: item.error ? colors.textMuted : colors.textPrimary,
-                }}
-              >
-                {item.error ? "—" : safeNum(item.currentPrice, 2)}
-              </span>
-              {!item.error && typeof item.changePercent === "number" ? (
-                <span style={{ marginLeft: "6px", fontWeight: "600", color: up ? colors.gain : colors.loss }}>
-                  {up ? "▲" : "▼"} {safeNum(Math.abs(item.changePercent), 2)}%
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
       </div>
 
       {/* ---- Дабылдар жарлығы + Pro жоспар ---- */}
