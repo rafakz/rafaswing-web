@@ -6,10 +6,16 @@ import {
   calculateEMASeries,
   computeTradePlan,
 } from "../../../lib/tradeiq-engine";
+import { supabase } from "../../supabaseClient";
 
 function numOrNull(v) {
   return typeof v === "number" && !isNaN(v) ? v : null;
 }
+
+// Alpha Vantage тегін жоспары: күніне 25, минутына 5 сұрау ғана.
+// Осы кэш соны бір орталық орыннан (Supabase) бәрі бөлісіп қолдануға мүмкіндік береді —
+// сол ticker-ге 30 минут ішінде екінші рет сұраныс түссе, Alpha Vantage-ке соқпай, кэштен береді.
+var CACHE_TTL_MS = 30 * 60 * 1000;
 
 export async function GET(request) {
   var searchParams = new URL(request.url).searchParams;
@@ -124,16 +130,44 @@ export async function GET(request) {
       sentimentInfo = null;
     }
 
-    // ---------- Core Engine арқылы техникалық деректер ----------
+    // ---------- Core Engine арқылы техникалық деректер (Supabase кэшімен) ----------
     var technicals = null;
     var history = [];
     var chartData = [];
     var volumeInfo = null;
     var pivot = null;
+    var roc = null;
 
-    if (alphaKey) {
+    function applyCachedPayload(row) {
+      technicals = row.payload.technicals;
+      volumeInfo = row.payload.volumeInfo;
+      history = row.payload.history;
+      chartData = row.payload.chartData;
+      pivot = row.payload.pivot;
+      roc = row.payload.roc;
+    }
+
+    var cacheRow = null;
+    try {
+      var cacheRes = await supabase
+        .from("stock_cache")
+        .select("payload, updated_at")
+        .eq("symbol", symbol)
+        .maybeSingle();
+      if (cacheRes && !cacheRes.error && cacheRes.data) {
+        cacheRow = cacheRes.data;
+      }
+    } catch (e) {
+      cacheRow = null;
+    }
+
+    var cacheFresh = !!(cacheRow && (Date.now() - new Date(cacheRow.updated_at).getTime()) < CACHE_TTL_MS);
+
+    if (cacheFresh) {
+      applyCachedPayload(cacheRow);
+    } else if (alphaKey) {
       var alphaUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=compact&apikey=" + alphaKey;
-      var alphaRes = await fetch(alphaUrl, { next: { revalidate: 1800 } });
+      var alphaRes = await fetch(alphaUrl, { cache: "no-store" });
       var alphaData = alphaRes.ok ? await alphaRes.json() : null;
 
       var series = alphaData ? alphaData["Time Series (Daily)"] : null;
@@ -188,6 +222,24 @@ export async function GET(request) {
         var lc = parseFloat(lastDay["4. close"]);
 
         pivot = computePivot(lh, ll, lc);
+        roc = calculateROC(closes, 10);
+
+        // Жаңа деректерді Supabase-ке сақтаймыз, келесі сұраныс осыдан оқысын
+        try {
+          await supabase.from("stock_cache").upsert(
+            {
+              symbol: symbol,
+              payload: { technicals, volumeInfo, history, chartData, pivot, roc },
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "symbol" }
+          );
+        } catch (e) {
+          // үнсіз — кэш сақталмаса да, пайдаланушыға жауап бере береміз
+        }
+      } else if (cacheRow) {
+        // Alpha Vantage лимитке тірелді немесе қате қайтарды — ескі кэш болса, соны көрсетеміз
+        applyCachedPayload(cacheRow);
       } else {
         technicals = {
           rsi: null,
@@ -200,6 +252,8 @@ export async function GET(request) {
           debugAlphaError: alphaData ? (alphaData["Note"] || alphaData["Information"] || "no_series") : "fetch_failed"
         };
       }
+    } else if (cacheRow) {
+      applyCachedPayload(cacheRow);
     } else {
       technicals = {
         rsi: null,
@@ -213,7 +267,6 @@ export async function GET(request) {
       };
     }
 
-    var roc = (typeof closes !== "undefined" && closes) ? calculateROC(closes, 10) : null;
     var scoreResult = calculateSwingScoreV2({ technicals, volumeInfo, sentimentInfo, fundamentals, roc });
     var swingScore = scoreResult ? scoreResult.score : null;
     var swingScoreBreakdown = scoreResult ? scoreResult.breakdown : null;
