@@ -60,6 +60,102 @@ function IconSparkleChat({ size = 18, color }) {
   );
 }
 
+/* ---------- Халал скрин карточкасы (деректер /api/stock → halal) ---------- */
+function HalalCard({ halal }) {
+  if (!halal || typeof halal !== "object" || !Array.isArray(halal.checks)) return null;
+
+  const toneOf = (s) =>
+    s === "pass" ? colors.gain : s === "fail" ? colors.loss : s === "doubtful" ? colors.hold : colors.textFaint;
+  const markOf = (s) => (s === "pass" ? "✓" : s === "fail" ? "✕" : s === "doubtful" ? "⚠" : "?");
+  const tone = toneOf(halal.status);
+
+  return (
+    <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "8px",
+          marginBottom: "10px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: "bold",
+            color: colors.gold,
+            textTransform: "uppercase",
+            letterSpacing: "0.6px",
+          }}
+        >
+          Халал скрин
+        </div>
+        <div
+          style={{
+            fontSize: "0.7rem",
+            fontWeight: "700",
+            color: tone,
+            border: `1px solid ${tone}`,
+            borderRadius: "999px",
+            padding: "3px 10px",
+            textAlign: "center",
+          }}
+        >
+          {halal.label}
+        </div>
+      </div>
+
+      {halal.summary ? (
+        <div style={{ fontSize: "0.78rem", color: colors.textMuted, lineHeight: "1.45", marginBottom: "12px" }}>
+          {halal.summary}
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {halal.checks.map((c) => (
+          <div
+            key={c.key}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "10px",
+              fontSize: "0.8rem",
+            }}
+          >
+            <div style={{ minWidth: 0, color: colors.textPrimary }}>
+              {c.label}
+              {c.note ? (
+                <div style={{ fontSize: "0.68rem", color: colors.textFaint, marginTop: "2px" }}>{c.note}</div>
+              ) : null}
+            </div>
+            <div
+              style={{
+                flexShrink: 0,
+                fontFamily: fontMono,
+                fontWeight: "700",
+                color: toneOf(c.status),
+                textAlign: "right",
+              }}
+            >
+              {c.display ? c.display + " " : ""}
+              {markOf(c.status)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {halal.disclaimer ? (
+        <div style={{ marginTop: "12px", fontSize: "0.66rem", color: colors.textFaint, lineHeight: "1.5" }}>
+          ⚠ {halal.disclaimer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ---------- Sparkline (толығымен қорғалған) ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
@@ -1109,6 +1205,9 @@ export default function Home() {
             {typeof data.marketCap === "number" ? <div>Market Cap: ${data.marketCap.toFixed(0)}M</div> : null}
             {data.industry ? <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div> : null}
           </div>
+
+          {/* ---------- ХАЛАЛ СКРИН ---------- */}
+          <HalalCard halal={data.halal} />
 
           {/* ---------- ФУНДАМЕНТАЛДЫ КӨРСЕТКІШТЕР ---------- */}
           {data.fundamentals && typeof data.fundamentals === "object" ? (
