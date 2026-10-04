@@ -7,6 +7,7 @@ import {
   computeTradePlan,
 } from "../../../lib/tradeiq-engine";
 import { supabase } from "../../supabaseClient";
+import { computeHalalStatus } from "../../../lib/halal";
 
 function numOrNull(v) {
   return typeof v === "number" && !isNaN(v) ? v : null;
@@ -272,6 +273,21 @@ export async function GET(request) {
     var swingScoreBreakdown = scoreResult ? scoreResult.breakdown : null;
     var tradePlan = computeTradePlan(pivot, quote.c);
 
+    // Халал скрин: қосымша API сұраусыз, жоғарыда алынған profile + metric негізінде.
+    // Қате болса да, акция деректері бұзылмайды (halal: null қайтады).
+    var halal = null;
+    try {
+      halal = computeHalalStatus({
+        symbol: symbol,
+        name: profile.name,
+        industry: profile.finnhubIndustry,
+        price: quote.c,
+        metricData: metricData
+      });
+    } catch (halalErr) {
+      halal = null;
+    }
+
     return Response.json({
       symbol: symbol,
       name: profile.name || symbol,
@@ -295,7 +311,8 @@ export async function GET(request) {
       swingScoreBreakdown: swingScoreBreakdown,
       tradePlan: tradePlan,
       fundamentals: fundamentals,
-      earnings: earningsInfo
+      earnings: earningsInfo,
+      halal: halal
     });
   } catch (err) {
     return Response.json(
