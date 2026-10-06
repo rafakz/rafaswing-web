@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import NavMenu from "../NavMenu";
 import Header from "../Header";
 import FloatingChat from "../FloatingChat";
@@ -16,20 +17,54 @@ const colors = {
   textFaint: "#5B6478",
   gain: "#4FA98B",
   loss: "#C2542D",
+  hold: "#D4A24C",
 };
 
 const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontMono = "'SF Mono', 'Roboto Mono', monospace";
 
+// Сүзгілер бірге жұмыс істейді (мыс. Халал скрин + ROE > 15%).
+// Ештеңе таңдалмаса — "Барлық нарық".
 const SCREENER_FILTERS = [
-  { key: "all", label: "Барлық нарық", query: "" },
   { key: "pe", label: "P/E < 20", query: "maxPE=20" },
   { key: "roe", label: "ROE > 15%", query: "minROE=15" },
+  { key: "halal", label: "Халал скрин", query: "halal=pass" },
 ];
 
-export default function ScreenerPage() {
-  const [overview, setOverview] = useState([]);
+const HALAL_PILL = {
+  pass: { text: "Сәйкес", color: colors.gain, mark: "✓" },
+  doubtful: { text: "Күмәнді", color: colors.hold, mark: "!" },
+  fail: { text: "Сәйкес емес", color: colors.loss, mark: "✕" },
+  unknown: { text: "Деректер жоқ", color: colors.textFaint, mark: "?" },
+};
 
+/* ---------- Халал скрин белгісі (тикердің астында) ---------- */
+function HalalPill({ halal }) {
+  if (!halal || !halal.status) return null;
+  const p = HALAL_PILL[halal.status] || HALAL_PILL.unknown;
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        marginTop: "5px",
+        fontSize: "0.6rem",
+        lineHeight: "1.3",
+        fontFamily: fontBody,
+        fontWeight: "700",
+        color: p.color,
+        border: `1px solid ${p.color}`,
+        borderRadius: "10px",
+        padding: "1px 7px",
+      }}
+    >
+      {p.mark} {p.text}
+    </span>
+  );
+}
+
+export default function ScreenerPage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -37,52 +72,33 @@ export default function ScreenerPage() {
 
   const [screenerResults, setScreenerResults] = useState([]);
   const [screenerLoading, setScreenerLoading] = useState(true);
-  const [screenerFilter, setScreenerFilter] = useState("all");
+  const [screenerError, setScreenerError] = useState("");
+  const [screenerWarning, setScreenerWarning] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
 
-  useEffect(() => {
-    async function loadOverview() {
-      try {
-        const symbols = [
-          { symbol: "ONEQ", label: "NASDAQ" },
-          { symbol: "QQQ", label: "QQQ" },
-          { symbol: "SPY", label: "SPX" },
-          { symbol: "QQQM", label: "NDX" },
-        ];
-        const results = await Promise.all(
-          symbols.map(async (item) => {
-            try {
-              const res = await fetch(`/api/stock?symbol=${encodeURIComponent(item.symbol)}`);
-              const json = await res.json();
-              if (!res.ok) return { ...item, error: true };
-              return { ...item, ...json };
-            } catch {
-              return { ...item, error: true };
-            }
-          })
-        );
-        setOverview(results);
-      } catch {
-        // үнсіз
-      }
-    }
-    loadOverview();
-  }, []);
+  const filterKey = activeFilters.join(",");
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadScreener() {
       setScreenerLoading(true);
-      const active = SCREENER_FILTERS.find((f) => f.key === screenerFilter);
-      const qs = active && active.query ? "?" + active.query : "";
+      setScreenerError("");
+      const qs = SCREENER_FILTERS.filter((f) => activeFilters.includes(f.key))
+        .map((f) => f.query)
+        .join("&");
       try {
-        const res = await fetch("/api/screener" + qs);
+        const res = await fetch("/api/screener" + (qs ? "?" + qs : ""));
         const json = await res.json();
-        if (!cancelled && res.ok && Array.isArray(json.results)) {
+        if (cancelled) return;
+        if (res.ok && Array.isArray(json.results)) {
           setScreenerResults(json.results);
+          setScreenerWarning(json.warning || "");
+        } else {
+          setScreenerError((json && json.error) || "Деректерді алу мүмкін болмады");
         }
       } catch {
-        // үнсіз
+        if (!cancelled) setScreenerError("Байланыс қатесі");
       } finally {
         if (!cancelled) setScreenerLoading(false);
       }
@@ -92,7 +108,12 @@ export default function ScreenerPage() {
     return () => {
       cancelled = true;
     };
-  }, [screenerFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  function toggleFilter(key) {
+    setActiveFilters((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
 
   async function sendChatMessage(e) {
     e.preventDefault();
@@ -124,6 +145,22 @@ export default function ScreenerPage() {
     }
   }
 
+  const allActive = activeFilters.length === 0;
+
+  function chipStyle(on) {
+    return {
+      fontSize: "0.8rem",
+      color: on ? colors.bg : colors.textMuted,
+      background: on ? colors.gold : "transparent",
+      border: `1px solid ${on ? colors.gold : colors.border}`,
+      borderRadius: "10px",
+      padding: "8px 16px",
+      cursor: "pointer",
+      fontWeight: on ? "700" : "400",
+      fontFamily: fontBody,
+    };
+  }
+
   return (
     <main
       style={{
@@ -141,14 +178,31 @@ export default function ScreenerPage() {
         .tradeiq-filter-btn { transition: filter 0.15s ease; }
         .tradeiq-filter-btn:hover { filter: brightness(1.1); }
         .tradeiq-row:hover { background: rgba(212,175,55,0.06); }
+        .tradeiq-scr-wrap { padding: 28px 16px; max-width: 900px; margin: 0 auto; }
+        .tradeiq-scr-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 48px 58px 78px;
+          gap: 6px;
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+        @media (min-width: 640px) {
+          .tradeiq-scr-wrap { padding: 32px 24px; }
+          .tradeiq-scr-grid {
+            grid-template-columns: minmax(0, 1fr) 90px 90px 110px;
+            gap: 0;
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+        }
       `}</style>
 
       <NavMenu />
 
       <div className="tradeiq-content-shell">
-        <Header overview={overview} />
+        <Header />
 
-        <div style={{ padding: "32px 24px", maxWidth: "900px", margin: "0 auto" }}>
+        <div className="tradeiq-scr-wrap">
           <h1
             style={{
               fontSize: "1.4rem",
@@ -165,27 +219,36 @@ export default function ScreenerPage() {
 
           {/* ---- Фильтрлер ---- */}
           <div style={{ display: "flex", gap: "10px", marginBottom: "22px", flexWrap: "wrap" }}>
-            {SCREENER_FILTERS.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setScreenerFilter(f.key)}
-                className="tradeiq-filter-btn"
-                style={{
-                  fontSize: "0.8rem",
-                  color: screenerFilter === f.key ? colors.bg : colors.textMuted,
-                  background: screenerFilter === f.key ? colors.gold : "transparent",
-                  border: `1px solid ${screenerFilter === f.key ? colors.gold : colors.border}`,
-                  borderRadius: "10px",
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  fontWeight: screenerFilter === f.key ? "700" : "400",
-                  fontFamily: fontBody,
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveFilters([])}
+              className="tradeiq-filter-btn"
+              aria-pressed={allActive}
+              style={chipStyle(allActive)}
+            >
+              Барлық нарық
+            </button>
+            {SCREENER_FILTERS.map((f) => {
+              const on = activeFilters.includes(f.key);
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => toggleFilter(f.key)}
+                  className="tradeiq-filter-btn"
+                  aria-pressed={on}
+                  style={chipStyle(on)}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
+
+          <p style={{ margin: "-8px 0 16px", fontSize: "0.7rem", color: colors.textFaint, lineHeight: "1.6" }}>
+            Халал: <span style={{ color: colors.gain }}>✓</span> алдын ала сәйкес ·{" "}
+            <span style={{ color: colors.hold }}>!</span> күмәнді ·{" "}
+            <span style={{ color: colors.loss }}>✕</span> сәйкес емес ·{" "}
+            <span>?</span> деректер жоқ
+          </p>
 
           {/* ---- Кесте ---- */}
           <div
@@ -197,10 +260,10 @@ export default function ScreenerPage() {
             }}
           >
             <div
+              className="tradeiq-scr-grid"
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 90px 90px 110px",
-                padding: "12px 18px",
+                paddingTop: "12px",
+                paddingBottom: "12px",
                 fontSize: "0.7rem",
                 color: colors.textFaint,
                 textTransform: "uppercase",
@@ -214,7 +277,9 @@ export default function ScreenerPage() {
               <span style={{ textAlign: "right" }}>Өзгеріс</span>
             </div>
 
-            {screenerLoading && screenerResults.length === 0 ? (
+            {screenerError ? (
+              <div style={{ padding: "24px 18px", color: colors.loss, fontSize: "0.85rem" }}>{screenerError}</div>
+            ) : screenerLoading && screenerResults.length === 0 ? (
               <div style={{ padding: "24px 18px", color: colors.textFaint, fontSize: "0.85rem" }}>
                 Жүктелуде...
               </div>
@@ -226,25 +291,32 @@ export default function ScreenerPage() {
               screenerResults.map((r) => {
                 const up = typeof r.changePercent === "number" && r.changePercent >= 0;
                 return (
-                  <div
+                  <Link
                     key={r.symbol}
-                    className="tradeiq-row"
+                    href={"/?symbol=" + encodeURIComponent(r.symbol)}
+                    className="tradeiq-row tradeiq-scr-grid"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 90px 90px 110px",
-                      padding: "14px 18px",
-                      fontSize: "0.85rem",
+                      paddingTop: "12px",
+                      paddingBottom: "12px",
+                      fontSize: "0.82rem",
                       fontFamily: fontMono,
                       borderBottom: `1px solid ${colors.border}`,
                       alignItems: "center",
+                      textDecoration: "none",
+                      color: "inherit",
                     }}
                   >
-                    <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{r.symbol}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", color: colors.textPrimary, fontWeight: "600" }}>
+                        {r.symbol}
+                      </span>
+                      <HalalPill halal={r.halal} />
+                    </span>
                     <span style={{ color: colors.textMuted }}>
                       {typeof r.pe === "number" ? r.pe.toFixed(1) : "—"}
                     </span>
                     <span style={{ color: colors.textMuted }}>
-                      {typeof r.roe === "number" ? (r.roe * 100).toFixed(1) + "%" : "—"}
+                      {typeof r.roe === "number" ? r.roe.toFixed(1) + "%" : "—"}
                     </span>
                     <span
                       style={{
@@ -254,14 +326,26 @@ export default function ScreenerPage() {
                       }}
                     >
                       {typeof r.changePercent === "number"
-                        ? `${up ? "▲" : "▼"} ${r.changePercent.toFixed(2)}%`
+                        ? `${up ? "▲" : "▼"} ${Math.abs(r.changePercent).toFixed(2)}%`
                         : "—"}
                     </span>
-                  </div>
+                  </Link>
                 );
               })
             )}
           </div>
+
+          {screenerWarning ? (
+            <p style={{ marginTop: "12px", fontSize: "0.72rem", color: colors.hold, lineHeight: "1.5" }}>
+              ⚠ {screenerWarning}
+            </p>
+          ) : null}
+
+          <p style={{ marginTop: "14px", fontSize: "0.68rem", color: colors.textFaint, lineHeight: "1.5" }}>
+            Халал скрин — AAOIFI үлгісіндегі алдын ала автоматты тексеру: қызмет түрі, қарыз ≤ 30%, ақша ≤ 30%
+            (нарық құнынан). Харам табыс үлесі (≤ 5%) тексерілмейді, бұл фатуа емес және инвестиция кеңесі емес.
+            Толық түсіндірме үшін тикерді басыңыз.
+          </p>
         </div>
       </div>
 
