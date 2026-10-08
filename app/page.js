@@ -6,6 +6,7 @@ import Header from "./Header";
 import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
 import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts, calculatePositionSize } from "../lib/tradeiq-engine";
+import { explainFundamentals } from "../lib/fundamentals-explain";
 
 /* ---------- Дизайн токендары ---------- */
 const colors = {
@@ -1234,16 +1235,19 @@ export default function Home() {
                   fontFamily: fontMono,
                 }}
               >
-                <div>P/E: {safeNum(data.fundamentals.pe, 2)}</div>
-                <div>EPS: ${safeNum(data.fundamentals.eps, 2)}</div>
-                <div>ROE: {safeNum(data.fundamentals.roe, 1)}%</div>
-                <div>Таза маржа: {safeNum(data.fundamentals.netMargin, 1)}%</div>
-                <div>Кіріс өсімі: {safeNum(data.fundamentals.revenueGrowth, 1)}%</div>
-                <div>EPS өсімі: {safeNum(data.fundamentals.epsGrowth, 1)}%</div>
-                <div>Дивиденд: {safeNum(data.fundamentals.dividendYield, 2)}%</div>
-                <div>Beta: {safeNum(data.fundamentals.beta, 2)}</div>
-                <div>52 апта макс: ${safeNum(data.fundamentals.week52High, 2)}</div>
-                <div>52 апта мин: ${safeNum(data.fundamentals.week52Low, 2)}</div>
+                {explainFundamentals(data.fundamentals, data.currentPrice).map((f) => (
+                  <div key={f.key} style={{ gridColumn: f.wide ? "1 / -1" : undefined }}>
+                    <div>
+                      {f.label}:{" "}
+                      <span style={{ color: { good: colors.gain, neutral: colors.textPrimary, warn: colors.hold, bad: colors.loss }[f.tone], fontWeight: "bold" }}>
+                        {f.value}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: fontBody, fontSize: "0.7rem", color: colors.textFaint, marginTop: "3px", lineHeight: 1.4 }}>
+                      {f.hint}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}
