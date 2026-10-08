@@ -6,6 +6,7 @@ import {
   calculateEMASeries,
   computeTradePlan,
 } from "../../../lib/tradeiq-engine";
+import { applySwingTargets } from "../../../lib/swing-targets";
 import { supabase } from "../../supabaseClient";
 import { computeHalalStatus } from "../../../lib/halal";
 
@@ -271,7 +272,7 @@ export async function GET(request) {
     var scoreResult = calculateSwingScoreV2({ technicals, volumeInfo, sentimentInfo, fundamentals, roc });
     var swingScore = scoreResult ? scoreResult.score : null;
     var swingScoreBreakdown = scoreResult ? scoreResult.breakdown : null;
-    var tradePlan = computeTradePlan(pivot, quote.c);
+    var tradePlan = applySwingTargets(computeTradePlan(pivot, quote.c), quote.c, swingScore);
 
     // Халал скрин: қосымша API сұраусыз, жоғарыда алынған profile + metric негізінде.
     // Қате болса да, акция деректері бұзылмайды (halal: null қайтады).
