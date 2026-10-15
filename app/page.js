@@ -8,20 +8,20 @@ import { supabase } from "./supabaseClient";
 import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts, calculatePositionSize } from "../lib/tradeiq-engine";
 import { explainFundamentals } from "../lib/fundamentals-explain";
 
-/* ---------- Дизайн токендары ---------- */
+/* ---------- Дизайн токендары (мокаптан өлшенген) ---------- */
 const colors = {
-  bg: "#0B132B",
-  card: "#0F1A3D",
-  border: "#1E3A8A",
-  gold: "#D4AF37",
-  goldBright: "#E8C468",
-  textPrimary: "#F5F1E6",
-  textMuted: "#8A93A6",
-  textFaint: "#5B6478",
-  gain: "#4FA98B",
-  gainBright: "#6FCBA8",
-  loss: "#C2542D",
-  lossBright: "#E2764C",
+  bg: "#01091C",
+  card: "#000E23",
+  border: "#131E34",
+  gold: "#0B62F5", // акцент: бұрынғы алтынның орнына көк
+  goldBright: "#2F7BFF",
+  textPrimary: "#F7FAFE",
+  textMuted: "#B9BCCA",
+  textFaint: "#868C9E",
+  gain: "#25975F",
+  gainBright: "#34C27F",
+  loss: "#E5604F",
+  lossBright: "#F2806F",
   hold: "#D4A24C",
 };
 
@@ -31,9 +31,16 @@ const AI_SUGGESTIONS = [
   "Swing trading бойынша кеңес бер",
 ];
 
-const fontDisplay = "'Georgia', 'Times New Roman', serif";
-const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const fontMono = "'SF Mono', 'Consolas', 'Menlo', monospace";
+const fontDisplay = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const fontBody = fontDisplay;
+const fontMono = fontDisplay;
+
+/* Inter қаріпі + мокаптағы көк батырмалар */
+const globalCss = `
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+html, body { background: #01091C; font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; }
+button[type="submit"] { background: #0448D0 !important; color: #fff !important; }
+`;
 
 /* ---------- Логотип (жапон свичалары) ---------- */
 function TradeIQMark({ size = 40 }) {
@@ -599,6 +606,7 @@ export default function Home() {
         fontFamily: fontBody,
       }}
     >
+      <style>{globalCss}</style>
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(10px); }
@@ -836,7 +844,7 @@ export default function Home() {
                 width: 34,
                 height: 34,
                 borderRadius: "10px",
-                background: "rgba(212,175,55,0.12)",
+                background: "rgba(11,98,245,0.16)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -872,7 +880,7 @@ export default function Home() {
                     alignSelf: m.role === "user" ? "flex-end" : "flex-start",
                     maxWidth: "85%",
                     background: m.role === "user" ? colors.gold : colors.bg,
-                    color: m.role === "user" ? colors.bg : colors.textPrimary,
+                    color: m.role === "user" ? "#FFFFFF" : colors.textPrimary,
                     border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
                     borderRadius: "10px",
                     padding: "8px 12px",
