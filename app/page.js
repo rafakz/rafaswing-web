@@ -8,21 +8,21 @@ import { supabase } from "./supabaseClient";
 import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts, calculatePositionSize } from "../lib/tradeiq-engine";
 import { explainFundamentals } from "../lib/fundamentals-explain";
 
-/* ---------- Дизайн токендары (мокаптан өлшенген) ---------- */
+/* ---------- Дизайн токендары (Tailwind-ке бейімделді, бірақ логика үшін сақталды) ---------- */
 const colors = {
-  bg: "#01091C",
-  card: "#000E23",
-  border: "#131E34",
-  gold: "#0B62F5", // акцент: бұрынғы алтынның орнына көк
-  goldBright: "#2F7BFF",
-  textPrimary: "#F7FAFE",
-  textMuted: "#B9BCCA",
-  textFaint: "#868C9E",
-  gain: "#25975F",
-  gainBright: "#34C27F",
-  loss: "#E5604F",
-  lossBright: "#F2806F",
-  hold: "#D4A24C",
+  bg: "transparent", // Фон Tailwind арқылы беріледі
+  card: "rgba(20, 28, 45, 0.6)", // Glassmorphism үшін мөлдір фон
+  border: "rgba(255, 255, 255, 0.08)",
+  gold: "#3b82f6", // Көк акцент
+  goldBright: "#60a5fa",
+  textPrimary: "#ffffff",
+  textMuted: "#9ca3af",
+  textFaint: "#6b7280",
+  gain: "#10b981", // Tailwind emerald-500
+  gainBright: "#34d399",
+  loss: "#ef4444", // Tailwind red-500
+  lossBright: "#f87171",
+  hold: "#eab308", // Tailwind yellow-500
 };
 
 const AI_SUGGESTIONS = [
@@ -31,34 +31,59 @@ const AI_SUGGESTIONS = [
   "Swing trading бойынша кеңес бер",
 ];
 
-const fontDisplay = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const fontBody = fontDisplay;
-const fontMono = fontDisplay;
-
-/* Inter қаріпі + мокаптағы көк батырмалар */
+/* ---------- Custom CSS for specific effects ---------- */
 const globalCss = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-html, body { background: #01091C; font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; }
-button[type="submit"] { background: #0448D0 !important; color: #fff !important; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+html, body { 
+  background-color: #0b0f19; 
+  color: #ffffff; 
+  font-family: 'Inter', -apple-system, sans-serif; 
+}
+.glass-card {
+  background: rgba(20, 28, 45, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glow-blue {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2), inset 0 0 10px rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.glow-red {
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.15), inset 0 0 10px rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.glow-green {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15), inset 0 0 10px rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.bg-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%);
+  z-index: -1;
+  border-radius: 50%;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tradeiq-card { animation: fadeInUp 0.4s ease-out; }
+.tradeiq-content-shell { margin-left: 0; }
+@media (min-width: 1024px) {
+  .tradeiq-content-shell { margin-left: 240px; }
+}
 `;
 
-/* ---------- Логотип (жапон свичалары) ---------- */
-function TradeIQMark({ size = 40 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="12" y1="18" x2="12" y2="38" stroke={colors.loss} strokeWidth="2.4" strokeLinecap="round" />
-      <rect x="9" y="24" width="6" height="10" rx="1.5" fill={colors.loss} />
-
-      <line x1="24" y1="10" x2="24" y2="40" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" />
-      <rect x="21" y="18" width="6" height="16" rx="1.5" fill={colors.gain} />
-
-      <line x1="36" y1="6" x2="36" y2="32" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" />
-      <rect x="33" y="12" width="6" height="14" rx="1.5" fill={colors.gain} />
-    </svg>
-  );
-}
-
-/* ---------- AI панель иконкасы (NavMenu-дегі AI талдау белгісімен бірдей) ---------- */
+/* ---------- AI панель иконкасы ---------- */
 function IconSparkleChat({ size = 18, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -68,7 +93,7 @@ function IconSparkleChat({ size = 18, color }) {
   );
 }
 
-/* ---------- Халал скрин карточкасы (деректер /api/stock → halal) ---------- */
+/* ---------- Халал скрин карточкасы ---------- */
 function HalalCard({ halal }) {
   if (!halal || typeof halal !== "object" || !Array.isArray(halal.checks)) return null;
 
@@ -78,76 +103,33 @@ function HalalCard({ halal }) {
   const tone = toneOf(halal.status);
 
   return (
-    <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "8px",
-          marginBottom: "10px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            color: colors.gold,
-            textTransform: "uppercase",
-            letterSpacing: "0.6px",
-          }}
-        >
+    <div className="mt-5 pt-4 border-t border-white/10">
+      <div className="flex justify-between items-center flex-wrap gap-2 mb-3">
+        <div className="text-xs font-bold text-blue-500 uppercase tracking-wider drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]">
           Халал скрин
         </div>
         <div
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: "700",
-            color: tone,
-            border: `1px solid ${tone}`,
-            borderRadius: "999px",
-            padding: "3px 10px",
-            textAlign: "center",
-          }}
+          className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border text-center"
+          style={{ color: tone, borderColor: tone, backgroundColor: `${tone}15` }}
         >
           {halal.label}
         </div>
       </div>
 
-      {halal.summary ? (
-        <div style={{ fontSize: "0.78rem", color: colors.textMuted, lineHeight: "1.45", marginBottom: "12px" }}>
+      {halal.summary && (
+        <div className="text-xs text-gray-400 leading-snug mb-3">
           {halal.summary}
         </div>
-      ) : null}
+      )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div className="flex flex-col gap-2.5">
         {halal.checks.map((c) => (
-          <div
-            key={c.key}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: "10px",
-              fontSize: "0.8rem",
-            }}
-          >
-            <div style={{ minWidth: 0, color: colors.textPrimary }}>
+          <div key={c.key} className="flex justify-between items-start gap-2 text-xs">
+            <div className="min-w-0 text-gray-200">
               {c.label}
-              {c.note ? (
-                <div style={{ fontSize: "0.68rem", color: colors.textFaint, marginTop: "2px" }}>{c.note}</div>
-              ) : null}
+              {c.note && <div className="text-[10px] text-gray-500 mt-0.5">{c.note}</div>}
             </div>
-            <div
-              style={{
-                flexShrink: 0,
-                fontFamily: fontMono,
-                fontWeight: "700",
-                color: toneOf(c.status),
-                textAlign: "right",
-              }}
-            >
+            <div className="shrink-0 font-mono font-bold text-right" style={{ color: toneOf(c.status) }}>
               {c.display ? c.display + " " : ""}
               {markOf(c.status)}
             </div>
@@ -155,16 +137,16 @@ function HalalCard({ halal }) {
         ))}
       </div>
 
-      {halal.disclaimer ? (
-        <div style={{ marginTop: "12px", fontSize: "0.66rem", color: colors.textFaint, lineHeight: "1.5" }}>
+      {halal.disclaimer && (
+        <div className="mt-3 text-[10px] text-gray-500 leading-relaxed">
           ⚠ {halal.disclaimer}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
 
-/* ---------- Sparkline (толығымен қорғалған) ---------- */
+/* ---------- Sparkline ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
 
@@ -192,28 +174,24 @@ function Sparkline({ history, isUp }) {
   const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      height={height}
-      preserveAspectRatio="none"
-      style={{ display: "block", marginTop: "14px" }}
-    >
-      <polygon points={areaPoints} fill={lineColor} opacity="0.08" />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-full">
+        <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
+        <polyline
+          points={points.join(" ")}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="drop-shadow-[0_0_3px_rgba(currentcolor,0.5)]"
+        />
+      </svg>
+    </div>
   );
 }
 
-/* ---------- Сигнал есептеу енді ортақ Core Engine-де ---------- */
-
+/* ---------- Utils ---------- */
 function formatNewsDate(unixSeconds) {
   if (!unixSeconds || typeof unixSeconds !== "number") return "";
   try {
@@ -356,7 +334,6 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-
     async function loadHomeNews() {
       setHomeNewsLoading(true);
       try {
@@ -365,17 +342,12 @@ export default function Home() {
         if (!cancelled && res.ok && Array.isArray(json.news)) {
           setHomeNews(json.news.slice(0, 3));
         }
-      } catch (err) {
-        // үнсіз қалдырамыз, блок бос көрінеді
-      } finally {
+      } catch (err) {} finally {
         if (!cancelled) setHomeNewsLoading(false);
       }
     }
-
     loadHomeNews();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const OVERVIEW_SYMBOLS = [
@@ -387,7 +359,6 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-
     async function loadOverview() {
       setOverviewLoading(true);
       const results = await Promise.all(
@@ -407,16 +378,12 @@ export default function Home() {
         setOverviewLoading(false);
       }
     }
-
     loadOverview();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-
     async function loadSectors() {
       setSectorsLoading(true);
       try {
@@ -425,17 +392,12 @@ export default function Home() {
         if (!cancelled && res.ok && Array.isArray(json.sectors)) {
           setSectors(json.sectors);
         }
-      } catch (err) {
-        // үнсіз
-      } finally {
+      } catch (err) {} finally {
         if (!cancelled) setSectorsLoading(false);
       }
     }
-
     loadSectors();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   function loadFromOverview(symbol) {
@@ -450,7 +412,6 @@ export default function Home() {
     if (symbolParam) {
       loadFromOverview(symbolParam.toUpperCase());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function searchStock(e, symbolOverride) {
@@ -459,7 +420,6 @@ export default function Home() {
     if (!raw || !raw.trim()) return;
 
     const symbol = raw.trim().toUpperCase();
-
     setLoading(true);
     setError("");
     setData(null);
@@ -492,9 +452,7 @@ export default function Home() {
       if (newsRes.ok && newsJson && Array.isArray(newsJson.news)) {
         setNews(newsJson.news);
       }
-    } catch (err) {
-      // үнсіз қалдырамыз
-    } finally {
+    } catch (err) {} finally {
       setNewsLoading(false);
     }
   }
@@ -598,1224 +556,348 @@ export default function Home() {
   const hasNews = Array.isArray(news) && news.length > 0;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.textPrimary,
-        fontFamily: fontBody,
-      }}
-    >
+    <main className="min-h-screen pb-24 relative overflow-hidden bg-[#0b0f19] text-white">
       <style>{globalCss}</style>
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .tradeiq-card { animation: fadeInUp 0.4s ease-out; }
-        .tradeiq-news-item { transition: border-color 0.15s ease, transform 0.15s ease; }
-        .tradeiq-news-item:hover { border-color: ${colors.gold} !important; transform: translateX(2px); }
-        .tradeiq-search-btn { transition: filter 0.15s ease, transform 0.1s ease; }
-        .tradeiq-search-btn:hover { filter: brightness(1.12); }
-        .tradeiq-search-btn:active { transform: scale(0.97); }
-        .tradeiq-overview-card { transition: transform 0.15s ease, border-color 0.15s ease; }
-        .tradeiq-overview-card:hover { transform: translateY(-2px); border-color: ${colors.gold} !important; }
-        .tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; }
-        .tradeiq-content-shell { margin-left: 0; }
-        @media (min-width: 1024px) {
-          .tradeiq-content-shell { margin-left: 240px; }
-        }
-      `}</style>
+      
+      {/* Background Glows */}
+      <div className="bg-glow top-[-50px] left-[-50px]"></div>
+      <div className="bg-glow top-[30%] right-[-100px]" style={{background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, rgba(0,0,0,0) 70%)'}}></div>
 
       <NavMenu />
 
-      <div className="tradeiq-content-shell">
+      <div className="tradeiq-content-shell max-w-md mx-auto px-4 relative z-10">
         <Header overview={overview} />
 
-        <div
-          style={{
-            padding: "32px 16px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
+        <div className="flex flex-col items-center pt-8">
 
-      {/* ---------- ЛОГОТИП / БРЕНД ---------- */}
-      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-        <TradeIQMark size={46} />
-        <h1
-          style={{
-            fontFamily: fontDisplay,
-            fontSize: "2.3rem",
-            fontWeight: "800",
-            letterSpacing: "0.5px",
-            margin: 0,
-            color: colors.textPrimary,
-          }}
-        >
-          Trade<span style={{ color: colors.gold }}>IQ</span>
-        </h1>
-      </div>
-      <p style={{ color: colors.gold, marginTop: "6px", marginBottom: "2px", fontSize: "0.7rem", letterSpacing: "1.5px", fontWeight: "600" }}>
-        AI-POWERED TRADING
-      </p>
-      <p style={{ color: colors.textPrimary, marginTop: "10px", marginBottom: "2px", fontSize: "0.9rem" }}>
-        Ақылды инвестиция. Нақты талдау.
-      </p>
-      <p style={{ color: colors.textFaint, marginBottom: "26px", fontSize: "0.75rem" }}>
-        Свинг-трейдинг және инвестиция платформасы
-      </p>
-
-      {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
-      <form onSubmit={searchStock} style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "360px" }}>
-        <input
-          className="tradeiq-input"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value)}
-          placeholder="Ticker жаз (мыс. AAPL)"
-          style={{
-            flex: 1,
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: `1px solid ${colors.border}`,
-            background: colors.card,
-            color: colors.textPrimary,
-            fontSize: "1rem",
-            fontFamily: fontBody,
-          }}
-        />
-        <button
-          type="submit"
-          className="tradeiq-search-btn"
-          style={{
-            padding: "12px 22px",
-            borderRadius: "10px",
-            border: "none",
-            background: colors.gold,
-            color: colors.bg,
-            fontWeight: "bold",
-            fontSize: "1rem",
-            fontFamily: fontBody,
-            cursor: "pointer",
-          }}
-        >
-          Іздеу
-        </button>
-      </form>
-
-      {/* ---------- НАРЫҚ ШОЛУЫ ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "28px" }}>
-        <div
-          style={{
-            fontSize: "0.85rem",
-            fontWeight: "bold",
-            color: colors.textPrimary,
-            marginBottom: "12px",
-          }}
-        >
-          Нарық шолуы
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: "12px",
-          }}
-        >
-          {overviewLoading && overview.length === 0
-            ? OVERVIEW_SYMBOLS.map((item) => (
-                <div
-                  key={item.symbol}
-                  className="tradeiq-card"
-                  style={{
-                    background: colors.card,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: "14px",
-                    padding: "14px",
-                    minHeight: "84px",
-                  }}
-                >
-                  <div style={{ color: colors.textFaint, fontSize: "0.78rem" }}>{item.label}</div>
-                  <div style={{ color: colors.textFaint, fontSize: "0.8rem", marginTop: "10px" }}>Жүктелуде...</div>
-                </div>
-              ))
-            : overview.map((item) => {
-                const up = typeof item.change === "number" && item.change >= 0;
-                return (
-                  <button
-                    key={item.symbol}
-                    onClick={() => loadFromOverview(item.symbol)}
-                    className="tradeiq-card tradeiq-overview-card"
-                    style={{
-                      textAlign: "left",
-                      background: colors.card,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: "14px",
-                      padding: "14px",
-                      cursor: "pointer",
-                      fontFamily: fontBody,
-                      boxShadow: "0 6px 16px rgba(3, 8, 26, 0.45)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      {item.logo ? (
-                        <img
-                          src={item.logo}
-                          alt=""
-                          width={20}
-                          height={20}
-                          style={{ borderRadius: "6px", flexShrink: 0 }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: "6px",
-                            background: colors.border,
-                            color: colors.gold,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "0.6rem",
-                            fontWeight: "bold",
-                            fontFamily: fontMono,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {item.label.slice(0, 2)}
-                        </div>
-                      )}
-                      <div style={{ color: colors.gold, fontSize: "0.78rem", fontWeight: "600" }}>{item.label}</div>
-                    </div>
-                    {item.error ? (
-                      <div style={{ color: colors.textFaint, fontSize: "0.78rem", marginTop: "10px" }}>
-                        Деректер жоқ
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          style={{
-                            color: colors.textPrimary,
-                            fontSize: "1.05rem",
-                            fontWeight: "bold",
-                            fontFamily: fontMono,
-                            marginTop: "8px",
-                          }}
-                        >
-                          {safeNum(item.currentPrice, 2)}
-                        </div>
-                        <div
-                          style={{
-                            color: up ? colors.gain : colors.loss,
-                            fontSize: "0.8rem",
-                            fontFamily: fontMono,
-                            marginTop: "2px",
-                          }}
-                        >
-                          {up ? "▲" : "▼"} {safeNum(item.changePercent, 2)}%
-                        </div>
-                        {Array.isArray(item.history) && item.history.length > 1 ? (
-                          <Sparkline history={item.history} isUp={up} />
-                        ) : null}
-                      </>
-                    )}
-                  </button>
-                );
-              })}
-        </div>
-      </div>
-
-      {/* ---------- AI ТАЛДАУ ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
-        <div
-          className="tradeiq-card"
-          style={{
-            background: colors.card,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            padding: "20px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "10px",
-                background: "rgba(11,98,245,0.16)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <IconSparkleChat size={18} color={colors.gold} />
-            </div>
-            <div>
-              <div style={{ fontSize: "0.9rem", fontWeight: "bold", color: colors.textPrimary }}>TradeIQ AI</div>
-              <div style={{ fontSize: "0.68rem", color: colors.textFaint }}>
-                Акция, нарық немесе стратегия туралы сұра
+          {/* ---------- БРЕНД ---------- */}
+          <div className="flex flex-col items-center justify-center mb-8 relative w-full">
+            <div className="flex items-center gap-3">
+              <div className="flex items-end gap-1 h-8">
+                <div className="w-2 h-5 bg-red-400 rounded-full shadow-[0_0_8px_#f87171]"></div>
+                <div className="w-2 h-8 bg-emerald-400 rounded-full shadow-[0_0_8px_#34d399]"></div>
+                <div className="w-2 h-6 bg-emerald-400 rounded-full shadow-[0_0_8px_#34d399]"></div>
               </div>
+              <h2 className="text-4xl font-extrabold tracking-tight">Trade<span className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]">IQ</span></h2>
+            </div>
+            <p className="text-blue-500 text-[10px] font-bold tracking-[0.2em] mt-2 shadow-blue-500/50">AI-POWERED TRADING</p>
+            <p className="text-gray-400 text-xs mt-3 text-center">Свинг-трейдинг және инвестиция платформасы</p>
+            <div className="absolute left-8 top-2 w-4 h-4 text-blue-400 opacity-70">✦</div>
+            <div className="absolute right-6 top-0 text-3xl text-blue-400 opacity-80 blur-[1px]">✦</div>
+          </div>
+
+          {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
+          <form onSubmit={searchStock} className="flex gap-2 w-full mb-8">
+            <div className="flex-1 glass-card rounded-2xl flex items-center px-4 py-1 relative">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5 text-gray-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
+                placeholder="Ticker жаз (мыс. AAPL)"
+                className="bg-transparent w-full p-3 text-sm focus:outline-none text-white placeholder-gray-500"
+              />
+            </div>
+            <button type="submit" className="bg-blue-500 hover:bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] text-white px-6 rounded-2xl font-semibold transition text-sm">
+              Іздеу
+            </button>
+          </form>
+
+          {/* ---------- НАРЫҚ ШОЛУЫ ---------- */}
+          <div className="w-full mb-8">
+            <h3 className="text-lg font-bold mb-4 text-white">Нарық шолуы</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {overviewLoading && overview.length === 0
+                ? OVERVIEW_SYMBOLS.map((item) => (
+                    <div key={item.symbol} className="glass-card rounded-2xl p-4 min-h-[100px] animate-pulse">
+                      <div className="h-4 bg-white/10 rounded w-1/2 mb-4"></div>
+                      <div className="h-6 bg-white/10 rounded w-3/4"></div>
+                    </div>
+                  ))
+                : overview.map((item) => {
+                    const up = typeof item.change === "number" && item.change >= 0;
+                    const glowClass = up ? "glow-green" : "glow-red";
+                    const colorText = up ? "text-emerald-400" : "text-red-400";
+                    const iconBg = up ? "bg-emerald-500/20 text-emerald-400" : "bg-blue-500/20 text-blue-400";
+
+                    return (
+                      <button
+                        key={item.symbol}
+                        onClick={() => loadFromOverview(item.symbol)}
+                        className={`tradeiq-overview-card glass-card rounded-2xl p-4 relative overflow-hidden text-left w-full transition-transform hover:-translate-y-1 ${!item.error ? glowClass : ''}`}
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={`${iconBg} text-[10px] font-bold px-1.5 py-0.5 rounded`}>
+                            {item.symbol.slice(0, 2)}
+                          </span>
+                          <span className="text-gray-300 text-sm font-medium">{item.label}</span>
+                        </div>
+                        {item.error ? (
+                          <div className="text-gray-500 text-xs mt-2">Деректер жоқ</div>
+                        ) : (
+                          <>
+                            <div className="text-2xl font-bold text-white">{safeNum(item.currentPrice, 2)}</div>
+                            <div className={`${colorText} text-sm mt-1 flex items-center gap-1 font-mono`}>
+                              <span>{up ? "▲" : "▼"}</span> {safeNum(item.changePercent, 2)}%
+                            </div>
+                            {Array.isArray(item.history) && item.history.length > 1 && (
+                              <Sparkline history={item.history} isUp={up} />
+                            )}
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
             </div>
           </div>
 
-          {chatMessages.length > 0 ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                maxHeight: "260px",
-                overflowY: "auto",
-                marginBottom: "12px",
-                paddingRight: "2px",
-              }}
-            >
-              {chatMessages.map((m, i) => (
-                <div
-                  key={i}
-                  style={{
-                    alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "85%",
-                    background: m.role === "user" ? colors.gold : colors.bg,
-                    color: m.role === "user" ? "#FFFFFF" : colors.textPrimary,
-                    border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
-                    borderRadius: "10px",
-                    padding: "8px 12px",
-                    fontSize: "0.82rem",
-                    lineHeight: "1.4",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {m.text}
+          {/* ---------- AI ТАЛДАУ ---------- */}
+          <div className="w-full mb-8">
+            <div className="glass-card rounded-2xl p-5 border border-blue-500/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+              
+              <div className="flex items-center gap-2 mb-2 relative z-10">
+                <div className="text-blue-400 text-xl">✦</div>
+                <h3 className="font-bold text-white">TradeIQ AI</h3>
+              </div>
+              <p className="text-gray-300 text-xs mb-4 relative z-10">Қалай көмектесе аламын? ✨</p>
+
+              {chatMessages.length > 0 ? (
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-3 scrollbar-hide relative z-10">
+                  {chatMessages.map((m, i) => (
+                    <div
+                      key={i}
+                      className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
+                        m.role === "user" 
+                          ? "bg-blue-600 text-white self-end rounded-br-sm" 
+                          : "bg-white/10 text-gray-200 self-start rounded-bl-sm border border-white/5"
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  ))}
+                  {chatLoading && <div className="text-gray-500 text-xs self-start italic">Жазып жатыр...</div>}
                 </div>
-              ))}
-              {chatLoading ? (
-                <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.8rem" }}>
-                  Жазып жатыр...
+              ) : (
+                <div className="flex gap-2 overflow-x-auto pb-3 mb-1 relative z-10 scrollbar-hide">
+                  {AI_SUGGESTIONS.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => sendChatMessage({ preventDefault: () => {} }, suggestion)}
+                      className="whitespace-nowrap px-4 py-2 rounded-xl border border-white/10 hover:border-blue-500/50 bg-white/5 text-xs text-gray-300 transition"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
-              {AI_SUGGESTIONS.map((suggestion) => (
+              )}
+
+              {chatError && <p className="text-red-400 text-xs mb-2 relative z-10">{chatError}</p>}
+
+              <form onSubmit={sendChatMessage} className="flex gap-2 relative z-10">
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Сұрағыңызды жазыңыз..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                />
                 <button
-                  key={suggestion}
-                  onClick={() => sendChatMessage({ preventDefault: () => {} }, suggestion)}
-                  className="tradeiq-search-btn"
-                  style={{
-                    textAlign: "left",
-                    padding: "9px 14px",
-                    borderRadius: "10px",
-                    border: `1px solid ${colors.border}`,
-                    background: colors.bg,
-                    color: colors.textPrimary,
-                    fontSize: "0.8rem",
-                    fontFamily: fontBody,
-                    cursor: "pointer",
-                  }}
+                  type="submit"
+                  disabled={chatLoading}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl font-medium text-sm transition shadow-[0_0_10px_rgba(37,99,235,0.3)] disabled:opacity-50 disabled:shadow-none"
                 >
-                  {suggestion}
+                  Жіберу
                 </button>
-              ))}
+              </form>
+            </div>
+          </div>
+
+          {/* ---------- СЕКТОРЛАР ---------- */}
+          <div className="w-full mb-8">
+            <h3 className="text-sm font-bold text-gray-200 mb-4">Секторлар — ақша қай жаққа құйылып жатыр</h3>
+            <div className="glass-card rounded-2xl p-5">
+              {sectorsLoading && sectors.length === 0 ? (
+                <div className="text-xs text-gray-500 text-center py-4">Жүктелуде...</div>
+              ) : sectors.length === 0 ? (
+                <div className="text-xs text-gray-500 text-center py-4">Сектор деректері жоқ</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {sectors.map((s) => {
+                    const up = typeof s.changePercent === "number" && s.changePercent >= 0;
+                    const magnitude = Math.min(Math.abs(s.changePercent || 0) / 2, 1);
+                    return (
+                      <div key={s.symbol} className="flex items-center gap-3 text-xs">
+                        <span className="w-28 text-gray-400 truncate">{s.label}</span>
+                        <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full shadow-[0_0_5px_currentColor] opacity-80 ${up ? 'bg-emerald-500 text-emerald-500' : 'bg-red-500 text-red-500'}`}
+                            style={{ width: `${Math.max(2, magnitude * 100)}%` }}
+                          />
+                        </div>
+                        <span className={`w-14 text-right font-mono font-medium ${up ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {up ? "▲" : "▼"}{safeNum(Math.abs(s.changePercent), 2)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {loading && <p className="my-6 text-gray-400 animate-pulse">Мәліметтер ізделуде...</p>}
+          {error && <p className="my-6 text-red-400">{error}</p>}
+
+          {/* ---------- БАСТЫ НӘТИЖЕ КАРТОЧКАСЫ ---------- */}
+          {data && (
+            <div className="tradeiq-card w-full glass-card rounded-[2rem] p-6 relative overflow-hidden mb-8">
+              {/* Background accent for card */}
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/10 blur-3xl rounded-full"></div>
+              
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  {data.logo ? (
+                    <img src={data.logo} alt="" className="w-10 h-10 rounded-xl bg-white/5" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                      {data.symbol?.slice(0,2)}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-xl font-bold tracking-wider">{data.symbol}</h2>
+                    <p className="text-xs text-gray-400">{data.name}</p>
+                  </div>
+                </div>
+                {session?.user && (
+                  <button 
+                    onClick={() => toggleWatchlist(data.symbol)}
+                    className="text-2xl hover:scale-110 transition-transform"
+                    style={{ color: watchlistSymbols.includes(data.symbol) ? '#f59e0b' : '#4b5563' }}
+                  >
+                    {watchlistSymbols.includes(data.symbol) ? "★" : "☆"}
+                  </button>
+                )}
+              </div>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-3 font-mono mb-6 relative z-10">
+                <span className="text-4xl font-bold">${safeNum(data.currentPrice, 2)}</span>
+                <span className={`text-sm ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {isUp ? "▲" : "▼"}{safeNum(Math.abs(data.change), 2)} ({safeNum(data.changePercent, 2)}%)
+                </span>
+              </div>
+
+              {/* Chart */}
+              {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
+                <div className="mb-6 h-40 bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                  <ProChart chartData={data.chartData} pivot={data.pivot} tradePlan={data.tradePlan} colors={colors} />
+                </div>
+              ) : hasHistory && (
+                <div className="mb-6 h-20 relative bg-white/5 rounded-xl border border-white/5">
+                  <Sparkline history={data.history} isUp={isUp} />
+                </div>
+              )}
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs text-gray-400 font-mono bg-white/5 p-4 rounded-2xl mb-6 border border-white/5">
+                <div>Open: <span className="text-gray-200">${safeNum(data.open, 2)}</span></div>
+                <div>Prev Close: <span className="text-gray-200">${safeNum(data.previousClose, 2)}</span></div>
+                <div>High: <span className="text-gray-200">${safeNum(data.high, 2)}</span></div>
+                <div>Low: <span className="text-gray-200">${safeNum(data.low, 2)}</span></div>
+                {data.marketCap && <div>Mkt Cap: <span className="text-gray-200">${(data.marketCap/1000).toFixed(1)}B</span></div>}
+              </div>
+
+              {/* Trade Plan Panel */}
+              {data.tradePlan && (
+                <div className="mb-6 p-4 rounded-2xl border border-blue-500/20 bg-blue-500/5 relative">
+                  <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_5px_#3b82f6]"></span>
+                    Сауда жоспары
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm font-mono">
+                    <div>Entry: <span className="text-white font-bold">${safeNum(data.tradePlan.entry, 2)}</span></div>
+                    <div>Stop Loss: <span className="text-red-400 font-bold">${safeNum(data.tradePlan.stopLoss, 2)}</span></div>
+                    <div>TP 1: <span className="text-emerald-400 font-bold">${safeNum(data.tradePlan.takeProfit1, 2)}</span></div>
+                    <div>TP 2: <span className="text-emerald-400 font-bold">${safeNum(data.tradePlan.takeProfit2, 2)}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Technicals */}
+              {hasTechnicals && (
+                <div className="mb-6">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Техникалық анализ</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono text-gray-300">
+                    <div>RSI (14): <span className={data.technicals.rsi > 70 ? 'text-red-400' : data.technicals.rsi < 30 ? 'text-emerald-400' : 'text-white'}>{safeNum(data.technicals.rsi, 2)}</span></div>
+                    <div>MACD: <span className={data.technicals.macd > 0 ? 'text-emerald-400' : 'text-red-400'}>{safeNum(data.technicals.macd, 2)}</span></div>
+                    <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
+                    <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
+                  </div>
+                  
+                  {signal && (
+                    <div className="mt-4 p-3 rounded-xl border border-white/10 bg-white/5">
+                      <div className={`text-sm font-bold font-mono mb-2 ${signal.level === 'bullish' ? 'text-emerald-400' : signal.level === 'bearish' ? 'text-red-400' : 'text-yellow-400'}`}>
+                        Сигнал: {signal.label}
+                      </div>
+                      <ul className="text-[10px] text-gray-400 list-disc pl-4 space-y-1">
+                        {signal.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Button inside card */}
+              <button
+                onClick={getAiSummary}
+                disabled={aiLoading}
+                className="w-full py-3 rounded-xl border border-blue-500/50 text-blue-400 font-bold text-sm hover:bg-blue-500/10 transition mt-2 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+              >
+                {aiLoading ? "Талдау жасалуда..." : "✨ AI қорытынды алу"}
+              </button>
+              
+              {aiSummary && (
+                <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-200 leading-relaxed">
+                  {aiSummary}
+                </div>
+              )}
+
+              <HalalCard halal={data.halal} />
             </div>
           )}
 
-          {chatError ? (
-            <p style={{ color: colors.lossBright, fontSize: "0.78rem", marginBottom: "8px" }}>{chatError}</p>
-          ) : null}
-
-          <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px" }}>
-            <input
-              className="tradeiq-input"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Сұрағыңызды жазыңыз..."
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: `1px solid ${colors.border}`,
-                background: colors.bg,
-                color: colors.textPrimary,
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                boxSizing: "border-box",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="tradeiq-search-btn"
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: colors.gold,
-                color: colors.bg,
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                cursor: chatLoading ? "default" : "pointer",
-                flexShrink: 0,
-              }}
-            >
-              Жіберу
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* ---------- СЕКТОРЛАР (money flow) ---------- */}
-      <div style={{ width: "100%", maxWidth: "760px", marginTop: "24px" }}>
-        <div
-          style={{
-            fontSize: "0.85rem",
-            fontWeight: "bold",
-            color: colors.textPrimary,
-            marginBottom: "12px",
-          }}
-        >
-          Секторлар — ақша қай жаққа құйылып жатыр
-        </div>
-        {sectorsLoading && sectors.length === 0 ? (
-          <div style={{ fontSize: "0.8rem", color: colors.textFaint }}>Жүктелуде...</div>
-        ) : sectors.length === 0 ? (
-          <div style={{ fontSize: "0.8rem", color: colors.textFaint }}>Сектор деректері жоқ</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {sectors.map((s) => {
-              const up = typeof s.changePercent === "number" && s.changePercent >= 0;
-              const magnitude = Math.min(Math.abs(s.changePercent || 0) / 2, 1);
-              return (
-                <div
-                  key={s.symbol}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    fontSize: "0.78rem",
-                    fontFamily: fontMono,
-                  }}
-                >
-                  <span style={{ width: "140px", color: colors.textMuted, flexShrink: 0 }}>{s.label}</span>
-                  <div
-                    style={{
-                      flex: 1,
-                      height: "16px",
-                      background: colors.card,
-                      borderRadius: "4px",
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.max(4, magnitude * 100)}%`,
-                        height: "100%",
-                        background: up ? colors.gain : colors.loss,
-                        opacity: 0.75,
-                      }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      width: "56px",
-                      textAlign: "right",
-                      color: up ? colors.gain : colors.loss,
-                      fontWeight: "600",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {up ? "▲" : "▼"} {safeNum(Math.abs(s.changePercent), 2)}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <p style={{ color: colors.textFaint, fontSize: "0.65rem", marginTop: "8px" }}>
-          Бүгінгі % өзгеріс бойынша сектор ETF-тері салыстырылады (қаржы секторы қосылмаған).
-        </p>
-      </div>
-
-      {loading && <p style={{ marginTop: "24px", color: colors.textMuted }}>Жүктелуде...</p>}
-
-      {error ? <p style={{ marginTop: "24px", color: colors.lossBright }}>{error}</p> : null}
-
-      {data ? (
-        <div
-          className="tradeiq-card"
-          style={{
-            marginTop: "26px",
-            width: "100%",
-            maxWidth: "360px",
-            background: colors.card,
-            borderRadius: "16px",
-            padding: "20px",
-            border: `1px solid ${colors.border}`,
-          }}
-        >
-          {/* ---------- НЕГІЗГІ АҚПАРАТ ---------- */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {data.logo ? (
-                <img src={data.logo} alt={data.symbol || ""} width={36} height={36} style={{ borderRadius: "8px" }} />
-              ) : null}
-              <div>
-                <div style={{ fontWeight: "bold", fontSize: "1.1rem", fontFamily: fontMono, letterSpacing: "0.5px" }}>
-                  {data.symbol || "—"}
-                </div>
-                <div style={{ color: colors.textMuted, fontSize: "0.85rem" }}>{data.name || ""}</div>
+          {/* ---------- НАРЫҚ ЖАҢАЛЫҚТАРЫ ---------- */}
+          <div className="w-full mb-8">
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-bold text-white">Нарық жаңалықтары</h3>
+                <a href="/news" className="text-xs text-blue-400 hover:text-blue-300">Барлығы →</a>
               </div>
-            </div>
-            {session && session.user && data.symbol ? (
-              <button
-                onClick={() => toggleWatchlist(data.symbol)}
-                disabled={watchlistBusy}
-                aria-label="Таңдаулыларға қосу"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  fontSize: "1.4rem",
-                  cursor: watchlistBusy ? "default" : "pointer",
-                  color: watchlistSymbols.includes(data.symbol) ? colors.gold : colors.textFaint,
-                  flexShrink: 0,
-                }}
-              >
-                {watchlistSymbols.includes(data.symbol) ? "★" : "☆"}
-              </button>
-            ) : null}
-          </div>
-
-          {session && session.user && data.symbol ? (
-            <form
-              onSubmit={createAlert}
-              style={{
-                marginTop: "14px",
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <span style={{ fontSize: "0.78rem", color: colors.textFaint }}>🔔 Дабыл:</span>
-              <select
-                value={alertDirection}
-                onChange={(e) => setAlertDirection(e.target.value)}
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: "8px",
-                  border: `1px solid ${colors.border}`,
-                  background: colors.bg,
-                  color: colors.textPrimary,
-                  fontSize: "0.78rem",
-                  fontFamily: fontBody,
-                }}
-              >
-                <option value="above">жоғары болса</option>
-                <option value="below">төмен болса</option>
-              </select>
-              <input
-                value={alertPrice}
-                onChange={(e) => setAlertPrice(e.target.value)}
-                placeholder="Баға ($)"
-                type="number"
-                step="any"
-                style={{
-                  width: "100px",
-                  padding: "6px 8px",
-                  borderRadius: "8px",
-                  border: `1px solid ${colors.border}`,
-                  background: colors.bg,
-                  color: colors.textPrimary,
-                  fontSize: "0.78rem",
-                  fontFamily: fontBody,
-                  boxSizing: "border-box",
-                }}
-              />
-              <button
-                type="submit"
-                disabled={alertSubmitting}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: colors.gold,
-                  color: colors.bg,
-                  fontWeight: "bold",
-                  fontSize: "0.78rem",
-                  fontFamily: fontBody,
-                  cursor: alertSubmitting ? "default" : "pointer",
-                }}
-              >
-                Қою
-              </button>
-              {alertMessage ? (
-                <span style={{ fontSize: "0.72rem", color: colors.textFaint }}>{alertMessage}</span>
-              ) : null}
-            </form>
-          ) : null}
-
-          <div style={{ marginTop: "16px", display: "flex", alignItems: "baseline", gap: "10px", fontFamily: fontMono }}>
-            <span style={{ fontSize: "1.9rem", fontWeight: "bold" }}>${safeNum(data.currentPrice, 2)}</span>
-            <span style={{ fontSize: "1rem", color: isUp ? colors.gain : colors.loss }}>
-              {isUp ? "▲" : "▼"} {safeNum(data.change, 2)} ({safeNum(data.changePercent, 2)}%)
-            </span>
-          </div>
-
-          {/* ---------- КӘСІБИ CHART ---------- */}
-          {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
-            <div style={{ marginTop: "10px" }}>
-              <ProChart
-                chartData={data.chartData}
-                pivot={data.pivot}
-                tradePlan={data.tradePlan}
-                colors={colors}
-              />
-            </div>
-          ) : hasHistory ? (
-            <>
-              <Sparkline history={data.history} isUp={isUp} />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "0.68rem",
-                  color: colors.textFaint,
-                  fontFamily: fontMono,
-                  marginTop: "2px",
-                }}
-              >
-                <span>{data.history.length} күн</span>
-                <span>соңғы баға үрдісі</span>
-              </div>
-            </>
-          ) : null}
-
-          <div
-            style={{
-              marginTop: "16px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "10px",
-              fontSize: "0.85rem",
-              color: colors.textMuted,
-              fontFamily: fontMono,
-            }}
-          >
-            <div>Ашылу: ${safeNum(data.open, 2)}</div>
-            <div>Жабылу (алдыңғы): ${safeNum(data.previousClose, 2)}</div>
-            <div>Максимум: ${safeNum(data.high, 2)}</div>
-            <div>Минимум: ${safeNum(data.low, 2)}</div>
-            {typeof data.marketCap === "number" ? <div>Market Cap: ${data.marketCap.toFixed(0)}M</div> : null}
-            {data.industry ? <div style={{ fontFamily: fontBody }}>Сала: {data.industry}</div> : null}
-          </div>
-
-          {/* ---------- ХАЛАЛ СКРИН ---------- */}
-          <HalalCard halal={data.halal} />
-
-          {/* ---------- ФУНДАМЕНТАЛДЫ КӨРСЕТКІШТЕР ---------- */}
-          {data.fundamentals && typeof data.fundamentals === "object" ? (
-            <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Фундаменталды көрсеткіштер
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  color: colors.textMuted,
-                  fontFamily: fontMono,
-                }}
-              >
-                {explainFundamentals(data.fundamentals, data.currentPrice).map((f) => (
-                  <div key={f.key} style={{ gridColumn: f.wide ? "1 / -1" : undefined }}>
-                    <div>
-                      {f.label}:{" "}
-                      <span style={{ color: { good: colors.gain, neutral: colors.textPrimary, warn: colors.hold, bad: colors.loss }[f.tone], fontWeight: "bold" }}>
-                        {f.value}
-                      </span>
-                    </div>
-                    <div style={{ fontFamily: fontBody, fontSize: "0.7rem", color: colors.textFaint, marginTop: "3px", lineHeight: 1.4 }}>
-                      {f.hint}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- EARNINGS ---------- */}
-          {data.earnings && (data.earnings.nextDate || data.earnings.lastDate) ? (
-            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
-              {data.earnings.nextDate ? (
-                <div style={{ color: colors.hold, fontWeight: "bold" }}>
-                  ⚠ Алдағы есеп: {data.earnings.nextDate}
-                </div>
-              ) : null}
-              {data.earnings.lastDate && typeof data.earnings.lastEpsActual === "number" && typeof data.earnings.lastEpsEstimate === "number" ? (
-                <div style={{ marginTop: "4px" }}>
-                  Соңғы есеп ({data.earnings.lastDate}): факт ${data.earnings.lastEpsActual.toFixed(2)} / болжам ${data.earnings.lastEpsEstimate.toFixed(2)}{" "}
-                  <span style={{ color: data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? colors.gain : colors.loss, fontWeight: "bold" }}>
-                    {data.earnings.lastEpsActual >= data.earnings.lastEpsEstimate ? "(асып түсті)" : "(төмен шықты)"}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* ---------- ТЕХНИКАЛЫҚ АНАЛИЗ ---------- */}
-          {hasTechnicals ? (
-            <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Техникалық анализ
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  color: colors.textMuted,
-                  fontFamily: fontMono,
-                }}
-              >
-                <div>
-                  RSI (14):{" "}
-                  <span
-                    style={{
-                      color:
-                        typeof data.technicals.rsi === "number" && data.technicals.rsi > 70
-                          ? colors.loss
-                          : typeof data.technicals.rsi === "number" && data.technicals.rsi < 30
-                          ? colors.gain
-                          : colors.textPrimary,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {safeNum(data.technicals.rsi, 2)}
-                  </span>
-                </div>
-                <div>
-                  MACD:{" "}
-                  <span
-                    style={{
-                      color:
-                        typeof data.technicals.macd === "number" && data.technicals.macd > 0
-                          ? colors.gain
-                          : colors.loss,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {safeNum(data.technicals.macd, 2)}
-                  </span>
-                </div>
-                <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
-                <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
-                {typeof data.technicals.ema20 === "number" || typeof data.technicals.ema50 === "number" || typeof data.technicals.ema200 === "number" ? (
-                  <>
-                    <div>EMA20: ${safeNum(data.technicals.ema20, 2)}</div>
-                    <div>EMA50: ${safeNum(data.technicals.ema50, 2)}</div>
-                    <div>EMA200: ${safeNum(data.technicals.ema200, 2)}</div>
-                  </>
-                ) : null}
-                {data.volume && typeof data.volume === "object" ? (
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    Volume:{" "}
-                    <span
-                      style={{
-                        color:
-                          typeof data.volume.ratio === "number" && data.volume.ratio > 1.5
-                            ? colors.gainBright
-                            : typeof data.volume.ratio === "number" && data.volume.ratio < 0.7
-                            ? colors.textFaint
-                            : colors.textPrimary,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {typeof data.volume.latest === "number"
-                        ? (data.volume.latest / 1e6).toFixed(2) + "M"
-                        : "—"}
-                    </span>
-                    {typeof data.volume.ratio === "number" ? (
-                      <span style={{ color: colors.textFaint }}>
-                        {" "}
-                        (орташадан {data.volume.ratio}×)
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {signal ? (
-                <div
-                  style={{
-                    marginTop: "14px",
-                    padding: "12px 14px",
-                    borderRadius: "10px",
-                    background: colors.bg,
-                    border: `1px solid ${colors[SIGNAL_COLOR_KEY[signal.level]]}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.95rem",
-                      fontWeight: "bold",
-                      color: colors[SIGNAL_COLOR_KEY[signal.level]],
-                      marginBottom: "6px",
-                      fontFamily: fontMono,
-                      letterSpacing: "0.3px",
-                    }}
-                  >
-                    Сигнал: {signal.label}
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.78rem", color: colors.textMuted }}>
-                    {signal.reasons.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* ---------- SMART ALERTS ---------- */}
-          {smartAlerts.length > 0 ? (
-            <div
-              style={{
-                marginTop: "16px",
-                padding: "14px",
-                borderRadius: "12px",
-                background: colors.card,
-                border: `1px solid ${colors.border}`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: "bold",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  marginBottom: "10px",
-                }}
-              >
-                🚨 Smart Alerts
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {smartAlerts.map((a, i) => {
-                  const dotColor =
-                    a.level === "bullish" ? colors.gain : a.level === "bearish" ? colors.loss : colors.textMuted;
-                  return (
-                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "0.8rem" }}>
-                      <span style={{ color: dotColor, flexShrink: 0 }}>●</span>
-                      <span style={{ color: colors.textMuted }}>{a.text}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- SENTIMENT ---------- */}
-          {data.sentiment && typeof data.sentiment === "object" && typeof data.sentiment.bullishPercent === "number" ? (
-            <div style={{ marginTop: "16px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
-              Sentiment:{" "}
-              <span style={{ color: colors.gain, fontWeight: "bold" }}>▲ {data.sentiment.bullishPercent}%</span>
-              {"  "}
-              <span style={{ color: colors.loss, fontWeight: "bold" }}>▼ {data.sentiment.bearishPercent}%</span>
-            </div>
-          ) : null}
-
-          {/* ---------- SWING SCORE ---------- */}
-          {typeof data.swingScore === "number" ? (
-            <div
-              style={{
-                marginTop: "18px",
-                padding: "14px",
-                borderRadius: "10px",
-                background: colors.bg,
-                border: `1px solid ${colors.border}`,
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "0.72rem", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "6px" }}>
-                Swing Score
-              </div>
-              <div
-                style={{
-                  fontSize: "2.2rem",
-                  fontWeight: "bold",
-                  fontFamily: fontMono,
-                  color:
-                    data.swingScore >= 65 ? colors.gain : data.swingScore <= 35 ? colors.loss : colors.hold,
-                }}
-              >
-                {data.swingScore}
-                <span style={{ fontSize: "1rem", color: colors.textFaint }}> /100</span>
-              </div>
-            </div>
-          ) : null}
-
-          {/* ---------- ENTRY / STOP LOSS / TAKE PROFIT ---------- */}
-          {data.tradePlan && typeof data.tradePlan === "object" ? (
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  marginBottom: "12px",
-                  color: colors.gold,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                Сауда жоспары
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  fontSize: "0.85rem",
-                  fontFamily: fontMono,
-                }}
-              >
-                <div style={{ color: colors.textPrimary }}>Entry: ${safeNum(data.tradePlan.entry, 2)}</div>
-                <div style={{ color: colors.loss }}>Stop Loss: ${safeNum(data.tradePlan.stopLoss, 2)}</div>
-                <div style={{ color: colors.gain }}>TP1: ${safeNum(data.tradePlan.takeProfit1, 2)}</div>
-                <div style={{ color: colors.gainBright }}>TP2: ${safeNum(data.tradePlan.takeProfit2, 2)}</div>
-              </div>
-              {typeof data.tradePlan.riskReward === "number" ? (
-                <div style={{ marginTop: "8px", fontSize: "0.78rem", color: colors.textFaint, fontFamily: fontMono }}>
-                  Risk/Reward: 1:{data.tradePlan.riskReward}
-                </div>
-              ) : null}
-              <div style={{ marginTop: "8px", fontSize: "0.68rem", color: colors.textFaint }}>
-                ⚠ Бұл автоматты есептеу, инвестиция кеңесі емес.
-              </div>
-
-              {/* ---------- POSITION SIZE CALCULATOR ---------- */}
-              <div
-                style={{
-                  marginTop: "16px",
-                  paddingTop: "14px",
-                  borderTop: `1px solid ${colors.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: "bold",
-                    color: colors.gold,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  💰 Позиция көлемі
-                </div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }}>
-                  <input
-                    value={riskCapital}
-                    onChange={(e) => setRiskCapital(e.target.value)}
-                    placeholder="Капитал ($)"
-                    type="number"
-                    step="any"
-                    style={{
-                      flex: "1 1 120px",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: `1px solid ${colors.border}`,
-                      background: colors.bg,
-                      color: colors.textPrimary,
-                      fontSize: "0.8rem",
-                      fontFamily: fontBody,
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <input
-                    value={riskPercent}
-                    onChange={(e) => setRiskPercent(e.target.value)}
-                    placeholder="Тәуекел %"
-                    type="number"
-                    step="any"
-                    style={{
-                      flex: "1 1 100px",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: `1px solid ${colors.border}`,
-                      background: colors.bg,
-                      color: colors.textPrimary,
-                      fontSize: "0.8rem",
-                      fontFamily: fontBody,
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-                {(() => {
-                  const cap = parseFloat(riskCapital);
-                  const risk = parseFloat(riskPercent);
-                  const sizing =
-                    cap > 0 && risk > 0
-                      ? calculatePositionSize({
-                          capital: cap,
-                          riskPercent: risk,
-                          entry: data.tradePlan.entry,
-                          stopLoss: data.tradePlan.stopLoss,
-                        })
-                      : null;
-
-                  if (!riskCapital) {
-                    return (
-                      <p style={{ color: colors.textFaint, fontSize: "0.75rem", margin: 0 }}>
-                        Капиталыңды енгізсең, осы Entry/Stop бойынша қанша дана алу керегін есептеп берейін.
-                      </p>
-                    );
-                  }
-                  if (!sizing) {
-                    return (
-                      <p style={{ color: colors.loss, fontSize: "0.75rem", margin: 0 }}>
-                        Есептеу мүмкін болмады — мәндерді тексер.
-                      </p>
-                    );
-                  }
-                  return (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "8px",
-                        fontSize: "0.8rem",
-                        fontFamily: fontMono,
-                      }}
-                    >
-                      <div style={{ color: colors.textPrimary }}>
-                        Дана саны: <strong>{sizing.shares}</strong>
+              <div className="flex flex-col gap-3">
+                {homeNewsLoading ? (
+                  <div className="text-xs text-gray-500">Жүктелуде...</div>
+                ) : (
+                  homeNews.map((item, i) => (
+                    <a key={i} href={item.url} target="_blank" rel="noreferrer" className="flex gap-3 items-start group">
+                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 shrink-0 group-hover:border-blue-500/50 transition"></div>
+                      <div>
+                        <div className="text-xs text-gray-200 leading-snug group-hover:text-blue-400 transition line-clamp-2">
+                          {item.headline}
+                        </div>
+                        <div className="text-[10px] text-gray-500 mt-1 font-mono">
+                          {item.source} · {formatNewsDate(item.datetime)}
+                        </div>
                       </div>
-                      <div style={{ color: colors.textMuted }}>
-                        Позиция құны: ${sizing.positionValue}
-                      </div>
-                      <div style={{ color: colors.loss }}>
-                        Тәуекел ($): ${sizing.riskAmount}
-                      </div>
-                      <div style={{ color: colors.textMuted }}>
-                        Капиталдан %: {sizing.percentOfCapital}%
-                      </div>
-                    </div>
-                  );
-                })()}
+                    </a>
+                  ))
+                )}
               </div>
             </div>
-          ) : null}
-
-          {/* ---------- AI ҚОРЫТЫНДЫ ---------- */}
-          <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-            <button
-              onClick={getAiSummary}
-              disabled={aiLoading}
-              className="tradeiq-search-btn"
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "10px",
-                border: `1px solid ${colors.gold}`,
-                background: "transparent",
-                color: colors.gold,
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                cursor: aiLoading ? "default" : "pointer",
-              }}
-            >
-              {aiLoading ? "Талдау жасалуда..." : "🤖 AI қорытынды алу"}
-            </button>
-
-            {aiError ? (
-              <p style={{ marginTop: "10px", color: colors.lossBright, fontSize: "0.8rem" }}>{aiError}</p>
-            ) : null}
-
-            {aiSummary ? (
-              <div
-                style={{
-                  marginTop: "12px",
-                  padding: "12px 14px",
-                  borderRadius: "10px",
-                  background: colors.bg,
-                  border: `1px solid ${colors.border}`,
-                  fontSize: "0.85rem",
-                  color: colors.textPrimary,
-                  lineHeight: "1.5",
-                }}
-              >
-                {aiSummary}
-              </div>
-            ) : null}
           </div>
 
-          {/* ---------- ЖАҢАЛЫҚТАР ---------- */}
-          <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-            <div
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-                marginBottom: "12px",
-                color: colors.gold,
-                textTransform: "uppercase",
-                letterSpacing: "0.6px",
-              }}
-            >
-              Соңғы жаңалықтар
-            </div>
-
-            {newsLoading ? <p style={{ color: colors.textMuted, fontSize: "0.85rem" }}>Жаңалықтар жүктелуде...</p> : null}
-
-            {!newsLoading && !hasNews ? (
-              <p style={{ color: colors.textFaint, fontSize: "0.85rem" }}>Соңғы 7 күнде жаңалық табылмады.</p>
-            ) : null}
-
-            {!newsLoading && hasNews ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {news.map((item, i) => (
-                  <a
-                    key={i}
-                    href={item && item.url ? item.url : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tradeiq-news-item"
-                    style={{
-                      display: "block",
-                      textDecoration: "none",
-                      color: "inherit",
-                      background: colors.bg,
-                      borderRadius: "10px",
-                      padding: "10px 12px",
-                      border: `1px solid ${colors.border}`,
-                    }}
-                  >
-                    <div style={{ fontSize: "0.85rem", color: colors.textPrimary, lineHeight: "1.35", marginBottom: "6px" }}>
-                      {item && item.headline ? item.headline : ""}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.68rem",
-                        color: colors.textFaint,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontFamily: fontMono,
-                      }}
-                    >
-                      <span>{item && item.source ? item.source : ""}</span>
-                      <span>{item ? formatNewsDate(item.datetime) : ""}</span>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      {/* ---------- НАРЫҚ ЖАҢАЛЫҚТАРЫ ---------- */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "600px",
-          marginTop: "32px",
-        }}
-      >
-        {/* ---- Нарық жаңалықтары ---- */}
-        <div
-          className="tradeiq-card"
-          style={{
-            background: colors.card,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            padding: "20px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <div style={{ fontSize: "0.9rem", fontWeight: "bold", color: colors.textPrimary }}>Нарық жаңалықтары</div>
-            <a href="/news" style={{ fontSize: "0.75rem", color: colors.gold, textDecoration: "none" }}>
-              Барлығын көру →
-            </a>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {homeNewsLoading && homeNews.length === 0 ? (
-              <div style={{ fontSize: "0.78rem", color: colors.textFaint }}>Жүктелуде...</div>
-            ) : homeNews.length === 0 ? (
-              <div style={{ fontSize: "0.78rem", color: colors.textFaint }}>Жаңалықтар табылмады</div>
-            ) : (
-              homeNews.map((item, i) => (
-                <a
-                  key={i}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="tradeiq-news-item"
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    alignItems: "flex-start",
-                    textDecoration: "none",
-                    border: "1px solid transparent",
-                    borderRadius: "8px",
-                    padding: "4px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "8px",
-                      background: colors.bg,
-                      border: `1px solid ${colors.border}`,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div>
-                    <div style={{ fontSize: "0.78rem", color: colors.textPrimary, lineHeight: "1.3" }}>
-                      {item.headline}
-                    </div>
-                    <div style={{ fontSize: "0.68rem", color: colors.textFaint, marginTop: "2px" }}>
-                      {item.source} · {formatNewsDate(item.datetime)}
-                    </div>
-                  </div>
-                </a>
-              ))
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      <p style={{ marginTop: "40px", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
-
+          <p className="mt-4 mb-8 text-center text-gray-600 text-xs">© TradeIQ — дала рухымен сауда</p>
         </div>
       </div>
     </main>
