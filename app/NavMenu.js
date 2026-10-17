@@ -5,130 +5,143 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "./supabaseClient";
 
-/* ---------- Бренд белгісі: жапон свичалары ---------- */
+/* ---------- Жаңа дизайн түстері ---------- */
+const colors = {
+  accent: "#3b82f6", // Көк неон
+  accentGlow: "rgba(59,130,246,0.8)",
+  textPrimary: "#ffffff",
+  textMuted: "#9ca3af",
+  iconIdle: "#9ca3af",
+  tabIdle: "#6b7280",
+  iconSoft: "#6b7280",
+  gain: "#10b981", // Жасыл
+  loss: "#ef4444", // Қызыл
+};
+
+/* ---------- Бренд белгісі ---------- */
 function NavLogoMark({ size = 44 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="11" y1="16" x2="11" y2="39" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" className="drop-shadow-[0_0_3px_#ef4444]" />
-      <rect x="7.5" y="24" width="7" height="11" rx="1.5" fill="#ef4444" />
+      <line x1="11" y1="16" x2="11" y2="39" stroke={colors.loss} strokeWidth="3" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 3px #ef4444)'}} />
+      <rect x="7.5" y="24" width="7" height="11" rx="1.5" fill={colors.loss} />
 
-      <line x1="24" y1="8" x2="24" y2="41" stroke="#10b981" strokeWidth="3" strokeLinecap="round" className="drop-shadow-[0_0_3px_#10b981]" />
-      <rect x="20.5" y="17" width="7" height="18" rx="1.5" fill="#10b981" />
+      <line x1="24" y1="8" x2="24" y2="41" stroke={colors.gain} strokeWidth="3" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 3px #10b981)'}} />
+      <rect x="20.5" y="17" width="7" height="18" rx="1.5" fill={colors.gain} />
 
-      <line x1="37" y1="4" x2="37" y2="33" stroke="#10b981" strokeWidth="3" strokeLinecap="round" className="drop-shadow-[0_0_3px_#10b981]" />
-      <rect x="33.5" y="11" width="7" height="16" rx="1.5" fill="#10b981" />
+      <line x1="37" y1="4" x2="37" y2="33" stroke={colors.gain} strokeWidth="3" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 3px #10b981)'}} />
+      <rect x="33.5" y="11" width="7" height="16" rx="1.5" fill={colors.gain} />
     </svg>
   );
 }
 
-/* ---------- Иконкалар: Tailwind currentColor арқылы басқарылады ---------- */
-function IconHome({ size = 20, className = "", filled = false }) {
+/* ---------- Иконкалар ---------- */
+function IconHome({ size = 20, color, filled = false, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <path d="M4 11.5L12 4l8 7.5" />
       <path d="M6 10v8a1 1 0 001 1h3v-5.5h4V19h3a1 1 0 001-1v-8" />
     </svg>
   );
 }
-function IconMarkets({ size = 20, className = "" }) {
+function IconMarkets({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <rect x="4" y="12.5" width="4" height="7.5" rx="1" />
       <rect x="10" y="8.5" width="4" height="11.5" rx="1" />
       <rect x="16" y="4.5" width="4" height="15.5" rx="1" />
     </svg>
   );
 }
-function IconStar({ size = 20, className = "" }) {
+function IconStar({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 6-5.2-2.8-5.2 2.8 1-6-4.3-4.2 5.9-.8L12 3.5z" />
     </svg>
   );
 }
-function IconBriefcase({ size = 20, className = "" }) {
+function IconBriefcase({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <rect x="3.5" y="8" width="17" height="11" rx="1.8" />
       <path d="M8.5 8V6.5a1.5 1.5 0 011.5-1.5h4a1.5 1.5 0 011.5 1.5V8" />
       <path d="M3.5 13h17" />
     </svg>
   );
 }
-function IconFunnel({ size = 20, className = "" }) {
+function IconFunnel({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <path d="M4 5h16l-6 7.5V18l-4 2v-7.5L4 5z" />
     </svg>
   );
 }
-function IconNews({ size = 20, className = "" }) {
+function IconNews({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <rect x="4" y="5" width="13" height="14" rx="1.2" strokeWidth="1.6" />
       <path d="M17 8.5h2.2a0.8 0.8 0 01.8.8V18a1 1 0 01-1 1H8" strokeWidth="1.6" />
       <path d="M7 9h7M7 12h7M7 15h4" strokeWidth="1.4" />
     </svg>
   );
 }
-function IconSparkle({ size = 20, className = "" }) {
+function IconSparkle({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <path d="M12 3.5l1.3 4.2 4.2 1.3-4.2 1.3-1.3 4.2-1.3-4.2-4.2-1.3 4.2-1.3L12 3.5z" strokeWidth="1.5" />
       <path d="M18.5 15l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6.6-1.9z" strokeWidth="1.2" />
     </svg>
   );
 }
-function IconBook({ size = 20, className = "" }) {
+function IconBook({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <path d="M4 5.5c2-1 5-1 8 .5 3-1.5 6-1.5 8-.5v13c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5v-13z" />
       <path d="M12 6v13" />
     </svg>
   );
 }
-function IconGear({ size = 20, className = "" }) {
+function IconGear({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <circle cx="12" cy="12" r="3.2" />
       <path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M17.7 6.3l-1.5 1.5M7.8 16.2l-1.5 1.5M17.7 17.7l-1.5-1.5M7.8 7.8L6.3 6.3" />
     </svg>
   );
 }
-function IconUser({ size = 20, className = "" }) {
+function IconUser({ size = 20, color, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={glow ? {filter: `drop-shadow(0 0 6px ${color})`} : {}}>
       <circle cx="12" cy="8" r="3.4" />
       <path d="M4.5 19.5c1.4-3.4 4.2-5 7.5-5s6.1 1.6 7.5 5" />
     </svg>
   );
 }
-function IconLogout({ size = 16, className = "" }) {
+function IconLogout({ size = 16, color }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 4H6a1.5 1.5 0 00-1.5 1.5v13A1.5 1.5 0 006 20h3" />
       <path d="M14 16l4-4-4-4" />
       <path d="M18 12H9" />
     </svg>
   );
 }
-function IconSun({ size = 18, className = "" }) {
+function IconSun({ size = 18, color }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round">
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9L5.3 5.3" />
     </svg>
   );
 }
-function IconMoon({ size = 18, className = "" }) {
+function IconMoon({ size = 18, color }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
 
-/* ---------- Сол жақ мәзір (мокаптағы 9 пункт) ---------- */
+/* ---------- Сол жақ мәзір (Desktop) ---------- */
 const links = [
   { href: "/", label: "Басты бет", Icon: IconHome },
   { href: "/markets", label: "Нарықтар", Icon: IconMarkets },
@@ -141,7 +154,7 @@ const links = [
   { href: "/settings", label: "Параметрлер", Icon: IconGear },
 ];
 
-/* ---------- Телефондағы төменгі мәзір ---------- */
+/* ---------- Төменгі мәзір (Mobile) ---------- */
 const tabs = [
   { href: "/", label: "Басты бет", Icon: IconHome },
   { href: "/markets", label: "Нарықтар", Icon: IconMarkets },
@@ -214,37 +227,128 @@ export default function NavMenu() {
   return (
     <>
       <style>{`
-        /* Күндізгі режимнің инверсиясы (қажет болса) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        /* Күндізгі режимнің инверсиясы */
         html.tradeiq-day { filter: invert(1) hue-rotate(180deg); }
         html.tradeiq-day img, html.tradeiq-day video { filter: invert(1) hue-rotate(180deg); }
-        
-        /* Мобильді құрылғыда мәзірдің артына контент кіріп кетпеуі үшін */
-        @media (max-width: 1023px) {
-          body { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+        /* ---------- СИДЕБАР (ДЕСКТОП) ---------- */
+        .tq-sidebar {
+          position: fixed; top: 0; left: 0; height: 100vh; height: 100dvh; width: 240px;
+          box-sizing: border-box; display: flex; flex-direction: column;
+          background: rgba(11, 15, 25, 0.95); 
+          backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+          border-right: 1px solid rgba(255, 255, 255, 0.08); z-index: 80;
+          transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-family: 'Inter', -apple-system, sans-serif;
         }
+        .tq-sidebar.tq-open { transform: translateX(0); }
+        
+        /* Оверлей (Фон) */
+        .tq-overlay { 
+          position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
+          backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); 
+          z-index: 70; opacity: 0; animation: tqFadeIn 0.3s forwards; 
+        }
+
+        /* Логотип аймағы */
+        .tq-logo { padding: 32px 0 24px; text-align: center; }
+        .tq-wordmark { margin-top: 12px; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #ffffff; }
+        .tq-wordmark span { color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
+        .tq-tagline { margin-top: 4px; font-size: 9px; font-weight: 700; letter-spacing: 2px; color: #60a5fa; }
+
+        /* Навигация сілтемелері */
+        .tq-links { flex: 1; overflow-y: auto; padding: 0 12px; }
+        .tq-link {
+          display: flex; align-items: center; gap: 12px; height: 44px; box-sizing: border-box;
+          margin-bottom: 4px; padding: 0 16px; border-radius: 12px; border: 1px solid transparent;
+          color: #9ca3af; font-size: 14px; text-decoration: none; transition: all 0.2s ease;
+        }
+        .tq-link:hover { background: rgba(255,255,255,0.05); color: #e5e7eb; }
+        .tq-link.tq-active { 
+          background: rgba(59,130,246,0.1); 
+          border-color: rgba(59,130,246,0.3); 
+          color: #60a5fa; 
+          font-weight: 600; 
+          box-shadow: inset 0 0 15px rgba(59,130,246,0.1);
+        }
+
+        /* Төменгі бөлік (Профиль / Тема) */
+        .tq-bottom { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .tq-day {
+          display: flex; align-items: center; justify-content: space-between; width: 100%; height: 40px;
+          margin-bottom: 16px; padding: 0 16px; border-radius: 12px;
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #9ca3af;
+          font-size: 12px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .tq-day:hover { color: #ffffff; background: rgba(255,255,255,0.08); }
+
+        /* Профиль карточкасы */
+        .tq-profile { 
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); 
+          border-radius: 16px; padding: 16px; text-align: center; position: relative; overflow: hidden;
+        }
+        .tq-profile-bg { position: absolute; top: 0; left: 0; width: 100%; height: 50%; background: rgba(59,130,246,0.1); filter: blur(20px); z-index: 0; }
+        .tq-avatar-wrap { position: relative; width: 48px; height: 48px; margin: 0 auto 12px; z-index: 1; }
+        .tq-avatar { width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); object-fit: cover; }
+        .tq-avatar-fallback { background: #0b0f19; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-size: 20px; font-weight: bold; width: 100%; height: 100%; border: 1px solid rgba(255,255,255,0.2); }
+        .tq-avatar-dot { position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #0b0f19; box-shadow: 0 0 5px #3b82f6; }
+        .tq-pname { font-size: 14px; font-weight: 600; color: #ffffff; position: relative; z-index: 1; }
+        .tq-psub { margin-top: 4px; font-size: 10px; color: #9ca3af; position: relative; z-index: 1; }
+        .tq-logout {
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; width: 100%;
+          background: transparent; border: none; color: #9ca3af; font-size: 12px; cursor: pointer; position: relative; z-index: 1; transition: color 0.2s;
+        }
+        .tq-logout:hover { color: #ef4444; }
+        .tq-login {
+          display: block; padding: 10px; border-radius: 12px; background: #3b82f6; color: #fff;
+          font-size: 12px; font-weight: 600; text-decoration: none; box-shadow: 0 0 10px rgba(59,130,246,0.3); transition: all 0.2s; position: relative; z-index: 1;
+        }
+        .tq-login:hover { background: #2563eb; }
+
+        /* ---------- ТӨМЕНГІ МӘЗІР (MOBILE) ---------- */
+        .tq-tabbar {
+          position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+          display: flex; justify-content: space-between; align-items: center; height: 64px; box-sizing: border-box; padding: 0 12px; border-radius: 32px;
+          background: rgba(15, 22, 36, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+          font-family: 'Inter', -apple-system, sans-serif;
+        }
+        .tq-tab {
+          flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+          background: transparent; border: none; padding: 0; color: #6b7280; font-size: 9px; font-weight: 500;
+          text-decoration: none; cursor: pointer; transition: all 0.2s; position: relative; height: 100%;
+        }
+        .tq-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tq-tab.tq-tab-active { color: #3b82f6; text-shadow: 0 0 8px rgba(59,130,246,0.8); }
+        .tq-tab-dot {
+          position: absolute; bottom: 6px; width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6;
+        }
+
+        /* Адаптация */
+        @media (min-width: 1024px) {
+          .tq-sidebar { transform: none; }
+          .tq-overlay, .tq-tabbar { display: none; }
+        }
+        @media (max-width: 1023px) {
+          body { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+        }
+        @keyframes tqFadeIn { to { opacity: 1; } }
       `}</style>
 
       {/* ---------- ФОН (Оверлей) ---------- */}
-      {mobileOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] lg:hidden transition-opacity" 
-          onClick={() => setMobileOpen(false)} 
-        />
-      )}
+      {mobileOpen && <div className="tq-overlay" onClick={() => setMobileOpen(false)} />}
 
-      {/* ---------- DESKTOP / СИДЕБАР ---------- */}
-      <nav 
-        className={`fixed top-0 left-0 h-[100dvh] w-60 flex flex-col z-[80] bg-[#0b0f19]/95 backdrop-blur-xl border-r border-white/10 transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
-      >
-        {/* Логотип */}
-        <div className="pt-8 pb-6 text-center">
+      {/* ---------- СИДЕБАР ---------- */}
+      <nav className={"tq-sidebar" + (mobileOpen ? " tq-open" : "")}>
+        <div className="tq-logo">
           <NavLogoMark size={44} />
-          <div className="mt-3 text-2xl font-bold tracking-[0.15em] text-white">TRADE<span className="text-blue-500">IQ</span></div>
-          <div className="mt-1 text-[9px] font-bold tracking-widest text-blue-400">AI-POWERED TRADING</div>
+          <div className="tq-wordmark">TRADE<span>IQ</span></div>
+          <div className="tq-tagline">AI-POWERED TRADING</div>
         </div>
 
-        {/* Навигация */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <div className="tq-links">
           {links.map((l) => {
             const active = isActive(l.href);
             return (
@@ -252,60 +356,49 @@ export default function NavMenu() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 h-11 px-4 rounded-xl text-sm transition-all duration-200 border ${
-                  active 
-                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400 font-medium shadow-[inset_0_0_15px_rgba(59,130,246,0.1)]" 
-                    : "border-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                }`}
+                className={"tq-link" + (active ? " tq-active" : "")}
               >
-                <l.Icon size={20} className={active ? "drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" : ""} filled={active} />
+                <l.Icon size={20} color={active ? colors.accent : colors.iconIdle} filled={active} glow={active} />
                 <span>{l.label}</span>
               </Link>
             );
           })}
         </div>
 
-        {/* Төменгі бөлік (Профиль / Тема) */}
-        <div className="p-4 border-t border-white/5 bg-white/[0.02]">
-          <button 
-            type="button" 
-            onClick={toggleDayMode}
-            className="flex items-center justify-between w-full h-10 px-4 mb-4 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-xs hover:text-white transition"
-          >
+        <div className="tq-bottom">
+          <button type="button" className="tq-day" onClick={toggleDayMode}>
             <span>{dayMode ? "Түнгі режим" : "Күндізгі режим"}</span>
-            {dayMode ? <IconMoon size={16} /> : <IconSun size={16} />}
+            {dayMode ? <IconMoon size={16} color={colors.iconSoft} /> : <IconSun size={16} color={colors.iconSoft} />}
           </button>
 
           {user ? (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center shadow-[0_0_15px_rgba(0,0,0,0.5)] relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500/10 blur-xl"></div>
-              <div className="relative inline-block mb-3">
+            <div className="tq-profile">
+              <div className="tq-profile-bg"></div>
+              <div className="tq-avatar-wrap">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover border border-white/20 relative z-10" referrerPolicy="no-referrer" />
+                  <img src={avatarUrl} alt="" className="tq-avatar" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#0b0f19] border border-white/20 text-white font-bold text-xl flex items-center justify-center relative z-10">
-                    {initial || <IconUser size={24} />}
+                  <div className="tq-avatar-fallback">
+                    {initial || <IconUser size={22} color="#fff" />}
                   </div>
                 )}
-                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-blue-500 border-2 border-[#0b0f19] z-20 shadow-[0_0_5px_#3b82f6]"></span>
+                <span className="tq-avatar-dot" />
               </div>
-              <div className="text-sm font-medium text-white truncate relative z-10">{displayName}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5 relative z-10">Pro Аккаунт</div>
-              <button type="button" onClick={handleLogout} className="mt-3 flex items-center justify-center gap-2 w-full text-xs text-gray-400 hover:text-red-400 transition relative z-10">
-                <IconLogout size={14} />
+              <div className="tq-pname">{displayName}</div>
+              <div className="tq-psub">Pro Аккаунт</div>
+              <button type="button" className="tq-logout" onClick={handleLogout}>
+                <IconLogout size={14} color="currentColor" />
                 <span>Шығу</span>
               </button>
             </div>
           ) : (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#0b0f19] border border-white/10 text-gray-500 flex items-center justify-center mx-auto mb-3">
-                <IconUser size={24} />
+            <div className="tq-profile">
+              <div className="tq-avatar-wrap" style={{ margin: "0 auto 16px" }}>
+                <div className="tq-avatar-fallback" style={{ background: "transparent", borderColor: "rgba(255,255,255,0.1)" }}>
+                  <IconUser size={22} color={colors.iconSoft} />
+                </div>
               </div>
-              <Link 
-                href="/login" 
-                onClick={() => setMobileOpen(false)} 
-                className="block w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-[0_0_10px_rgba(37,99,235,0.3)] transition"
-              >
+              <Link href="/login" onClick={() => setMobileOpen(false)} className="tq-login">
                 Кіру / Тіркелу
               </Link>
             </div>
@@ -313,36 +406,31 @@ export default function NavMenu() {
         </div>
       </nav>
 
-      {/* ---------- ТӨМЕНГІ МӘЗІР (MOBILE BOTTOM TAB) ---------- */}
-      <div className="fixed bottom-4 left-3 right-3 z-[60] lg:hidden">
-        <div className="bg-[#0f1624]/85 backdrop-blur-xl border border-white/10 rounded-[2rem] px-4 py-3 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-          {tabs.map((t) => {
-            const active = isActive(t.href);
-            return (
-              <Link
-                key={t.href}
-                href={t.href}
-                className={`flex flex-col items-center gap-1 min-w-0 flex-1 transition-colors ${active ? "text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" : "text-gray-500 hover:text-gray-300"}`}
-              >
-                <t.Icon size={22} filled={active} className={active ? "text-blue-500" : "text-gray-500"} />
-                <span className="text-[9px] font-medium truncate max-w-full">{t.label}</span>
-                {/* Жарқыраған активті нүкте */}
-                {active && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5 shadow-[0_0_8px_#3b82f6] absolute -bottom-1"></div>}
-              </Link>
-            );
-          })}
-          
-          {/* Профиль / Мәзір батырмасы */}
-          <button
-            type="button"
-            className={`flex flex-col items-center gap-1 min-w-0 flex-1 transition-colors relative ${profileActive || mobileOpen ? "text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" : "text-gray-500 hover:text-gray-300"}`}
-            onClick={() => setMobileOpen(true)}
-          >
-            <IconUser size={22} className={profileActive || mobileOpen ? "text-blue-500" : "text-gray-500"} />
-            <span className="text-[9px] font-medium truncate max-w-full">Мәзір</span>
-            {(profileActive || mobileOpen) && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5 shadow-[0_0_8px_#3b82f6] absolute -bottom-1"></div>}
-          </button>
-        </div>
+      {/* ---------- ТӨМЕНГІ МӘЗІР (MOBILE) ---------- */}
+      <div className="tq-tabbar">
+        {tabs.map((t) => {
+          const active = isActive(t.href);
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className={"tq-tab" + (active ? " tq-tab-active" : "")}
+            >
+              <t.Icon size={22} color={active ? colors.accent : colors.tabIdle} filled={active} glow={active} />
+              <span style={{ paddingBottom: active ? "8px" : "0", transition: "all 0.2s" }}>{t.label}</span>
+              {active && <div className="tq-tab-dot"></div>}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={"tq-tab" + (profileActive || mobileOpen ? " tq-tab-active" : "")}
+          onClick={() => setMobileOpen(true)}
+        >
+          <IconUser size={22} color={profileActive || mobileOpen ? colors.accent : colors.tabIdle} glow={profileActive || mobileOpen} />
+          <span style={{ paddingBottom: (profileActive || mobileOpen) ? "8px" : "0", transition: "all 0.2s" }}>Мәзір</span>
+          {(profileActive || mobileOpen) && <div className="tq-tab-dot"></div>}
+        </button>
       </div>
     </>
   );
