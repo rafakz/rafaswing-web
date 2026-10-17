@@ -14,9 +14,8 @@ const colors = {
 
 /* Индекс орнына ETF көрсетіледі (баға — ETF бағасы, индекс деңгейі емес) */
 const INDEX_MAP = [
-  { symbol: "SPY", label: "S&P 500 (SPY)" },
-  { symbol: "ONEQ", label: "NASDAQ (ONEQ)" },
-  { symbol: "QQQ", label: "NASDAQ 100 (QQQ)" },
+  { symbol: "SPY", label: "S&P 500" },
+  { symbol: "QQQ", label: "NASDAQ" },
 ];
 
 function fmtPrice(v) {
@@ -29,7 +28,7 @@ function fmtPct(v) {
   return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
 }
 
-/* ---------- NavMenu-мен бірдей иконка тілі ---------- */
+/* ---------- Иконкалар ---------- */
 function IconBell({ size = 22, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -49,6 +48,14 @@ function IconChevron({ size = 16, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+function IconUser({ size = 16, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
     </svg>
   );
 }
@@ -77,10 +84,6 @@ export default function Header({ overview }) {
   }
 
   const user = session && session.user ? session.user : null;
-  const meta = user && user.user_metadata ? user.user_metadata : {};
-  const displayName = user
-    ? meta.full_name || meta.name || (user.email ? user.email.split("@")[0] : "")
-    : "";
 
   const indices = Array.isArray(overview)
     ? INDEX_MAP.map((m) => {
@@ -94,101 +97,90 @@ export default function Header({ overview }) {
     <>
       <style>{`
         .tq-head {
-          display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;
-          gap: 16px 20px; width: 100%; box-sizing: border-box; padding: 20px 16px 8px;
+          display: flex; justify-content: flex-end; align-items: center; 
+          width: 100%; box-sizing: border-box; padding: 16px 16px 0;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          position: relative; z-index: 50;
         }
         @media (min-width: 1024px) {
-          .tq-head { padding: 26px 28px 8px; }
+          .tq-head { padding: 24px 28px 0; justify-content: space-between; }
         }
-        .tq-hello { font-size: clamp(20px, 5vw, 26px); font-weight: 500; line-height: 1.3; color: #F7FAFE; }
-        .tq-sub { margin-top: 8px; font-size: 14px; color: #B9BCCA; }
 
-        .tq-head-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-        .tq-idx-wrap { display: none; gap: 26px; margin-right: 14px; }
-        .tq-idx-3 { display: none; }
+        .tq-head-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        
+        .tq-idx-wrap { display: none; gap: 24px; margin-right: auto; }
         @media (min-width: 1100px) {
           .tq-idx-wrap { display: flex; }
         }
-        @media (min-width: 1280px) {
-          .tq-idx-3 { display: block; }
-        }
+        
         .tq-idx-label { font-size: 11.5px; color: #A6A8B7; white-space: nowrap; }
-        .tq-idx-value { margin-top: 6px; font-size: 15px; font-weight: 500; color: #F6F9FE; }
-        .tq-idx-pct { margin-top: 3px; font-size: 12px; }
+        .tq-idx-value { margin-top: 4px; font-size: 14px; font-weight: 600; color: #F6F9FE; }
+        .tq-idx-pct { margin-top: 2px; font-size: 11px; }
 
         .tq-bell {
-          width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-          border-radius: 10px; transition: background 0.15s ease;
+          width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+          border-radius: 10px; transition: background 0.2s ease;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
         }
-        .tq-bell:hover { background: rgba(255,255,255,0.05); }
+        .tq-bell:hover { background: rgba(255,255,255,0.08); }
 
         .tq-pro {
-          display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 8px;
-          background: #00103C; border: 1px solid #173473; color: #7AA2EE;
-          font-size: 13px; font-weight: 500; font-family: inherit; white-space: nowrap; cursor: pointer;
+          display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px;
+          background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa;
+          font-size: 13px; font-weight: 600; font-family: inherit; white-space: nowrap; cursor: pointer;
+          transition: all 0.2s ease;
         }
+        .tq-pro:hover { background: rgba(59,130,246,0.2); box-shadow: 0 0 10px rgba(59,130,246,0.2); }
+
         .tq-chev {
-          width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
-          background: #07132B; border: 1px solid #131E34; cursor: pointer; padding: 0;
+          height: 36px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 6px;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); 
+          cursor: pointer; transition: background 0.2s;
         }
+        .tq-chev:hover { background: rgba(255,255,255,0.08); }
 
         .tq-menu-wrap { position: relative; }
         .tq-menu-bg { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 85; }
         .tq-menu {
-          position: absolute; top: 42px; right: 0; min-width: 190px; z-index: 90; box-sizing: border-box;
-          background: #000E23; border: 1px solid #131E34; border-radius: 12px; padding: 6px;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+          position: absolute; top: 44px; right: 0; min-width: 180px; z-index: 90; box-sizing: border-box;
+          background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 8px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
         .tq-menu-item {
-          display: block; width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
+          display: block; width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 8px;
           background: transparent; border: none; text-align: left; text-decoration: none;
-          color: #EAECF6; font-size: 14px; font-family: inherit; cursor: pointer;
+          color: #e2e8f0; font-size: 13px; font-family: inherit; cursor: pointer; transition: background 0.2s;
         }
-        .tq-menu-item:hover { background: rgba(11,98,245,0.12); }
+        .tq-menu-item:hover { background: rgba(59,130,246,0.15); color: #fff; }
       `}</style>
 
       <div className="tq-head">
-        {/* ---- Сәлемдесу ---- */}
-        <div>
-          <div className="tq-hello">
-            {displayName ? (
-              <>
-                Қош келдіңіз,
-                <br />
-                {displayName}!
-              </>
-            ) : (
-              "Қош келдіңіз!"
-            )}
+        
+        {/* ---- ДК нұсқадағы индекстер (Телефонда көрінбейді) ---- */}
+        {indices.length > 0 ? (
+          <div className="tq-idx-wrap">
+            {indices.map((ix) => (
+              <div key={ix.symbol} className="tq-idx">
+                <div className="tq-idx-label">{ix.label}</div>
+                <div className="tq-idx-value">{fmtPrice(ix.price)}</div>
+                <div className="tq-idx-pct" style={{ color: ix.pct >= 0 ? colors.gainBright : colors.lossBright }}>
+                  {fmtPct(ix.pct)}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="tq-sub">Ақылды инвестиция. Нақты талдау.</div>
-        </div>
+        ) : null}
 
         <div className="tq-head-right">
-          {/* ---- Индекстер (басты бетте ғана, overview келгенде) ---- */}
-          {indices.length > 0 ? (
-            <div className="tq-idx-wrap">
-              {indices.map((ix, i) => (
-                <div key={ix.symbol} className={i === 2 ? "tq-idx tq-idx-3" : "tq-idx"}>
-                  <div className="tq-idx-label">{ix.label}</div>
-                  <div className="tq-idx-value">{fmtPrice(ix.price)}</div>
-                  <div className="tq-idx-pct" style={{ color: ix.pct >= 0 ? colors.gain : colors.loss }}>
-                    {fmtPct(ix.pct)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {/* ---- Дабылдар + Pro жоспар + аккаунт мәзірі ---- */}
+          
           <Link href="/alerts" className="tq-bell" aria-label="Дабылдар">
-            <IconBell size={22} color={colors.bell} />
+            <IconBell size={18} color={colors.bell} />
           </Link>
 
           <button type="button" className="tq-pro">
-            <IconCrown size={15} color={colors.crown} />
-            <span>Pro жоспар</span>
+            <IconCrown size={14} color={colors.goldBright} />
+            <span>Pro</span>
           </button>
 
           <div className="tq-menu-wrap">
@@ -198,7 +190,8 @@ export default function Header({ overview }) {
               aria-label="Аккаунт мәзірі"
               onClick={() => setMenuOpen((v) => !v)}
             >
-              <IconChevron size={16} color={colors.chevron} />
+              <IconUser size={16} color={colors.bell} />
+              <IconChevron size={14} color={colors.chevron} />
             </button>
 
             {menuOpen ? (
@@ -213,7 +206,8 @@ export default function Header({ overview }) {
                       <Link href="/alerts" className="tq-menu-item" onClick={() => setMenuOpen(false)}>
                         Дабылдар
                       </Link>
-                      <button type="button" className="tq-menu-item" onClick={handleLogout}>
+                      <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "4px 0" }}></div>
+                      <button type="button" className="tq-menu-item" onClick={handleLogout} style={{ color: colors.lossBright }}>
                         Шығу
                       </button>
                     </>
@@ -226,6 +220,7 @@ export default function Header({ overview }) {
               </>
             ) : null}
           </div>
+
         </div>
       </div>
     </>
