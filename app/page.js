@@ -7,7 +7,7 @@ import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
 import { getSignal } from "../lib/tradeiq-engine";
 
-/* ---------- Дизайн токендары (Жаңа Premium/Neon стиль) ---------- */
+/* ---------- Дизайн токендары (Premium / Neon стилі) ---------- */
 const colors = {
   bg: "#0B0F19", 
   card: "rgba(20, 28, 45, 0.6)", 
@@ -23,12 +23,6 @@ const colors = {
   lossBright: "#f87171",
   hold: "#eab308", 
 };
-
-const AI_SUGGESTIONS = [
-  "AAPL акциясына талдау жаса",
-  "Нарық жағдайы қалай?",
-  "Swing trading бойынша кеңес бер",
-];
 
 const fontDisplay = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const fontBody = fontDisplay;
@@ -48,23 +42,29 @@ html, body {
 * { box-sizing: border-box; }
 .glass-card {
   background: ${colors.card};
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid ${colors.cardBorder};
-  border-radius: 16px;
+  border-radius: 20px;
 }
-.tradeiq-input:focus { outline: none; border-color: ${colors.gold} !important; box-shadow: 0 0 10px rgba(59,130,246,0.3); }
+.tradeiq-search-capsule {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.tradeiq-search-capsule:focus-within {
+  border-color: rgba(59,130,246,0.6) !important;
+  box-shadow: 0 0 20px rgba(59,130,246,0.15);
+}
 .tradeiq-search-btn { transition: all 0.2s ease; }
 .tradeiq-search-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
 .tradeiq-search-btn:active { transform: scale(0.97); }
 .tradeiq-overview-card { transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
-.tradeiq-overview-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2) !important; }
+.tradeiq-overview-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .tradeiq-news-item { transition: all 0.2s ease; text-decoration: none; color: inherit; }
 .tradeiq-news-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(59,130,246,0.3) !important; transform: translateX(3px); }
 .glow-bg {
   position: absolute;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%);
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(0,0,0,0) 70%);
   border-radius: 50%;
   z-index: -1;
   pointer-events: none;
@@ -83,20 +83,20 @@ html, body {
 `;
 
 /* ---------- Логотип ---------- */
-function TradeIQMark({ size = 40 }) {
+function TradeIQMark({ size = 44 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="12" y1="18" x2="12" y2="38" stroke={colors.loss} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #ef4444)'}} />
-      <rect x="9" y="24" width="6" height="10" rx="1.5" fill={colors.loss} />
-      <line x1="24" y1="10" x2="24" y2="40" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #10b981)'}} />
-      <rect x="21" y="18" width="6" height="16" rx="1.5" fill={colors.gain} />
-      <line x1="36" y1="6" x2="36" y2="32" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #10b981)'}} />
-      <rect x="33" y="12" width="6" height="14" rx="1.5" fill={colors.gain} />
+      <line x1="12" y1="18" x2="12" y2="38" stroke={colors.loss} strokeWidth="2.8" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 5px #ef4444)'}} />
+      <rect x="9" y="24" width="6" height="10" rx="2" fill={colors.loss} />
+      <line x1="24" y1="10" x2="24" y2="40" stroke={colors.gain} strokeWidth="2.8" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 5px #10b981)'}} />
+      <rect x="21" y="18" width="6" height="16" rx="2" fill={colors.gain} />
+      <line x1="36" y1="6" x2="36" y2="32" stroke={colors.gain} strokeWidth="2.8" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 5px #10b981)'}} />
+      <rect x="33" y="12" width="6" height="14" rx="2" fill={colors.gain} />
     </svg>
   );
 }
 
-/* ---------- Sparkline (Кішкентай карточка графигі) ---------- */
+/* ---------- Sparkline (Толық енді жабатын кішкентай график) ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
 
@@ -110,9 +110,9 @@ function Sparkline({ history, isUp }) {
   const max = Math.max(...closes);
   const range = max - min || 1;
 
-  const width = 320;
-  const height = 64;
-  const padY = 6;
+  const width = 300;
+  const height = 60;
+  const padY = 2;
 
   const points = closes.map((c, i) => {
     const x = (i / (closes.length - 1)) * width;
@@ -124,17 +124,16 @@ function Sparkline({ history, isUp }) {
   const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
-    <div style={{ position: "absolute", bottom: "4px", right: "4px", width: "80px", height: "40px", pointerEvents: "none", opacity: 0.8 }}>
+    <div style={{ width: "100%", height: "100%", pointerEvents: "none" }}>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
         <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
         <polyline
           points={points.join(" ")}
           fill="none"
           stroke={lineColor}
-          strokeWidth="3"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{filter: `drop-shadow(0 0 3px ${lineColor})`}}
         />
       </svg>
     </div>
@@ -145,28 +144,27 @@ function Sparkline({ history, isUp }) {
 function HalalCard({ halal }) {
   if (!halal || typeof halal !== "object" || !Array.isArray(halal.checks)) return null;
 
-  const toneOf = (s) =>
-    s === "pass" ? colors.gain : s === "fail" ? colors.loss : s === "doubtful" ? colors.hold : colors.textFaint;
-  const markOf = (s) => (s === "pass" ? "✓" : s === "fail" ? "✕" : s === "doubtful" ? "⚠" : "?");
+  const toneOf = (s) => s === "pass" ? colors.gain : s === "fail" ? colors.loss : s === "doubtful" ? colors.hold : colors.textFaint;
+  const markOf = (s) => s === "pass" ? "✓" : s === "fail" ? "✕" : s === "doubtful" ? "⚠" : "?";
   const tone = toneOf(halal.status);
 
   return (
-    <div style={{ marginTop: "22px", paddingTop: "16px", borderTop: `1px solid ${colors.cardBorder}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "10px" }}>
-        <div style={{ fontSize: "0.8rem", fontWeight: "bold", color: colors.gold, textTransform: "uppercase", letterSpacing: "0.6px", textShadow: "0 0 5px rgba(59,130,246,0.5)" }}>
+    <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: `1px solid ${colors.cardBorder}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+        <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.gold, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Халал скрин
         </div>
-        <div style={{ fontSize: "0.7rem", fontWeight: "700", color: tone, border: `1px solid ${tone}`, backgroundColor: `${tone}15`, borderRadius: "999px", padding: "3px 10px", textAlign: "center" }}>
+        <div style={{ fontSize: "0.75rem", fontWeight: "700", color: tone, border: `1px solid ${tone}`, backgroundColor: `${tone}15`, borderRadius: "999px", padding: "4px 12px", textAlign: "center" }}>
           {halal.label}
         </div>
       </div>
-      {halal.summary && <div style={{ fontSize: "0.78rem", color: colors.textMuted, lineHeight: "1.45", marginBottom: "12px" }}>{halal.summary}</div>}
+      {halal.summary && <div style={{ fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.5", marginBottom: "16px" }}>{halal.summary}</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {halal.checks.map((c) => (
-          <div key={c.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", fontSize: "0.8rem" }}>
+          <div key={c.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", fontSize: "0.85rem" }}>
             <div style={{ minWidth: 0, color: colors.textPrimary }}>
               {c.label}
-              {c.note && <div style={{ fontSize: "0.68rem", color: colors.textFaint, marginTop: "2px" }}>{c.note}</div>}
+              {c.note && <div style={{ fontSize: "0.7rem", color: colors.textFaint, marginTop: "2px" }}>{c.note}</div>}
             </div>
             <div style={{ flexShrink: 0, fontFamily: fontMono, fontWeight: "700", color: toneOf(c.status), textAlign: "right" }}>
               {c.display ? c.display + " " : ""}
@@ -175,7 +173,7 @@ function HalalCard({ halal }) {
           </div>
         ))}
       </div>
-      {halal.disclaimer && <div style={{ marginTop: "12px", fontSize: "0.66rem", color: colors.textFaint, lineHeight: "1.5" }}>⚠ {halal.disclaimer}</div>}
+      {halal.disclaimer && <div style={{ marginTop: "16px", fontSize: "0.7rem", color: colors.textFaint, lineHeight: "1.5" }}>⚠ {halal.disclaimer}</div>}
     </div>
   );
 }
@@ -200,10 +198,15 @@ export default function Home() {
   const [aiSummary, setAiSummary] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
-  const [chatMessages, setChatMessages] = useState([]);
+  
+  // AI АЛҒАШҚЫ ЖАУАБЫ ОНДА ТҰРАДЫ (Өзгертілген жер)
+  const [chatMessages, setChatMessages] = useState([
+    { role: "assistant", text: "Қош келдіңіз! Мен TradeIQ AI көмекшісімін. Сізге қандай көмек керек? Акцияны немесе нарықты талдап бере аламын." }
+  ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
+  
   const [overview, setOverview] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [sectors, setSectors] = useState([]);
@@ -260,7 +263,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // ТЕК НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ ҚАЛДЫРЫЛДЫ
+  // НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ
   const OVERVIEW_SYMBOLS = [ 
     { symbol: "QQQ", label: "NASDAQ" }, 
     { symbol: "SPY", label: "S&P 500" } 
@@ -317,7 +320,7 @@ export default function Home() {
     const raw = symbolOverride || ticker;
     if (!raw || !raw.trim()) return;
     const symbol = raw.trim().toUpperCase();
-    setLoading(true); setError(""); setData(null); setNews([]); setAiSummary(""); setAiError(""); setChatMessages([]); setChatInput(""); setChatError("");
+    setLoading(true); setError(""); setData(null); setNews([]); setAiSummary(""); setAiError(""); 
     try {
       const res = await fetch(`/api/stock?symbol=${symbol}`);
       const json = await res.json();
@@ -347,9 +350,9 @@ export default function Home() {
     } catch (err) { setAiError("Байланыс қатесі"); } finally { setAiLoading(false); }
   }
 
-  async function sendChatMessage(e, textOverride) {
+  async function sendChatMessage(e) {
     e.preventDefault();
-    const text = (textOverride || chatInput).trim();
+    const text = chatInput.trim();
     if (!text || chatLoading) return;
     const newMessages = [...chatMessages, { role: "user", text: text }];
     setChatMessages(newMessages); setChatInput(""); setChatLoading(true);
@@ -379,57 +382,53 @@ export default function Home() {
 
       <NavMenu />
 
-      <div className="tradeiq-content-shell" style={{ maxWidth: "480px", margin: "0 auto", padding: "0 16px", position: "relative", zIndex: 10 }}>
+      <div className="tradeiq-content-shell" style={{ maxWidth: "500px", margin: "0 auto", padding: "0 16px", position: "relative", zIndex: 10 }}>
         <Header overview={overview} />
 
-        <div style={{ paddingTop: "32px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ paddingTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
           {/* ---------- БРЕНД ---------- */}
-          <div className="animate-fade" style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "32px", width: "100%", position: "relative" }}>
+          <div className="animate-fade" style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "40px", width: "100%", position: "relative" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <TradeIQMark size={42} />
-              <h2 style={{ fontSize: "2.5rem", fontWeight: "800", letterSpacing: "-1px", margin: 0 }}>
-                Trade<span style={{ color: colors.gold, textShadow: "0 0 10px rgba(59,130,246,0.8)" }}>IQ</span>
+              <TradeIQMark size={48} />
+              <h2 style={{ fontSize: "2.8rem", fontWeight: "800", letterSpacing: "-1.5px", margin: 0 }}>
+                Trade<span style={{ color: colors.gold, textShadow: "0 0 15px rgba(59,130,246,0.8)" }}>IQ</span>
               </h2>
             </div>
-            <p style={{ color: colors.gold, fontSize: "0.65rem", fontWeight: "bold", letterSpacing: "3px", marginTop: "8px", textShadow: "0 0 8px rgba(59,130,246,0.5)" }}>
+            <p style={{ color: colors.gold, fontSize: "0.7rem", fontWeight: "700", letterSpacing: "4px", marginTop: "12px", textShadow: "0 0 10px rgba(59,130,246,0.5)" }}>
               AI-POWERED TRADING
-            </p>
-            <p style={{ color: colors.textFaint, fontSize: "0.8rem", marginTop: "12px", textAlign: "center" }}>
-              Свинг-трейдинг және инвестиция платформасы
             </p>
           </div>
 
-          {/* ---------- ІЗДЕУ ФОРМАСЫ ---------- */}
-          <form className="animate-fade" onSubmit={searchStock} style={{ display: "flex", gap: "8px", width: "100%", marginBottom: "32px" }}>
-            <div className="glass-card" style={{ flex: 1, display: "flex", alignItems: "center", padding: "4px 16px", borderRadius: "16px" }}>
-              <span style={{ fontSize: "1.2rem", color: colors.textFaint, marginRight: "8px" }}>🔍</span>
+          {/* ---------- ІЗДЕУ ЖОЛАҒЫ (Керемет Капсула Дизайн) ---------- */}
+          <form className="animate-fade tradeiq-search-capsule" onSubmit={searchStock} style={{ display: "flex", width: "100%", marginBottom: "48px", background: "rgba(30, 41, 59, 0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: "24px", border: `1px solid rgba(255,255,255,0.08)`, padding: "6px" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 16px" }}>
+              <span style={{ fontSize: "1.2rem", color: colors.textFaint, marginRight: "12px" }}>🔍</span>
               <input
-                className="tradeiq-input"
                 value={ticker}
                 onChange={(e) => setTicker(e.target.value)}
-                placeholder="Ticker жаз (мыс. AAPL)"
-                style={{ width: "100%", background: "transparent", border: "none", color: colors.textPrimary, padding: "12px 0", fontSize: "0.9rem", fontFamily: fontBody }}
+                placeholder="Тикер жазыңыз (мыс. AAPL)"
+                style={{ width: "100%", background: "transparent", border: "none", color: colors.textPrimary, fontSize: "1rem", fontFamily: fontBody, outline: "none" }}
               />
             </div>
             <button
               type="submit"
               className="tradeiq-search-btn"
-              style={{ padding: "0 24px", borderRadius: "16px", border: "none", background: colors.gold, color: "#fff", fontWeight: "600", fontSize: "0.9rem", cursor: "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.4)" }}
+              style={{ padding: "0 28px", height: "46px", borderRadius: "18px", border: "none", background: colors.gold, color: "#fff", fontWeight: "600", fontSize: "0.95rem", cursor: "pointer", boxShadow: "0 4px 15px rgba(59,130,246,0.4)" }}
             >
               Іздеу
             </button>
           </form>
 
-          {/* ---------- НАРЫҚ ШОЛУЫ (НАСДАҚ ЖӘНЕ S&P 500) ---------- */}
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "32px" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "16px", marginTop: 0 }}>Нарық шолуы</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          {/* ---------- НАРЫҚ ШОЛУЫ ---------- */}
+          <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
+            <h3 style={{ fontSize: "1.2rem", fontWeight: "700", marginBottom: "20px", marginTop: 0 }}>Нарық шолуы</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               {overviewLoading && overview.length === 0
                 ? OVERVIEW_SYMBOLS.map((item) => (
-                    <div key={item.symbol} className="glass-card" style={{ padding: "16px", minHeight: "100px", opacity: 0.5 }}>
-                      <div style={{ color: colors.textFaint, fontSize: "0.8rem" }}>{item.label}</div>
-                      <div style={{ color: colors.textFaint, fontSize: "0.8rem", marginTop: "8px" }}>Жүктелуде...</div>
+                    <div key={item.symbol} className="glass-card" style={{ padding: "20px", minHeight: "140px", opacity: 0.5 }}>
+                      <div style={{ color: colors.textFaint, fontSize: "0.85rem" }}>{item.label}</div>
+                      <div style={{ color: colors.textFaint, fontSize: "0.85rem", marginTop: "12px" }}>Жүктелуде...</div>
                     </div>
                   ))
                 : overview.map((item) => {
@@ -437,35 +436,42 @@ export default function Home() {
                     const glowColor = up ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)";
                     const textColor = up ? colors.gain : colors.loss;
                     const iconBg = up ? "rgba(16,185,129,0.15)" : "rgba(59,130,246,0.15)";
-                    const iconColor = up ? colors.gain : colors.gold;
+                    const iconColor = up ? colors.gainBright : colors.goldBright;
 
                     return (
                       <button
                         key={item.symbol}
                         onClick={() => loadFromOverview(item.symbol)}
                         className="glass-card tradeiq-overview-card"
-                        style={{ textAlign: "left", padding: "16px", cursor: "pointer", position: "relative", overflow: "hidden", border: item.error ? `1px solid ${colors.cardBorder}` : `1px solid ${glowColor}`, boxShadow: item.error ? "none" : `0 0 15px ${glowColor.replace('0.3','0.1')} inset` }}
+                        style={{ textAlign: "left", padding: "20px", cursor: "pointer", position: "relative", overflow: "hidden", border: item.error ? `1px solid ${colors.cardBorder}` : `1px solid ${glowColor}`, boxShadow: item.error ? "none" : `0 0 20px ${glowColor.replace('0.3','0.05')} inset`, minHeight: "145px", display: "flex", flexDirection: "column" }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                          <span style={{ background: iconBg, color: iconColor, fontSize: "0.65rem", fontWeight: "bold", padding: "3px 6px", borderRadius: "4px" }}>
-                            {item.symbol.slice(0, 3)}
-                          </span>
-                          <span style={{ color: colors.textMuted, fontSize: "0.85rem", fontWeight: "500" }}>{item.label}</span>
+                        <div style={{ position: "relative", zIndex: 2, width: "100%" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span style={{ background: iconBg, color: iconColor, fontSize: "0.7rem", fontWeight: "bold", padding: "4px 8px", borderRadius: "6px" }}>
+                              {item.symbol}
+                            </span>
+                            <span style={{ color: colors.textMuted, fontSize: "0.95rem", fontWeight: "600" }}>{item.label}</span>
+                          </div>
+                          
+                          {item.error ? (
+                            <div style={{ color: colors.textFaint, fontSize: "0.85rem", marginTop: "16px" }}>Деректер жоқ</div>
+                          ) : (
+                            <div style={{ marginTop: "24px" }}>
+                              <div style={{ color: colors.textPrimary, fontSize: "1.7rem", fontWeight: "800", fontFamily: fontMono, letterSpacing: "-0.5px" }}>
+                                {safeNum(item.currentPrice, 2)}
+                              </div>
+                              <div style={{ color: textColor, fontSize: "0.9rem", marginTop: "6px", fontFamily: fontMono, display: "flex", alignItems: "center", gap: "6px", fontWeight: "600" }}>
+                                <span>{up ? "▲" : "▼"}</span> {safeNum(item.changePercent, 2)}%
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {item.error ? (
-                          <div style={{ color: colors.textFaint, fontSize: "0.8rem", marginTop: "8px" }}>Деректер жоқ</div>
-                        ) : (
-                          <>
-                            <div style={{ color: colors.textPrimary, fontSize: "1.3rem", fontWeight: "700", fontFamily: fontMono }}>
-                              {safeNum(item.currentPrice, 2)}
-                            </div>
-                            <div style={{ color: textColor, fontSize: "0.8rem", marginTop: "4px", fontFamily: fontMono, display: "flex", alignItems: "center", gap: "4px" }}>
-                              <span>{up ? "▲" : "▼"}</span> {safeNum(item.changePercent, 2)}%
-                            </div>
-                            {Array.isArray(item.history) && item.history.length > 1 && (
-                              <Sparkline history={item.history} isUp={up} />
-                            )}
-                          </>
+
+                        {/* Толық енді жабатын кішкентай график */}
+                        {!item.error && Array.isArray(item.history) && item.history.length > 1 && (
+                          <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "60px", zIndex: 1, opacity: 0.6 }}>
+                            <Sparkline history={item.history} isUp={up} />
+                          </div>
                         )}
                       </button>
                     );
@@ -473,104 +479,90 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ---------- AI ТАЛДАУ ---------- */}
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "32px" }}>
-            <div className="glass-card" style={{ padding: "20px", position: "relative", overflow: "hidden", borderColor: "rgba(59,130,246,0.3)" }}>
-              <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "rgba(59,130,246,0.1)", filter: "blur(40px)", borderRadius: "50%" }}></div>
+          {/* ---------- AI КӨМЕКШІ (Дайын сұрақтарсыз таза нұсқа) ---------- */}
+          <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
+            <div className="glass-card" style={{ padding: "24px", position: "relative", overflow: "hidden", borderColor: "rgba(59,130,246,0.4)", boxShadow: "0 0 30px rgba(59,130,246,0.1)" }}>
+              <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "rgba(59,130,246,0.15)", filter: "blur(40px)", borderRadius: "50%" }}></div>
               
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", position: "relative", zIndex: 2 }}>
-                <span style={{ color: colors.goldBright, fontSize: "1.2rem" }}>✦</span>
-                <h3 style={{ margin: 0, fontWeight: "700", fontSize: "1rem" }}>TradeIQ AI</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", position: "relative", zIndex: 2 }}>
+                <span style={{ color: colors.goldBright, fontSize: "1.3rem", filter: "drop-shadow(0 0 5px rgba(96,165,250,0.8))" }}>✦</span>
+                <h3 style={{ margin: 0, fontWeight: "700", fontSize: "1.1rem" }}>TradeIQ AI</h3>
               </div>
-              <p style={{ color: colors.textMuted, fontSize: "0.75rem", marginBottom: "16px", position: "relative", zIndex: 2 }}>Қалай көмектесе аламын? ✨</p>
 
-              {chatMessages.length > 0 ? (
-                <div className="hide-scrollbar" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "240px", overflowY: "auto", marginBottom: "12px", position: "relative", zIndex: 2 }}>
-                  {chatMessages.map((m, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                        maxWidth: "85%",
-                        background: m.role === "user" ? colors.gold : "rgba(255,255,255,0.05)",
-                        color: m.role === "user" ? "#fff" : colors.textPrimary,
-                        border: m.role === "user" ? "none" : `1px solid ${colors.cardBorder}`,
-                        borderRadius: m.role === "user" ? "16px 16px 0 16px" : "16px 16px 16px 0",
-                        padding: "10px 14px",
-                        fontSize: "0.85rem",
-                        lineHeight: "1.4"
-                      }}
-                    >
-                      {m.text}
-                    </div>
-                  ))}
-                  {chatLoading && <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.75rem", fontStyle: "italic" }}>Жазып жатыр...</div>}
-                </div>
-              ) : (
-                <div className="hide-scrollbar" style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "12px", marginBottom: "4px", position: "relative", zIndex: 2 }}>
-                  {AI_SUGGESTIONS.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => sendChatMessage({ preventDefault: () => {} }, suggestion)}
-                      className="tradeiq-search-btn"
-                      style={{ whiteSpace: "nowrap", padding: "8px 16px", borderRadius: "12px", border: `1px solid ${colors.cardBorder}`, background: "rgba(255,255,255,0.03)", color: colors.textMuted, fontSize: "0.75rem", cursor: "pointer" }}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="hide-scrollbar" style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "260px", overflowY: "auto", marginBottom: "20px", position: "relative", zIndex: 2 }}>
+                {chatMessages.map((m, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                      maxWidth: "88%",
+                      background: m.role === "user" ? colors.gold : "rgba(255,255,255,0.06)",
+                      color: m.role === "user" ? "#fff" : colors.textPrimary,
+                      border: m.role === "user" ? "none" : `1px solid rgba(255,255,255,0.1)`,
+                      borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                      padding: "14px 16px",
+                      fontSize: "0.9rem",
+                      lineHeight: "1.5",
+                      boxShadow: m.role === "user" ? "0 4px 15px rgba(59,130,246,0.3)" : "none"
+                    }}
+                  >
+                    {m.text}
+                  </div>
+                ))}
+                {chatLoading && <div style={{ alignSelf: "flex-start", color: colors.goldBright, fontSize: "0.85rem", fontStyle: "italic" }}>Ойланып жатыр...</div>}
+              </div>
 
-              {chatError && <p style={{ color: colors.lossBright, fontSize: "0.75rem", marginBottom: "8px", position: "relative", zIndex: 2 }}>{chatError}</p>}
+              {chatError && <p style={{ color: colors.lossBright, fontSize: "0.8rem", marginBottom: "12px", position: "relative", zIndex: 2 }}>{chatError}</p>}
 
-              <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "8px", position: "relative", zIndex: 2 }}>
+              <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "10px", position: "relative", zIndex: 2 }}>
                 <input
-                  className="tradeiq-input"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Сұрағыңызды жазыңыз..."
-                  style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.cardBorder}`, borderRadius: "12px", padding: "10px 14px", color: colors.textPrimary, fontSize: "0.85rem", fontFamily: fontBody }}
+                  style={{ flex: 1, background: "rgba(0,0,0,0.2)", border: `1px solid rgba(255,255,255,0.15)`, borderRadius: "16px", padding: "14px 16px", color: colors.textPrimary, fontSize: "0.95rem", fontFamily: fontBody, outline: "none", transition: "border-color 0.2s" }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = "rgba(59,130,246,0.6)"}
+                  onBlur={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"}
                 />
                 <button
                   type="submit"
                   disabled={chatLoading}
                   className="tradeiq-search-btn"
-                  style={{ padding: "0 20px", borderRadius: "12px", border: "none", background: colors.gold, color: "#fff", fontWeight: "600", fontSize: "0.85rem", cursor: chatLoading ? "default" : "pointer", boxShadow: "0 0 10px rgba(59,130,246,0.3)" }}
+                  style={{ width: "50px", height: "50px", borderRadius: "16px", border: "none", background: colors.gold, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: chatLoading ? "default" : "pointer", boxShadow: "0 4px 15px rgba(59,130,246,0.4)" }}
                 >
-                  Жіберу
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
               </form>
             </div>
           </div>
 
           {/* ---------- СЕКТОРЛАР ---------- */}
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "32px" }}>
-            <h3 style={{ fontSize: "0.9rem", fontWeight: "700", color: colors.textPrimary, marginBottom: "16px", marginTop: 0 }}>Секторлар — ақша қай жаққа құйылып жатыр</h3>
-            <div className="glass-card" style={{ padding: "20px" }}>
+          <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: colors.textPrimary, marginBottom: "20px", marginTop: 0 }}>Секторлар — ақша қайда құйылуда?</h3>
+            <div className="glass-card" style={{ padding: "24px" }}>
               {sectorsLoading && sectors.length === 0 ? (
-                <div style={{ fontSize: "0.8rem", color: colors.textFaint, textAlign: "center" }}>Жүктелуде...</div>
+                <div style={{ fontSize: "0.9rem", color: colors.textFaint, textAlign: "center" }}>Жүктелуде...</div>
               ) : sectors.length === 0 ? (
-                <div style={{ fontSize: "0.8rem", color: colors.textFaint, textAlign: "center" }}>Сектор деректері жоқ</div>
+                <div style={{ fontSize: "0.9rem", color: colors.textFaint, textAlign: "center" }}>Сектор деректері жоқ</div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {sectors.map((s) => {
                     const up = typeof s.changePercent === "number" && s.changePercent >= 0;
                     const magnitude = Math.min(Math.abs(s.changePercent || 0) / 2, 1);
                     return (
-                      <div key={s.symbol} style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.75rem" }}>
-                        <span style={{ width: "110px", color: colors.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</span>
-                        <div style={{ flex: 1, height: "10px", background: "rgba(255,255,255,0.05)", borderRadius: "5px", overflow: "hidden", position: "relative" }}>
+                      <div key={s.symbol} style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "0.85rem" }}>
+                        <span style={{ width: "120px", color: colors.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: "500" }}>{s.label}</span>
+                        <div style={{ flex: 1, height: "8px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", position: "relative" }}>
                           <div
                             style={{
                               height: "100%",
                               width: `${Math.max(2, magnitude * 100)}%`,
                               background: up ? colors.gain : colors.loss,
-                              borderRadius: "5px",
-                              boxShadow: `0 0 8px ${up ? colors.gain : colors.loss}`
+                              borderRadius: "4px",
+                              boxShadow: `0 0 10px ${up ? colors.gain : colors.loss}`
                             }}
                           />
                         </div>
-                        <span style={{ width: "50px", textAlign: "right", fontFamily: fontMono, fontWeight: "600", color: up ? colors.gainBright : colors.lossBright }}>
+                        <span style={{ width: "55px", textAlign: "right", fontFamily: fontMono, fontWeight: "700", color: up ? colors.gainBright : colors.lossBright }}>
                           {up ? "▲" : "▼"}{safeNum(Math.abs(s.changePercent), 2)}%
                         </span>
                       </div>
@@ -581,70 +573,69 @@ export default function Home() {
             </div>
           </div>
 
-          {loading && <p style={{ margin: "24px 0", color: colors.textMuted, animation: "fadeInUp 1s infinite alternate" }}>Мәліметтер ізделуде...</p>}
+          {loading && <p style={{ margin: "24px 0", color: colors.goldBright, animation: "fadeInUp 1s infinite alternate" }}>Мәліметтер ізделуде...</p>}
           {error && <p style={{ margin: "24px 0", color: colors.lossBright }}>{error}</p>}
 
           {/* ---------- БАСТЫ НӘТИЖЕ КАРТОЧКАСЫ ---------- */}
           {data && (
-            <div className="glass-card animate-fade" style={{ width: "100%", padding: "24px", position: "relative", overflow: "hidden", marginBottom: "32px", borderRadius: "24px" }}>
+            <div className="glass-card animate-fade" style={{ width: "100%", padding: "28px", position: "relative", overflow: "hidden", marginBottom: "48px", borderRadius: "24px" }}>
               <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "rgba(59,130,246,0.15)", filter: "blur(40px)", borderRadius: "50%" }}></div>
               
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", position: "relative", zIndex: 2 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", position: "relative", zIndex: 2 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                   {data.logo ? (
-                    <img src={data.logo} alt="" style={{ width: "40px", height: "40px", borderRadius: "12px", background: "rgba(255,255,255,0.05)" }} />
+                    <img src={data.logo} alt="" style={{ width: "48px", height: "48px", borderRadius: "14px", background: "rgba(255,255,255,0.05)" }} />
                   ) : (
-                    <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: "rgba(59,130,246,0.2)", color: colors.goldBright, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                    <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "rgba(59,130,246,0.2)", color: colors.goldBright, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "1.2rem" }}>
                       {data.symbol?.slice(0,2)}
                     </div>
                   )}
                   <div>
-                    <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "800", letterSpacing: "1px" }}>{data.symbol}</h2>
-                    <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: colors.textMuted }}>{data.name}</p>
+                    <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: "800", letterSpacing: "1px" }}>{data.symbol}</h2>
+                    <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: colors.textMuted }}>{data.name}</p>
                   </div>
                 </div>
                 {session?.user && (
                   <button 
                     onClick={() => toggleWatchlist(data.symbol)}
-                    style={{ background: "transparent", border: "none", fontSize: "1.8rem", cursor: "pointer", color: watchlistSymbols.includes(data.symbol) ? "#f59e0b" : colors.textFaint, transition: "transform 0.2s" }}
+                    style={{ background: "transparent", border: "none", fontSize: "2rem", cursor: "pointer", color: watchlistSymbols.includes(data.symbol) ? "#f59e0b" : colors.textFaint, transition: "transform 0.2s" }}
                   >
                     {watchlistSymbols.includes(data.symbol) ? "★" : "☆"}
                   </button>
                 )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "baseline", gap: "12px", fontFamily: fontMono, marginBottom: "24px", position: "relative", zIndex: 2 }}>
-                <span style={{ fontSize: "2.5rem", fontWeight: "800" }}>${safeNum(data.currentPrice, 2)}</span>
-                <span style={{ fontSize: "0.9rem", fontWeight: "600", color: isUp ? colors.gain : colors.loss }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "14px", fontFamily: fontMono, marginBottom: "30px", position: "relative", zIndex: 2 }}>
+                <span style={{ fontSize: "2.8rem", fontWeight: "800", letterSpacing: "-1px" }}>${safeNum(data.currentPrice, 2)}</span>
+                <span style={{ fontSize: "1rem", fontWeight: "700", color: isUp ? colors.gain : colors.loss }}>
                   {isUp ? "▲" : "▼"}{safeNum(Math.abs(data.change), 2)} ({safeNum(data.changePercent, 2)}%)
                 </span>
               </div>
 
               {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
-                <div style={{ marginBottom: "24px", height: "160px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, overflow: "hidden" }}>
+                <div style={{ marginBottom: "30px", height: "180px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, overflow: "hidden" }}>
                   <ProChart chartData={data.chartData} pivot={data.pivot} tradePlan={data.tradePlan} colors={colors} />
                 </div>
               ) : hasHistory && (
-                <div style={{ marginBottom: "24px", height: "80px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, position: "relative", overflow: "hidden" }}>
+                <div style={{ marginBottom: "30px", height: "90px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, position: "relative", overflow: "hidden" }}>
                   <Sparkline history={data.history} isUp={isUp} />
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "rgba(255,255,255,0.03)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, marginBottom: "24px", fontSize: "0.75rem", color: colors.textMuted, fontFamily: fontMono }}>
-                <div>Open: <span style={{ color: colors.textPrimary }}>${safeNum(data.open, 2)}</span></div>
-                <div>Prev Close: <span style={{ color: colors.textPrimary }}>${safeNum(data.previousClose, 2)}</span></div>
-                <div>High: <span style={{ color: colors.textPrimary }}>${safeNum(data.high, 2)}</span></div>
-                <div>Low: <span style={{ color: colors.textPrimary }}>${safeNum(data.low, 2)}</span></div>
-                {data.marketCap && <div>Mkt Cap: <span style={{ color: colors.textPrimary }}>${(data.marketCap/1000).toFixed(1)}B</span></div>}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "rgba(255,255,255,0.03)", padding: "20px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, marginBottom: "30px", fontSize: "0.85rem", color: colors.textMuted, fontFamily: fontMono }}>
+                <div>Open: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.open, 2)}</span></div>
+                <div>Prev Close: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.previousClose, 2)}</span></div>
+                <div>High: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.high, 2)}</span></div>
+                <div>Low: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.low, 2)}</span></div>
               </div>
 
               {data.tradePlan && (
-                <div style={{ marginBottom: "24px", padding: "16px", borderRadius: "16px", border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.05)" }}>
-                  <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: colors.goldBright, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: colors.gold, boxShadow: "0 0 5px #3b82f6" }}></span>
+                <div style={{ marginBottom: "30px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.06)" }}>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.goldBright, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: colors.gold, boxShadow: "0 0 8px #3b82f6" }}></span>
                     Сауда жоспары
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "0.85rem", fontFamily: fontMono }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "0.9rem", fontFamily: fontMono }}>
                     <div>Entry: <span style={{ color: colors.textPrimary, fontWeight: "bold" }}>${safeNum(data.tradePlan.entry, 2)}</span></div>
                     <div>Stop Loss: <span style={{ color: colors.lossBright, fontWeight: "bold" }}>${safeNum(data.tradePlan.stopLoss, 2)}</span></div>
                     <div>TP 1: <span style={{ color: colors.gainBright, fontWeight: "bold" }}>${safeNum(data.tradePlan.takeProfit1, 2)}</span></div>
@@ -654,21 +645,21 @@ export default function Home() {
               )}
 
               {hasTechnicals && (
-                <div style={{ marginBottom: "24px" }}>
-                  <h4 style={{ fontSize: "0.75rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", marginTop: 0 }}>Техникалық анализ</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.75rem", fontFamily: fontMono, color: colors.textMuted }}>
-                    <div>RSI (14): <span style={{ color: data.technicals.rsi > 70 ? colors.lossBright : data.technicals.rsi < 30 ? colors.gainBright : colors.textPrimary }}>{safeNum(data.technicals.rsi, 2)}</span></div>
-                    <div>MACD: <span style={{ color: data.technicals.macd > 0 ? colors.gainBright : colors.lossBright }}>{safeNum(data.technicals.macd, 2)}</span></div>
-                    <div>SMA20: ${safeNum(data.technicals.sma20, 2)}</div>
-                    <div>SMA50: ${safeNum(data.technicals.sma50, 2)}</div>
+                <div style={{ marginBottom: "30px" }}>
+                  <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", marginTop: 0 }}>Техникалық анализ</h4>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "0.85rem", fontFamily: fontMono, color: colors.textMuted }}>
+                    <div>RSI (14): <span style={{ fontWeight: "700", color: data.technicals.rsi > 70 ? colors.lossBright : data.technicals.rsi < 30 ? colors.gainBright : colors.textPrimary }}>{safeNum(data.technicals.rsi, 2)}</span></div>
+                    <div>MACD: <span style={{ fontWeight: "700", color: data.technicals.macd > 0 ? colors.gainBright : colors.lossBright }}>{safeNum(data.technicals.macd, 2)}</span></div>
+                    <div>SMA20: <span style={{ fontWeight: "600", color: colors.textPrimary }}>${safeNum(data.technicals.sma20, 2)}</span></div>
+                    <div>SMA50: <span style={{ fontWeight: "600", color: colors.textPrimary }}>${safeNum(data.technicals.sma50, 2)}</span></div>
                   </div>
                   
                   {signal && (
-                    <div style={{ marginTop: "16px", padding: "12px", borderRadius: "12px", border: `1px solid rgba(255,255,255,0.1)`, background: "rgba(255,255,255,0.03)" }}>
-                      <div style={{ fontSize: "0.85rem", fontWeight: "bold", fontFamily: fontMono, marginBottom: "8px", color: signal.level === 'bullish' ? colors.gainBright : signal.level === 'bearish' ? colors.lossBright : colors.hold }}>
+                    <div style={{ marginTop: "20px", padding: "16px", borderRadius: "14px", border: `1px solid rgba(255,255,255,0.1)`, background: "rgba(255,255,255,0.04)" }}>
+                      <div style={{ fontSize: "0.95rem", fontWeight: "bold", fontFamily: fontMono, marginBottom: "10px", color: signal.level === 'bullish' ? colors.gainBright : signal.level === 'bearish' ? colors.lossBright : colors.hold }}>
                         Сигнал: {signal.label}
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "0.7rem", color: colors.textMuted, lineHeight: "1.5" }}>
+                      <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.6" }}>
                         {signal.reasons.map((r, i) => <li key={i}>{r}</li>)}
                       </ul>
                     </div>
@@ -680,13 +671,13 @@ export default function Home() {
                 onClick={getAiSummary}
                 disabled={aiLoading}
                 className="tradeiq-search-btn"
-                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: `1px solid rgba(59,130,246,0.5)`, background: "rgba(59,130,246,0.05)", color: colors.goldBright, fontWeight: "bold", fontSize: "0.85rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.15)", marginTop: "8px" }}
+                style={{ width: "100%", padding: "16px", borderRadius: "16px", border: `1px solid rgba(59,130,246,0.6)`, background: "rgba(59,130,246,0.08)", color: colors.goldBright, fontWeight: "bold", fontSize: "0.95rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 20px rgba(59,130,246,0.15)", marginTop: "8px" }}
               >
                 {aiLoading ? "Талдау жасалуда..." : "✨ AI қорытынды алу"}
               </button>
               
               {aiSummary && (
-                <div style={{ marginTop: "16px", padding: "16px", borderRadius: "12px", background: "rgba(255,255,255,0.03)", border: `1px solid ${colors.cardBorder}`, fontSize: "0.85rem", color: "#e2e8f0", lineHeight: "1.6" }}>
+                <div style={{ marginTop: "20px", padding: "20px", borderRadius: "16px", background: "rgba(255,255,255,0.04)", border: `1px solid ${colors.cardBorder}`, fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.6" }}>
                   {aiSummary}
                 </div>
               )}
@@ -696,24 +687,24 @@ export default function Home() {
           )}
 
           {/* ---------- НАРЫҚ ЖАҢАЛЫҚТАРЫ ---------- */}
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "32px" }}>
-            <div className="glass-card" style={{ padding: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "700", color: colors.textPrimary }}>Нарық жаңалықтары</h3>
-                <a href="/news" style={{ fontSize: "0.75rem", color: colors.goldBright, textDecoration: "none" }}>Барлығы →</a>
+          <div className="animate-fade" style={{ width: "100%", marginBottom: "40px" }}>
+            <div className="glass-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: colors.textPrimary }}>Нарық жаңалықтары</h3>
+                <a href="/news" style={{ fontSize: "0.85rem", color: colors.goldBright, textDecoration: "none", fontWeight: "600" }}>Барлығы →</a>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {homeNewsLoading ? (
-                  <div style={{ fontSize: "0.75rem", color: colors.textFaint }}>Жүктелуде...</div>
+                  <div style={{ fontSize: "0.85rem", color: colors.textFaint }}>Жүктелуде...</div>
                 ) : (
                   homeNews.map((item, i) => (
-                    <a key={i} href={item.url} target="_blank" rel="noreferrer" className="tradeiq-news-item" style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "8px", borderRadius: "12px", border: "1px solid transparent" }}>
-                      <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: `1px solid ${colors.cardBorder}`, flexShrink: 0 }}></div>
+                    <a key={i} href={item.url} target="_blank" rel="noreferrer" className="tradeiq-news-item" style={{ display: "flex", gap: "14px", alignItems: "flex-start", padding: "10px", borderRadius: "14px", border: "1px solid transparent" }}>
+                      <div style={{ width: "56px", height: "56px", borderRadius: "14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${colors.cardBorder}`, flexShrink: 0 }}></div>
                       <div>
-                        <div style={{ fontSize: "0.8rem", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "4px" }}>
+                        <div style={{ fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "6px", fontWeight: "500" }}>
                           {item.headline}
                         </div>
-                        <div style={{ fontSize: "0.65rem", color: colors.textFaint, fontFamily: fontMono }}>
+                        <div style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>
                           {item.source} · {formatNewsDate(item.datetime)}
                         </div>
                       </div>
@@ -724,7 +715,7 @@ export default function Home() {
             </div>
           </div>
 
-          <p style={{ margin: "16px 0 32px", textAlign: "center", color: colors.textFaint, fontSize: "0.7rem" }}>© TradeIQ — дала рухымен сауда</p>
+          <p style={{ margin: "20px 0 40px", textAlign: "center", color: colors.textFaint, fontSize: "0.75rem", letterSpacing: "1px" }}>© TradeIQ — ДАЛА РУХЫМЕН САУДА</p>
         </div>
       </div>
     </main>
