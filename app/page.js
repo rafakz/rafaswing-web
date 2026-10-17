@@ -5,8 +5,7 @@ import NavMenu from "./NavMenu";
 import Header from "./Header";
 import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
-import { getSignal, SIGNAL_COLOR_KEY, generateSmartAlerts, calculatePositionSize } from "../lib/tradeiq-engine";
-import { explainFundamentals } from "../lib/fundamentals-explain";
+import { getSignal } from "../lib/tradeiq-engine";
 
 /* ---------- Дизайн токендары (Жаңа Premium/Neon стиль) ---------- */
 const colors = {
@@ -97,16 +96,6 @@ function TradeIQMark({ size = 40 }) {
   );
 }
 
-/* ---------- AI Иконка ---------- */
-function IconSparkleChat({ size = 18, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5l1.3 4.2 4.2 1.3-4.2 1.3-1.3 4.2-1.3-4.2-4.2-1.3 4.2-1.3L12 3.5z" />
-      <path d="M18.5 15l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6.6-1.9z" />
-    </svg>
-  );
-}
-
 /* ---------- Sparkline (Кішкентай карточка графигі) ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
@@ -132,11 +121,11 @@ function Sparkline({ history, isUp }) {
   });
 
   const lineColor = isUp ? "#10b981" : "#ef4444"; 
-  const areaPoints = `0,${height}${points.join(" ")} ${width},${height}`;
+  const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
     <div style={{ position: "absolute", bottom: "4px", right: "4px", width: "80px", height: "40px", pointerEvents: "none", opacity: 0.8 }}>
-      <svg viewBox={`0 0 ${width}${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
         <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
         <polyline
           points={points.join(" ")}
@@ -224,10 +213,6 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
-  const [alertPrice, setAlertPrice] = useState("");
-  const [alertDirection, setAlertDirection] = useState("above");
-  const [alertSubmitting, setAlertSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data ? data.session : null); });
@@ -261,20 +246,6 @@ export default function Home() {
     } catch (err) {} finally { setWatchlistBusy(false); }
   }
 
-  async function createAlert(e) {
-    e.preventDefault();
-    setAlertMessage("");
-    if (!session || !session.user) { setAlertMessage("Алдымен кіру керек"); return; }
-    if (!data || !data.symbol) return;
-    const price = parseFloat(alertPrice);
-    if (!price || price <= 0) { setAlertMessage("Дұрыс баға енгіз"); return; }
-    setAlertSubmitting(true);
-    try {
-      const { error: insertError } = await supabase.from("price_alerts").insert({ user_id: session.user.id, symbol: data.symbol, direction: alertDirection, target_price: price });
-      if (insertError) { setAlertMessage(insertError.message); } else { setAlertPrice(""); setAlertMessage("Дабыл қойылды ✓"); }
-    } catch (err) { setAlertMessage("Қате шықты"); } finally { setAlertSubmitting(false); }
-  }
-
   useEffect(() => {
     let cancelled = false;
     async function loadHomeNews() {
@@ -289,7 +260,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // ТЕК НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ ҚАЛДЫрылды
+  // ТЕК НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ ҚАЛДЫРЫЛДЫ
   const OVERVIEW_SYMBOLS = [ 
     { symbol: "QQQ", label: "NASDAQ" }, 
     { symbol: "SPY", label: "S&P 500" } 
@@ -709,7 +680,7 @@ export default function Home() {
                 onClick={getAiSummary}
                 disabled={aiLoading}
                 className="tradeiq-search-btn"
-                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: `1px solid rgba(59,130,246,0.5)`, background: "rgba(59,130,246,0.05)`, color: colors.goldBright, fontWeight: "bold", fontSize: "0.85rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.15)", marginTop: "8px" }}
+                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: `1px solid rgba(59,130,246,0.5)`, background: "rgba(59,130,246,0.05)", color: colors.goldBright, fontWeight: "bold", fontSize: "0.85rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.15)", marginTop: "8px" }}
               >
                 {aiLoading ? "Талдау жасалуда..." : "✨ AI қорытынды алу"}
               </button>
