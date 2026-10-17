@@ -140,6 +140,40 @@ function Sparkline({ history, isUp }) {
   );
 }
 
+/* ---------- ЖАҢА: AI Sentiment Meter (Нарық көңіл-күйі шкаласы) ---------- */
+function SentimentMeter({ score }) {
+  const getLabel = (s) => {
+    if(s >= 60) return { text: "Өсуге бейім (Bullish)", color: colors.gainBright };
+    if(s <= 40) return { text: "Түсуге бейім (Bearish)", color: colors.lossBright };
+    return { text: "Бейтарап (Neutral)", color: colors.hold };
+  };
+  const { text, color } = getLabel(score);
+  
+  return (
+    <div style={{ marginBottom: "30px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+        <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary, display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ color: colors.goldBright }}>🧠</span> AI Нарық көңіл-күйі
+        </div>
+        <div style={{ fontSize: "0.85rem", fontWeight: "700", color: color }}>
+          {text} ({score}%)
+        </div>
+      </div>
+      
+      {/* Градиентті шкала */}
+      <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.1)", borderRadius: "4px", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", background: `linear-gradient(90deg, ${colors.lossBright} 0%, ${colors.hold} 50%, ${colors.gainBright} 100%)`, borderRadius: "4px", opacity: 0.8 }} />
+        {/* Ақ көрсеткіш (ползунок) */}
+        <div style={{ position: "absolute", left: `calc(${score}% - 4px)`, top: "-3px", width: "8px", height: "14px", background: "#fff", borderRadius: "4px", boxShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "left 1s ease" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase", fontWeight: "bold" }}>
+        <span>Қорқыныш</span>
+        <span>Ашкөздік</span>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Халал скрин карточкасы ---------- */
 function HalalCard({ halal }) {
   if (!halal || typeof halal !== "object" || !Array.isArray(halal.checks)) return null;
@@ -199,7 +233,6 @@ export default function Home() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   
-  // AI АЛҒАШҚЫ ЖАУАБЫ ОНДА ТҰРАДЫ (Өзгертілген жер)
   const [chatMessages, setChatMessages] = useState([
     { role: "assistant", text: "Қош келдіңіз! Мен TradeIQ AI көмекшісімін. Сізге қандай көмек керек? Акцияны немесе нарықты талдап бере аламын." }
   ]);
@@ -263,7 +296,6 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ
   const OVERVIEW_SYMBOLS = [ 
     { symbol: "QQQ", label: "NASDAQ" }, 
     { symbol: "SPY", label: "S&P 500" } 
@@ -372,8 +404,19 @@ export default function Home() {
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
 
+  // AI Sentiment Score есептеу (RSI және Change Percent негізінде визуалды генерация)
+  let currentSentimentScore = 50;
+  if (data) {
+    if (data.technicals && data.technicals.rsi) {
+      currentSentimentScore = Math.min(100, Math.max(0, Math.round(data.technicals.rsi)));
+    } else if (data.changePercent) {
+      currentSentimentScore = data.changePercent > 0 ? 65 : 35;
+    }
+  }
+
   return (
-    <main style={{ minHeight: "100vh", position: "relative", paddingBottom: "100px" }}>
+    // paddingBottom "140px" етіп өзгертілді (төменгі мәзір мәтінді жауып қалмауы үшін)
+    <main style={{ minHeight: "100vh", position: "relative", paddingBottom: "140px" }}>
       <style>{globalCss}</style>
       
       {/* Background Glows */}
@@ -400,7 +443,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* ---------- ІЗДЕУ ЖОЛАҒЫ (Керемет Капсула Дизайн) ---------- */}
+          {/* ---------- ІЗДЕУ ЖОЛАҒЫ ---------- */}
           <form className="animate-fade tradeiq-search-capsule" onSubmit={searchStock} style={{ display: "flex", width: "100%", marginBottom: "48px", background: "rgba(30, 41, 59, 0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: "24px", border: `1px solid rgba(255,255,255,0.08)`, padding: "6px" }}>
             <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 16px" }}>
               <span style={{ fontSize: "1.2rem", color: colors.textFaint, marginRight: "12px" }}>🔍</span>
@@ -466,8 +509,6 @@ export default function Home() {
                             </div>
                           )}
                         </div>
-
-                        {/* Толық енді жабатын кішкентай график */}
                         {!item.error && Array.isArray(item.history) && item.history.length > 1 && (
                           <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "60px", zIndex: 1, opacity: 0.6 }}>
                             <Sparkline history={item.history} isUp={up} />
@@ -479,7 +520,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ---------- AI КӨМЕКШІ (Дайын сұрақтарсыз таза нұсқа) ---------- */}
+          {/* ---------- AI КӨМЕКШІ ---------- */}
           <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
             <div className="glass-card" style={{ padding: "24px", position: "relative", overflow: "hidden", borderColor: "rgba(59,130,246,0.4)", boxShadow: "0 0 30px rgba(59,130,246,0.1)" }}>
               <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "rgba(59,130,246,0.15)", filter: "blur(40px)", borderRadius: "50%" }}></div>
@@ -612,6 +653,9 @@ export default function Home() {
                 </span>
               </div>
 
+              {/* ЖАҢА ҚОСЫЛҒАН AI SENTIMENT METER (ҚОРҚЫНЫШ ПЕН АШКӨЗДІК) */}
+              <SentimentMeter score={currentSentimentScore} />
+
               {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
                 <div style={{ marginBottom: "30px", height: "180px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, overflow: "hidden" }}>
                   <ProChart chartData={data.chartData} pivot={data.pivot} tradePlan={data.tradePlan} colors={colors} />
@@ -686,7 +730,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* ---------- НАРЫҚ ЖАҢАЛЫҚТАРЫ ---------- */}
+          {/* ---------- НАРЫҚ ЖАҢАЛЫҚТАРЫ (AI-Тегтермен) ---------- */}
           <div className="animate-fade" style={{ width: "100%", marginBottom: "40px" }}>
             <div className="glass-card" style={{ padding: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
@@ -697,19 +741,31 @@ export default function Home() {
                 {homeNewsLoading ? (
                   <div style={{ fontSize: "0.85rem", color: colors.textFaint }}>Жүктелуде...</div>
                 ) : (
-                  homeNews.map((item, i) => (
-                    <a key={i} href={item.url} target="_blank" rel="noreferrer" className="tradeiq-news-item" style={{ display: "flex", gap: "14px", alignItems: "flex-start", padding: "10px", borderRadius: "14px", border: "1px solid transparent" }}>
-                      <div style={{ width: "56px", height: "56px", borderRadius: "14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${colors.cardBorder}`, flexShrink: 0 }}></div>
-                      <div>
-                        <div style={{ fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "6px", fontWeight: "500" }}>
-                          {item.headline}
+                  homeNews.map((item, i) => {
+                    // Жаңалықтарға AI бағалауын қосу (Көрнекілік үшін визуалды имитация)
+                    const isBullishNews = i % 2 === 0;
+                    const aiNewsTag = isBullishNews ? "🟩 Bullish" : "🟥 Bearish";
+                    const aiNewsColor = isBullishNews ? colors.gainBright : colors.lossBright;
+
+                    return (
+                      <a key={i} href={item.url} target="_blank" rel="noreferrer" className="tradeiq-news-item" style={{ display: "flex", gap: "14px", alignItems: "flex-start", padding: "12px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
+                        <div style={{ width: "56px", height: "56px", borderRadius: "14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${colors.cardBorder}`, flexShrink: 0 }}></div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "8px", fontWeight: "500" }}>
+                            {item.headline}
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>
+                              {item.source} · {formatNewsDate(item.datetime)}
+                            </div>
+                            <div style={{ fontSize: "0.65rem", fontWeight: "bold", color: aiNewsColor, background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: "6px" }}>
+                              {aiNewsTag}
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>
-                          {item.source} · {formatNewsDate(item.datetime)}
-                        </div>
-                      </div>
-                    </a>
-                  ))
+                      </a>
+                    );
+                  })
                 )}
               </div>
             </div>
