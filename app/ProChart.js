@@ -7,18 +7,39 @@ export default function ProChart({ chartData }) {
   const chartContainerRef = useRef();
 
   useEffect(() => {
-    // Егер контейнер немесе деректер жоқ болса, ештеңе істемейміз
     if (!chartContainerRef.current || !chartData || chartData.length === 0) return;
+
+    // 1. Деректерді lightweight-charts форматына бейімдеу (date -> time) және реттеу
+    const formattedData = chartData
+      .filter(d => (d.date || d.time) && d.open && d.high && d.low && d.close) // Бос деректерді алып тастау
+      .map(d => {
+        let timeVal = d.date || d.time;
+        // Егер уақыт "2026-10-17T00:00:00Z" форматында болса, тек күнін аламыз
+        if (typeof timeVal === 'string' && timeVal.includes('T')) {
+          timeVal = timeVal.split('T')[0];
+        }
+        return {
+          time: timeVal,
+          open: Number(d.open),
+          high: Number(d.high),
+          low: Number(d.low),
+          close: Number(d.close)
+        };
+      })
+      // Күндерді ескіден жаңаға қарай реттеу (кітапхана соны талап етеді)
+      .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+    if (formattedData.length === 0) return;
 
     const handleResize = () => {
       chart.applyOptions({ width: chartContainerRef.current.clientWidth });
     };
 
-    // 1. Графиктің дизайнын баптау (Неон / Dark Mode стилі)
+    // 2. Графикті құру
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#9ca3af", // Сұр мәтін (уақыт пен баға)
+        textColor: "#9ca3af",
       },
       grid: {
         vertLines: { color: "rgba(255, 255, 255, 0.05)" },
@@ -33,31 +54,28 @@ export default function ProChart({ chartData }) {
         borderColor: "rgba(255, 255, 255, 0.1)",
       },
       width: chartContainerRef.current.clientWidth,
-      height: 250, // Графиктің биіктігі
+      height: 250,
     });
 
-    chart.timeScale().fitContent();
-
-    // 2. Жапон шамдарының сериясын қосу (Жасыл/Қызыл түстер)
+    // 3. Жапон шамдарын баптау
     const candlestickSeries = chart.addCandlestickSeries({
-      upColor: "#10b981",       // Өсу (Жасыл)
-      downColor: "#ef4444",     // Түсу (Қызыл)
+      upColor: "#10b981",       
+      downColor: "#ef4444",     
       borderVisible: false,
-      wickUpColor: "#10b981",   // Жоғарғы көлеңкесі
-      wickDownColor: "#ef4444", // Төменгі көлеңкесі
+      wickUpColor: "#10b981",   
+      wickDownColor: "#ef4444", 
     });
 
-    // Деректерді форматтау (API-ден келетін деректерді тексеру)
-    // chartData мынадай форматта болуы керек: [{ time: '2026-10-17', open: 150, high: 155, low: 149, close: 152 }, ...]
+    // 4. Дайын деректерді салу
     try {
-      candlestickSeries.setData(chartData);
+      candlestickSeries.setData(formattedData);
+      chart.timeScale().fitContent(); // Графикті терезеге сыйдыру
     } catch (e) {
       console.error("График деректерін жүктеу қатесі:", e);
     }
 
     window.addEventListener("resize", handleResize);
 
-    // Компонент жойылғанда графикті тазалау
     return () => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
