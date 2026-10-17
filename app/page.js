@@ -109,7 +109,7 @@ function IconSparkleChat({ size = 18, color }) {
   );
 }
 
-/* ---------- Sparkline (График) ---------- */
+/* ---------- Sparkline (Кішкентай карточка графигі) ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
 
@@ -133,22 +133,24 @@ function Sparkline({ history, isUp }) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
 
-  const lineColor = isUp ? colors.gain : colors.loss;
+  const lineColor = isUp ? "#10b981" : "#ef4444"; // Жасыл немесе қызыл
   const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block', opacity: 0.8 }}>
-      <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{filter: `drop-shadow(0 0 3px ${lineColor})`}}
-      />
-    </svg>
+    <div style={{ position: "absolute", bottom: "4px", right: "4px", width: "80px", height: "40px", pointerEvents: "none", opacity: 0.8 }}>
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
+        <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
+        <polyline
+          points={points.join(" ")}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{filter: `drop-shadow(0 0 3px ${lineColor})`}}
+        />
+      </svg>
+    </div>
   );
 }
 
@@ -202,7 +204,6 @@ function safeNum(v, digits) {
 }
 
 export default function Home() {
-  // Барлық күйлер (states) өзгеріссіз қалды
   const [ticker, setTicker] = useState("");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -493,9 +494,7 @@ export default function Home() {
                               <span>{up ? "▲" : "▼"}</span> {safeNum(item.changePercent, 2)}%
                             </div>
                             {Array.isArray(item.history) && item.history.length > 1 && (
-                              <div style={{ position: "absolute", bottom: "4px", right: "4px", width: "80px", height: "40px", pointerEvents: "none" }}>
-                                <Sparkline history={item.history} isUp={up} />
-                              </div>
+                              <Sparkline history={item.history} isUp={up} />
                             )}
                           </>
                         )}
