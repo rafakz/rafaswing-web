@@ -10,10 +10,10 @@ import { explainFundamentals } from "../lib/fundamentals-explain";
 
 /* ---------- Дизайн токендары (Жаңа Premium/Neon стиль) ---------- */
 const colors = {
-  bg: "#0B0F19", // Терең көкшіл-қара фон
-  card: "rgba(20, 28, 45, 0.6)", // Glassmorphism мөлдірлігі
+  bg: "#0B0F19", 
+  card: "rgba(20, 28, 45, 0.6)", 
   cardBorder: "rgba(255, 255, 255, 0.08)",
-  gold: "#3b82f6", // Көк акцент
+  gold: "#3b82f6", 
   goldBright: "#60a5fa",
   textPrimary: "#ffffff",
   textMuted: "#9ca3af",
@@ -89,10 +89,8 @@ function TradeIQMark({ size = 40 }) {
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <line x1="12" y1="18" x2="12" y2="38" stroke={colors.loss} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #ef4444)'}} />
       <rect x="9" y="24" width="6" height="10" rx="1.5" fill={colors.loss} />
-
       <line x1="24" y1="10" x2="24" y2="40" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #10b981)'}} />
       <rect x="21" y="18" width="6" height="16" rx="1.5" fill={colors.gain} />
-
       <line x1="36" y1="6" x2="36" y2="32" stroke={colors.gain} strokeWidth="2.4" strokeLinecap="round" style={{filter: 'drop-shadow(0 0 4px #10b981)'}} />
       <rect x="33" y="12" width="6" height="14" rx="1.5" fill={colors.gain} />
     </svg>
@@ -133,7 +131,7 @@ function Sparkline({ history, isUp }) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
 
-  const lineColor = isUp ? "#10b981" : "#ef4444"; // Жасыл немесе қызыл
+  const lineColor = isUp ? "#10b981" : "#ef4444"; 
   const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
 
   return (
@@ -230,8 +228,6 @@ export default function Home() {
   const [alertDirection, setAlertDirection] = useState("above");
   const [alertSubmitting, setAlertSubmitting] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [riskCapital, setRiskCapital] = useState("");
-  const [riskPercent, setRiskPercent] = useState("2");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data ? data.session : null); });
@@ -293,7 +289,8 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  const OVERVIEW_SYMBOLS = [ { symbol: "ONEQ", label: "NASDAQ" }, { symbol: "QQQ", label: "QQQ" }, { symbol: "SPY", label: "SPX" }, { symbol: "QQQM", label: "NDX" } ];
+  // БҰЛ ЖЕРДЕ ӨЗГЕРІС ЖАСАЛДЫ: DIA және VOO тикерлері қосылды
+  const OVERVIEW_SYMBOLS = [ { symbol: "DIA", label: "DOW 30" }, { symbol: "QQQ", label: "QQQ" }, { symbol: "VOO", label: "S&P 500" }, { symbol: "QQQM", label: "NDX" } ];
 
   useEffect(() => {
     let cancelled = false;
@@ -395,10 +392,8 @@ export default function Home() {
 
   const isUp = !!(data && typeof data.change === "number" && data.change >= 0);
   const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
-  const smartAlerts = data ? generateSmartAlerts({ technicals: data.technicals, volumeInfo: data.volume, currentPrice: data.currentPrice, signal }) : [];
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
-  const hasNews = Array.isArray(news) && news.length > 0;
 
   return (
     <main style={{ minHeight: "100vh", position: "relative", paddingBottom: "100px" }}>
@@ -479,7 +474,7 @@ export default function Home() {
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                           <span style={{ background: iconBg, color: iconColor, fontSize: "0.65rem", fontWeight: "bold", padding: "3px 6px", borderRadius: "4px" }}>
-                            {item.symbol.slice(0, 2)}
+                            {item.symbol.slice(0, 3)}
                           </span>
                           <span style={{ color: colors.textMuted, fontSize: "0.85rem", fontWeight: "500" }}>{item.label}</span>
                         </div>
