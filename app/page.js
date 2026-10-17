@@ -132,11 +132,11 @@ function Sparkline({ history, isUp }) {
   });
 
   const lineColor = isUp ? "#10b981" : "#ef4444"; 
-  const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
+  const areaPoints = `0,${height}${points.join(" ")} ${width},${height}`;
 
   return (
     <div style={{ position: "absolute", bottom: "4px", right: "4px", width: "80px", height: "40px", pointerEvents: "none", opacity: 0.8 }}>
-      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <svg viewBox={`0 0 ${width}${height}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
         <polygon points={areaPoints} fill={lineColor} opacity="0.1" />
         <polyline
           points={points.join(" ")}
@@ -289,8 +289,11 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // БҰЛ ЖЕРДЕ ӨЗГЕРІС ЖАСАЛДЫ: DIA және VOO тикерлері қосылды
-  const OVERVIEW_SYMBOLS = [ { symbol: "DIA", label: "DOW 30" }, { symbol: "QQQ", label: "QQQ" }, { symbol: "VOO", label: "S&P 500" }, { symbol: "QQQM", label: "NDX" } ];
+  // ТЕК НАСДАҚ ЖӘНЕ S&P 500 ИНДЕКСКЕРІ ҚАЛДЫрылды
+  const OVERVIEW_SYMBOLS = [ 
+    { symbol: "QQQ", label: "NASDAQ" }, 
+    { symbol: "SPY", label: "S&P 500" } 
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -447,7 +450,7 @@ export default function Home() {
             </button>
           </form>
 
-          {/* ---------- НАРЫҚ ШОЛУЫ ---------- */}
+          {/* ---------- НАРЫҚ ШОЛУЫ (НАСДАҚ ЖӘНЕ S&P 500) ---------- */}
           <div className="animate-fade" style={{ width: "100%", marginBottom: "32px" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "16px", marginTop: 0 }}>Нарық шолуы</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -706,7 +709,7 @@ export default function Home() {
                 onClick={getAiSummary}
                 disabled={aiLoading}
                 className="tradeiq-search-btn"
-                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: `1px solid rgba(59,130,246,0.5)`, background: "rgba(59,130,246,0.05)", color: colors.goldBright, fontWeight: "bold", fontSize: "0.85rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.15)", marginTop: "8px" }}
+                style={{ width: "100%", padding: "12px", borderRadius: "12px", border: `1px solid rgba(59,130,246,0.5)`, background: "rgba(59,130,246,0.05)`, color: colors.goldBright, fontWeight: "bold", fontSize: "0.85rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 15px rgba(59,130,246,0.15)", marginTop: "8px" }}
               >
                 {aiLoading ? "Талдау жасалуда..." : "✨ AI қорытынды алу"}
               </button>
