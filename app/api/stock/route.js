@@ -74,21 +74,33 @@ export async function GET(request) {
       );
     }
 
+    /* ---------- ФУНДАМЕНТАЛДЫ МӘНДЕРДІ ФОРМАТТАУ ---------- */
     var peValue = numOrNull(metric.peExclExtraTTM) ?? numOrNull(metric.peTTM) ?? numOrNull(metric.peNormalizedAnnual);
     var epsValue = (peValue !== null && peValue > 0) ? quote.c / peValue : (numOrNull(metric.epsExclExtraItemsTTM) ?? numOrNull(metric.epsTTM));
+    
+    // Finnhub қарызды пайызбен береді (мысалы, 150 = 1.5), сондықтан 10-нан үлкен болса 100-ге бөлеміз
+    var rawDE = numOrNull(metric['longTermDebt/equityAnnual']) ?? numOrNull(metric['totalDebt/totalEquityAnnual']) ?? numOrNull(metric['totalDebt/totalEquityQuarterly']);
+    var debtToEquity = rawDE !== null ? (rawDE > 10 ? rawDE / 100 : rawDE) : null;
+
+    var currentRatio = numOrNull(metric.currentRatioAnnual) ?? numOrNull(metric.currentRatioQuarterly);
+    var pbRatio = numOrNull(metric.pbAnnual) ?? numOrNull(metric.pbQuarterly) ?? numOrNull(metric.ptbTTM);
 
     var fundamentals = {
-      pe: peValue,
+      peRatio: peValue,
       eps: epsValue,
-      roe: numOrNull(metric.roeTTM),
-      netMargin: numOrNull(metric.netProfitMarginTTM),
+      roe: numOrNull(metric.roeTTM) ?? numOrNull(metric.roeAnnual),
+      profitMargin: numOrNull(metric.netProfitMarginTTM) ?? numOrNull(metric.netMarginGrowthAnnual),
       revenueGrowth: numOrNull(metric.revenueGrowthTTMYoy),
       epsGrowth: numOrNull(metric.epsGrowthTTMYoy),
-      dividendYield: numOrNull(metric.dividendYieldIndicatedAnnual),
-      week52High: numOrNull(metric["52WeekHigh"]),
-      week52Low: numOrNull(metric["52WeekLow"]),
-      beta: numOrNull(metric.beta)
+      dividendYield: numOrNull(metric.dividendYieldIndicatedAnnual) ?? numOrNull(metric.dividendYieldTTM),
+      fiftyTwoWeekHigh: numOrNull(metric["52WeekHigh"]),
+      fiftyTwoWeekLow: numOrNull(metric["52WeekLow"]),
+      beta: numOrNull(metric.beta),
+      debtToEquity: debtToEquity,
+      currentRatio: currentRatio,
+      pbRatio: pbRatio
     };
+    /* ------------------------------------------------------- */
 
     var earningsInfo = null;
     try {
