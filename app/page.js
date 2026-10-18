@@ -96,7 +96,7 @@ function TradeIQMark({ size = 44 }) {
   );
 }
 
-/* ---------- Sparkline (Толық енді жабатын кішкентай график) ---------- */
+/* ---------- Sparkline ---------- */
 function Sparkline({ history, isUp }) {
   if (!Array.isArray(history) || history.length < 2) return null;
 
@@ -140,7 +140,7 @@ function Sparkline({ history, isUp }) {
   );
 }
 
-/* ---------- ЖАҢА: AI Sentiment Meter (Нарық көңіл-күйі шкаласы) ---------- */
+/* ---------- AI Sentiment Meter ---------- */
 function SentimentMeter({ score }) {
   const getLabel = (s) => {
     if(s >= 60) return { text: "Өсуге бейім (Bullish)", color: colors.gainBright };
@@ -159,11 +159,8 @@ function SentimentMeter({ score }) {
           {text} ({score}%)
         </div>
       </div>
-      
-      {/* Градиентті шкала */}
       <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.1)", borderRadius: "4px", position: "relative" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", background: `linear-gradient(90deg, ${colors.lossBright} 0%, ${colors.hold} 50%, ${colors.gainBright} 100%)`, borderRadius: "4px", opacity: 0.8 }} />
-        {/* Ақ көрсеткіш (ползунок) */}
         <div style={{ position: "absolute", left: `calc(${score}% - 4px)`, top: "-3px", width: "8px", height: "14px", background: "#fff", borderRadius: "4px", boxShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "left 1s ease" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase", fontWeight: "bold" }}>
@@ -220,6 +217,42 @@ function formatNewsDate(unixSeconds) {
 function safeNum(v, digits) {
   if (typeof v !== "number" || isNaN(v)) return "—";
   return v.toFixed(digits);
+}
+
+/* ---------- AI ФУНДАМЕНТАЛДЫ ТАЛДАУ АЛГОРИТМІ ---------- */
+function evaluateFundamental(key, value) {
+  if (typeof value !== "number" || isNaN(value)) return { text: "—", color: colors.textFaint };
+  if (key === "PE") {
+    if (value < 15 && value > 0) return { text: "🟢 Тартымды", color: colors.gainBright };
+    if (value <= 25 && value >= 15) return { text: "🟡 Қалыпты", color: colors.hold };
+    return { text: "🔴 Қымбат", color: colors.lossBright };
+  }
+  if (key === "DE") {
+    if (value < 1) return { text: "🟢 Қауіпсіз", color: colors.gainBright };
+    if (value <= 2) return { text: "🟡 Орташа", color: colors.hold };
+    return { text: "🔴 Қауіпті", color: colors.lossBright };
+  }
+  if (key === "CR") {
+    if (value >= 1.5) return { text: "🟢 Өтімді", color: colors.gainBright };
+    if (value >= 1) return { text: "🟡 Қалыпты", color: colors.hold };
+    return { text: "🔴 Нашар", color: colors.lossBright };
+  }
+  if (key === "ROE") {
+    if (value >= 15) return { text: "🟢 Өте тиімді", color: colors.gainBright };
+    if (value >= 5) return { text: "🟡 Қалыпты", color: colors.hold };
+    return { text: "🔴 Тиімсіз", color: colors.lossBright };
+  }
+  if (key === "PM") {
+    if (value >= 10) return { text: "🟢 Табысты", color: colors.gainBright };
+    if (value > 0) return { text: "🟡 Аз маржа", color: colors.hold };
+    return { text: "🔴 Шығын", color: colors.lossBright };
+  }
+  if (key === "PB") {
+    if (value <= 3 && value >= 1) return { text: "🟢 Әділ", color: colors.gainBright };
+    if (value > 0 && value < 1) return { text: "🟡 Арзан", color: colors.hold };
+    return { text: "🔴 Қымбат", color: colors.lossBright };
+  }
+  return { text: "—", color: colors.textMuted };
 }
 
 export default function Home() {
@@ -403,8 +436,9 @@ export default function Home() {
   const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
   const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
+  const hasFundamentals = data && data.fundamentals && typeof data.fundamentals === "object";
 
-  // AI Sentiment Score есептеу (RSI және Change Percent негізінде визуалды генерация)
+  // AI Sentiment Score
   let currentSentimentScore = 50;
   if (data) {
     if (data.technicals && data.technicals.rsi) {
@@ -414,12 +448,32 @@ export default function Home() {
     }
   }
 
+  // Smart Fundamentals Item Renderer
+  const renderSmartFundItem = (label, value, key) => {
+    const evalData = evaluateFundamental(key, value);
+    const displayValue = safeNum(value, 2);
+    
+    return (
+      <div style={{ padding: "14px", background: "rgba(0,0,0,0.25)", borderRadius: "12px", border: `1px solid rgba(255,255,255,0.05)` }}>
+        <div style={{ fontSize: "0.7rem", color: colors.textFaint, textTransform: "uppercase", marginBottom: "6px" }}>{label}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "1.05rem", fontWeight: "700", color: colors.textPrimary }}>
+             {displayValue !== "—" ? (key === "PM" || key === "ROE" ? displayValue + "%" : displayValue) : "—"}
+          </span>
+          {displayValue !== "—" && (
+            <span style={{ fontSize: "0.75rem", fontWeight: "600", color: evalData.color, background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "6px" }}>
+              {evalData.text}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    // paddingBottom "140px" етіп өзгертілді (төменгі мәзір мәтінді жауып қалмауы үшін)
     <main style={{ minHeight: "100vh", position: "relative", paddingBottom: "140px" }}>
       <style>{globalCss}</style>
       
-      {/* Background Glows */}
       <div className="glow-bg" style={{ top: "-50px", left: "-50px" }}></div>
       <div className="glow-bg" style={{ top: "30%", right: "-100px", background: "radial-gradient(circle, rgba(139,92,246,0.1) 0%, rgba(0,0,0,0) 70%)" }}></div>
 
@@ -653,7 +707,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* ЖАҢА ҚОСЫЛҒАН AI SENTIMENT METER (ҚОРҚЫНЫШ ПЕН АШКӨЗДІК) */}
               <SentimentMeter score={currentSentimentScore} />
 
               {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
@@ -672,6 +725,39 @@ export default function Home() {
                 <div>High: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.high, 2)}</span></div>
                 <div>Low: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>${safeNum(data.low, 2)}</span></div>
               </div>
+
+              {/* ---------- ФУНДАМЕНТАЛДЫ АНАЛИЗ (ЖАҢА "СМАРТ" БЛОКТАРМЕН) ---------- */}
+              {hasFundamentals && (
+                <div style={{ marginBottom: "30px" }}>
+                  <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", marginTop: 0 }}>Ақылды Фундаменталды Анализ</h4>
+                  
+                  {/* Базалық көрсеткіштер */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "16px", textAlign: "center" }}>
+                    <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
+                      <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>Нарық құны</div>
+                      <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{data.marketCap ? (data.marketCap / 1000).toFixed(1) + "B" : "—"}</div>
+                    </div>
+                    <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
+                      <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>EPS (Пайда)</div>
+                      <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{safeNum(data.fundamentals.eps, 2)}</div>
+                    </div>
+                    <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
+                      <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>Дивиденд</div>
+                      <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{data.fundamentals.dividendYield ? safeNum(data.fundamentals.dividendYield, 2) + "%" : "—"}</div>
+                    </div>
+                  </div>
+
+                  {/* AI-бағалауы бар смарт көрсеткіштер */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, fontFamily: fontMono }}>
+                    {renderSmartFundItem("P/E (Баға/Табыс)", data.fundamentals.peRatio, "PE")}
+                    {renderSmartFundItem("Қарыз / Капитал (D/E)", data.fundamentals.debtToEquity, "DE")}
+                    {renderSmartFundItem("Ағымдағы өтімділік", data.fundamentals.currentRatio, "CR")}
+                    {renderSmartFundItem("ROE (Тиімділік)", data.fundamentals.roe, "ROE")}
+                    {renderSmartFundItem("Таза маржа (Пайда)", data.fundamentals.profitMargin, "PM")}
+                    {renderSmartFundItem("P/B (Баға/Мүлік құны)", data.fundamentals.pbRatio, "PB")}
+                  </div>
+                </div>
+              )}
 
               {data.tradePlan && (
                 <div style={{ marginBottom: "30px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.06)" }}>
@@ -742,7 +828,6 @@ export default function Home() {
                   <div style={{ fontSize: "0.85rem", color: colors.textFaint }}>Жүктелуде...</div>
                 ) : (
                   homeNews.map((item, i) => {
-                    // Жаңалықтарға AI бағалауын қосу (Көрнекілік үшін визуалды имитация)
                     const isBullishNews = i % 2 === 0;
                     const aiNewsTag = isBullishNews ? "🟩 Bullish" : "🟥 Bearish";
                     const aiNewsColor = isBullishNews ? colors.gainBright : colors.lossBright;
