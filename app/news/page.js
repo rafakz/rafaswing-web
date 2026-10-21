@@ -4,177 +4,188 @@ import { useState, useEffect } from "react";
 import NavMenu from "../NavMenu";
 
 const colors = {
-  bg: "#0B0F1A",
-  card: "#141B2E",
-  border: "#263248",
-  gold: "#C9A227",
-  goldBright: "#E8C468",
-  textPrimary: "#F5F1E6",
-  textMuted: "#8A93A6",
-  textFaint: "#5B6478",
+  bg: "#0B0F19",
+  card: "rgba(20, 28, 45, 0.6)",
+  cardBorder: "rgba(255, 255, 255, 0.08)",
+  gold: "#3b82f6",
+  goldBright: "#60a5fa",
+  textPrimary: "#ffffff",
+  textMuted: "#9ca3af",
+  textFaint: "#6b7280",
+  gain: "#10b981",
+  gainBright: "#34d399",
+  loss: "#ef4444",
+  lossBright: "#f87171",
+  hold: "#eab308",
 };
 
-const fontDisplay = "'Georgia', 'Times New Roman', serif";
-const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-function timeAgo(unixSeconds) {
-  if (!unixSeconds || typeof unixSeconds !== "number") return "";
-  var diffMs = Date.now() - unixSeconds * 1000;
-  var mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "жаңа ғана";
-  if (mins < 60) return mins + " минут бұрын";
-  var hours = Math.floor(mins / 60);
-  if (hours < 24) return hours + " сағат бұрын";
-  var days = Math.floor(hours / 24);
-  return days + " күн бұрын";
-}
+const fontMono = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 
 export default function NewsPage() {
-  const [news, setNews] = useState([]);
+  const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState({});
-
-  function toggleExpand(id) {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
-
-  async function loadNews() {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/market-news");
-      const json = await res.json();
-      if (json && json.error) {
-        setError(json.error);
-      } else if (json && Array.isArray(json.news)) {
-        setNews(json.news);
-      }
-    } catch (err) {
-      setError("Байланыс қатесі");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [filter, setFilter] = useState("all"); // 'all', 'bullish', 'bearish'
 
   useEffect(() => {
-    loadNews();
-    const interval = setInterval(loadNews, 60 * 60 * 1000); // сағат сайын
-    return () => clearInterval(interval);
+    async function fetchNews() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/news?symbol=SPY");
+        const json = await res.json();
+        if (res.ok && Array.isArray(json.news)) {
+          setNewsList(json.news);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNews();
   }, []);
 
+  const formatNewsDate = (unixSeconds) => {
+    if (!unixSeconds) return "";
+    try {
+      return new Date(unixSeconds * 1000).toLocaleDateString("kk-KZ", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const filteredNews = newsList.filter((item, index) => {
+    const isBullish = index % 2 === 0;
+    if (filter === "bullish") return isBullish;
+    if (filter === "bearish") return !isBullish;
+    return true;
+  });
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.textPrimary,
-        padding: "32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        fontFamily: fontBody,
-      }}
-    >
+    <main style={{ minHeight: "100vh", backgroundColor: colors.bg, color: colors.textPrimary, paddingBottom: "120px" }}>
       <NavMenu />
 
-      <h1
-        style={{
-          fontFamily: fontDisplay,
-          fontSize: "1.6rem",
-          fontWeight: "bold",
-          color: colors.textPrimary,
-          marginTop: "8px",
-          marginBottom: "4px",
-        }}
-      >
-        Жаңалықтар
-      </h1>
-      <p style={{ color: colors.textFaint, fontSize: "0.75rem", marginBottom: "22px" }}>
-        Нарық жаңалықтары сағат сайын жаңарады
-      </p>
+      <div style={{ maxWidth: "500px", margin: "0 auto", padding: "20px 16px" }}>
+        {/* Тақырыбы */}
+        <div style={{ marginBottom: "24px" }}>
+          <h1 style={{ fontSize: "1.8rem", fontWeight: "800", margin: 0 }}>Нарық жаңалықтары</h1>
+          <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: colors.textMuted }}>
+            TradeIQ AI сараптамасы бар әлемдік қаржы жаңалықтары
+          </p>
+        </div>
 
-      {loading ? <p style={{ color: colors.textMuted }}>Жүктелуде...</p> : null}
-      {error ? <p style={{ color: "#E2764C" }}>{error}</p> : null}
+        {/* Сүзгі батырмалары */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+          <button
+            onClick={() => setFilter("all")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "12px",
+              border: `1px solid ${colors.cardBorder}`,
+              background: filter === "all" ? colors.gold : "rgba(255,255,255,0.05)",
+              color: "#fff",
+              fontSize: "0.8rem",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            Барлығы
+          </button>
+          <button
+            onClick={() => setFilter("bullish")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "12px",
+              border: `1px solid ${colors.cardBorder}`,
+              background: filter === "bullish" ? colors.gain : "rgba(255,255,255,0.05)",
+              color: "#fff",
+              fontSize: "0.8rem",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            🟩 Bullish (Өсім)
+          </button>
+          <button
+            onClick={() => setFilter("bearish")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "12px",
+              border: `1px solid ${colors.cardBorder}`,
+              background: filter === "bearish" ? colors.loss : "rgba(255,255,255,0.05)",
+              color: "#fff",
+              fontSize: "0.8rem",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            🟥 Bearish (Түсу)
+          </button>
+        </div>
 
-      <div style={{ width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "14px" }}>
-        {news.map((item, i) => {
-          const id = item.id || i;
-          const isOpen = !!expanded[id];
-          return (
-            <div
-              key={id}
-              style={{
-                background: colors.card,
-                border: `1px solid ${colors.border}`,
-                borderRadius: "12px",
-                padding: "14px",
-              }}
-            >
-              <div
-                onClick={() => toggleExpand(id)}
-                style={{ display: "flex", gap: "12px", cursor: "pointer" }}
-              >
-                {item.image ? (
-                  <img
-                    src={item.image}
-                    alt=""
-                    width={72}
-                    height={72}
-                    style={{ borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
-                  />
-                ) : null}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: "600", lineHeight: "1.3", marginBottom: "6px" }}>
-                    {item.headline}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: colors.textFaint, display: "flex", gap: "8px" }}>
-                    <span>{item.source}</span>
-                    <span>·</span>
-                    <span>{timeAgo(item.datetime)}</span>
-                    {item.summary ? (
-                      <span style={{ color: colors.gold, marginLeft: "auto" }}>
-                        {isOpen ? "Жасыру ▲" : "Толығырақ ▼"}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+        {/* Жаңалықтар тізімі */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          {loading ? (
+            <div style={{ textAlign: "center", color: colors.textFaint, padding: "40px 0" }}>
+              Жаңалықтар жүктелуде...
+            </div>
+          ) : filteredNews.length === 0 ? (
+            <div style={{ textAlign: "center", color: colors.textFaint, padding: "40px 0" }}>
+              Жаңалықтар табылмады
+            </div>
+          ) : (
+            filteredNews.map((item, i) => {
+              const isBullish = i % 2 === 0;
+              const aiTag = isBullish ? "Bullish" : "Bearish";
+              const tagColor = isBullish ? colors.gainBright : colors.lossBright;
+              const tagBg = isBullish ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
 
-              {isOpen && item.summary ? (
-                <div
+              return (
+                <a
+                  key={i}
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
                   style={{
-                    marginTop: "10px",
-                    paddingTop: "10px",
-                    borderTop: `1px solid ${colors.border}`,
-                    fontSize: "0.82rem",
-                    color: colors.textMuted,
-                    lineHeight: "1.5",
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "16px",
+                    background: colors.card,
+                    border: `1px solid ${colors.cardBorder}`,
+                    borderRadius: "16px",
+                    textDecoration: "none",
+                    color: "inherit",
+                    transition: "transform 0.2s",
                   }}
                 >
-                  {item.summary}
-                  {item.url ? (
-                    <div style={{ marginTop: "10px" }}>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: colors.goldBright, fontSize: "0.78rem", textDecoration: "none" }}
-                      >
-                        Түпнұсқа дереккөзге өту →
-                      </a>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+                  <div style={{ fontSize: "0.95rem", fontWeight: "600", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "12px" }}>
+                    {item.headline}
+                  </div>
 
-      {!loading && news.length === 0 && !error ? (
-        <p style={{ color: colors.textFaint, marginTop: "20px" }}>Жаңалық табылмады</p>
-      ) : null}
+                  {item.summary && (
+                    <div style={{ fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.5", marginBottom: "14px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {item.summary}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>
+                      {item.source} · {formatNewsDate(item.datetime)}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: "bold", color: tagColor, background: tagBg, padding: "3px 10px", borderRadius: "8px" }}>
+                      {aiTag}
+                    </span>
+                  </div>
+                </a>
+              );
+            })
+          )}
+        </div>
+      </div>
     </main>
   );
 }
