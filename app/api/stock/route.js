@@ -287,7 +287,6 @@ export async function GET(request) {
     var tradePlan = applySwingTargets(computeTradePlan(pivot, quote.c), quote.c, swingScore);
 
     // Халал скрин: қосымша API сұраусыз, жоғарыда алынған profile + metric негізінде.
-    // Қате болса да, акция деректері бұзылмайды (halal: null қайтады).
     var halal = null;
     try {
       halal = computeHalalStatus({
@@ -297,8 +296,22 @@ export async function GET(request) {
         price: quote.c,
         metricData: metricData
       });
+      
+      // FALLBACK: Егер computeHalalStatus бос немесе қате массив қайтарса, UI құламауы үшін
+      if (!halal || !Array.isArray(halal.checks)) {
+          throw new Error("Invalid Halal structure");
+      }
     } catch (halalErr) {
-      halal = null;
+      console.error("Halal Engine Error:", halalErr);
+      halal = {
+          status: "doubtful",
+          label: "Ақпарат жоқ",
+          summary: "Бұл компания бойынша Халал деректері әзірге табылмады.",
+          checks: [
+              { key: "data", label: "Деректер қоры", display: "", status: "doubtful" },
+              { key: "nonCompliantIncome", label: "Рұқсат етілмеген кіріс", display: "0%", status: "doubtful" }
+          ]
+      };
     }
 
     return Response.json({
