@@ -1,25 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import NavMenu from "../NavMenu";
 import { supabase } from "../supabaseClient";
 
+// TradeIQ Премиум түстері
 const colors = {
-  bg: "#0B0F1A",
-  card: "#141B2E",
-  border: "#263248",
-  gold: "#C9A227",
-  goldBright: "#E8C468",
-  textPrimary: "#F5F1E6",
-  textMuted: "#8A93A6",
-  textFaint: "#5B6478",
-  loss: "#E2764C",
-  gain: "#6FCBA8",
+  bg: "#0B0F19",
+  card: "rgba(20, 28, 45, 0.7)",
+  cardBorder: "rgba(255, 255, 255, 0.08)",
+  gold: "#3b82f6", // Біздің дизайнда негізгі түс көк (Neon Blue)
+  goldBright: "#60a5fa",
+  textPrimary: "#ffffff",
+  textMuted: "#9ca3af",
+  textFaint: "#6b7280",
+  lossBright: "#f87171",
+  gainBright: "#34d399",
 };
 
-const fontDisplay = "'Georgia', 'Times New Roman', serif";
-const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const fontBody = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,13 +29,22 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Егер қолданушы жүйеге кіріп қойған болса, басты бетке бағыттау
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) router.push("/");
+    };
+    checkUser();
+  }, [router]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setMessage("");
 
     if (!email.trim() || !password.trim()) {
-      setError("Email және парольді толтырыңыз");
+      setError("Email және құпия сөзді толтырыңыз");
       return;
     }
 
@@ -76,125 +84,93 @@ export default function LoginPage() {
     }
   }
 
+  // Сіздің қателерді аударатын тамаша функцияңыз
   function translateAuthError(msg) {
     if (!msg) return "Белгісіз қате";
-    if (msg.includes("Invalid login credentials")) return "Email немесе пароль қате";
+    if (msg.includes("Invalid login credentials")) return "Email немесе құпия сөз қате";
     if (msg.includes("User already registered")) return "Бұл email бұрын тіркелген";
-    if (msg.includes("Password should be at least")) return "Пароль кемінде 6 таңбадан тұруы керек";
+    if (msg.includes("Password should be at least")) return "Құпия сөз кемінде 6 таңбадан тұруы керек";
     if (msg.includes("Unable to validate email")) return "Email форматы дұрыс емес";
     return msg;
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.textPrimary,
-        padding: "32px 16px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        fontFamily: fontBody,
-      }}
-    >
-      <NavMenu />
+    <main style={{ minHeight: "100vh", backgroundColor: colors.bg, color: colors.textPrimary, fontFamily: fontBody, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", position: "relative", overflow: "hidden" }}>
+      
+      {/* Фондағы жарқыл эффекти (Glow) */}
+      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)", borderRadius: "50%", zIndex: 0 }}></div>
+      <div style={{ position: "absolute", bottom: "-10%", right: "-10%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0) 70%)", borderRadius: "50%", zIndex: 0 }}></div>
 
-      <h1
-        style={{
-          fontFamily: fontDisplay,
-          fontSize: "1.6rem",
-          fontWeight: "bold",
-          marginTop: "8px",
-          marginBottom: "22px",
-        }}
-      >
-        {mode === "login" ? "Кіру" : "Тіркелу"}
-      </h1>
+      <div style={{ width: "100%", maxWidth: "400px", background: colors.card, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${colors.cardBorder}`, borderRadius: "24px", padding: "40px 30px", zIndex: 1, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+        
+        {/* Логотип */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <h1 style={{ fontSize: "2.2rem", fontWeight: "800", letterSpacing: "-1px", margin: "0 0 8px 0" }}>
+            Trade<span style={{ color: colors.gold, textShadow: "0 0 15px rgba(59,130,246,0.6)" }}>IQ</span>
+          </h1>
+          <p style={{ color: colors.textMuted, fontSize: "0.85rem", margin: 0 }}>
+            {mode === "login" ? "Қайта оралуыңызбен! Жүйеге кіріңіз." : "Дала рухымен сауда жасауды бастаңыз."}
+          </p>
+        </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          width: "100%",
-          maxWidth: "340px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          style={{
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: `1px solid ${colors.border}`,
-            background: colors.card,
-            color: colors.textPrimary,
-            fontSize: "1rem",
-            fontFamily: fontBody,
-          }}
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Пароль"
-          style={{
-            padding: "12px 14px",
-            borderRadius: "10px",
-            border: `1px solid ${colors.border}`,
-            background: colors.card,
-            color: colors.textPrimary,
-            fontSize: "1rem",
-            fontFamily: fontBody,
-          }}
-        />
+        {error && <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid ${colors.lossBright}`, color: colors.lossBright, padding: "12px", borderRadius: "12px", fontSize: "0.85rem", marginBottom: "20px", textAlign: "center" }}>{error}</div>}
+        {message && <div style={{ background: "rgba(16,185,129,0.1)", border: `1px solid ${colors.gainBright}`, color: colors.gainBright, padding: "12px", borderRadius: "12px", fontSize: "0.85rem", marginBottom: "20px", textAlign: "center", lineHeight: "1.5" }}>{message}</div>}
 
-        {error ? <p style={{ color: colors.loss, fontSize: "0.85rem", margin: 0 }}>{error}</p> : null}
-        {message ? <p style={{ color: colors.gain, fontSize: "0.85rem", margin: 0 }}>{message}</p> : null}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "0.8rem", color: colors.textFaint, marginBottom: "8px", fontWeight: "600" }}>Электронды пошта</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid rgba(255,255,255,0.1)`, padding: "14px", borderRadius: "14px", color: colors.textPrimary, fontSize: "0.95rem", outline: "none", transition: "border-color 0.2s" }}
+              onFocus={(e) => e.target.style.borderColor = colors.gold}
+              onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "12px",
-            borderRadius: "10px",
-            border: "none",
-            background: colors.gold,
-            color: colors.bg,
-            fontWeight: "bold",
-            fontSize: "1rem",
-            fontFamily: fontBody,
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
-            marginTop: "6px",
-          }}
-        >
-          {loading ? "Жүктелуде..." : mode === "login" ? "Кіру" : "Тіркелу"}
-        </button>
-      </form>
+          <div>
+            <label style={{ display: "block", fontSize: "0.8rem", color: colors.textFaint, marginBottom: "8px", fontWeight: "600" }}>Құпия сөз</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid rgba(255,255,255,0.1)`, padding: "14px", borderRadius: "14px", color: colors.textPrimary, fontSize: "0.95rem", outline: "none", transition: "border-color 0.2s" }}
+              onFocus={(e) => e.target.style.borderColor = colors.gold}
+              onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+            />
+          </div>
 
-      <button
-        onClick={() => {
-          setMode(mode === "login" ? "signup" : "login");
-          setError("");
-          setMessage("");
-        }}
-        style={{
-          marginTop: "18px",
-          background: "transparent",
-          border: "none",
-          color: colors.goldBright,
-          fontSize: "0.85rem",
-          cursor: "pointer",
-          textDecoration: "underline",
-        }}
-      >
-        {mode === "login" ? "Аккаунтың жоқ па? Тіркел" : "Аккаунтың бар ма? Кір"}
-      </button>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ marginTop: "8px", width: "100%", padding: "14px", borderRadius: "14px", border: "none", background: colors.gold, color: "#fff", fontWeight: "700", fontSize: "1rem", cursor: loading ? "default" : "pointer", boxShadow: "0 4px 20px rgba(59,130,246,0.4)", transition: "transform 0.2s, filter 0.2s", opacity: loading ? 0.7 : 1 }}
+            onMouseOver={(e) => !loading && (e.target.style.filter = "brightness(1.1)")}
+            onMouseOut={(e) => !loading && (e.target.style.filter = "brightness(1)")}
+            onMouseDown={(e) => !loading && (e.target.style.transform = "scale(0.98)")}
+            onMouseUp={(e) => !loading && (e.target.style.transform = "scale(1)")}
+          >
+            {loading ? "Күте тұрыңыз..." : (mode === "login" ? "Кіру" : "Тіркелу")}
+          </button>
+        </form>
+
+        <div style={{ marginTop: "24px", textAlign: "center", fontSize: "0.85rem", color: colors.textMuted }}>
+          {mode === "login" ? "Аккаунтыңыз жоқ па?" : "Аккаунтыңыз бар ма?"}
+          <button
+            onClick={() => {
+              setMode(mode === "login" ? "signup" : "login");
+              setError("");
+              setMessage("");
+            }}
+            style={{ background: "none", border: "none", color: colors.goldBright, fontWeight: "700", marginLeft: "6px", cursor: "pointer" }}
+          >
+            {mode === "login" ? "Тіркелу" : "Жүйеге кіру"}
+          </button>
+        </div>
+
+      </div>
     </main>
   );
 }
