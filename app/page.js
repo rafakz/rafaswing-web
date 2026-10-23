@@ -7,7 +7,7 @@ import ProChart from "./ProChart";
 import { supabase } from "./supabaseClient";
 import { getSignal } from "../lib/tradeiq-engine";
 
-/* ---------- Дизайн токендары (Premium / Neon стилі) ---------- */
+/* ---------- Дизайн токендары ---------- */
 const colors = {
   bg: "#0B0F19", 
   card: "rgba(20, 28, 45, 0.6)", 
@@ -28,25 +28,11 @@ const fontDisplay = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', san
 const fontBody = fontDisplay;
 const fontMono = fontDisplay;
 
-/* Custom CSS (Аудио толқындар анимациясы қосылды) */
 const globalCss = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-html, body { 
-  background-color: ${colors.bg}; 
-  color: ${colors.textPrimary}; 
-  font-family: ${fontBody}; 
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
+html, body { background-color: ${colors.bg}; color: ${colors.textPrimary}; font-family: ${fontBody}; margin: 0; padding: 0; overflow-x: hidden; }
 * { box-sizing: border-box; }
-.glass-card {
-  background: ${colors.card};
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid ${colors.cardBorder};
-  border-radius: 20px;
-}
+.glass-card { background: ${colors.card}; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid ${colors.cardBorder}; border-radius: 20px; }
 .tradeiq-search-capsule { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
 .tradeiq-search-capsule:focus-within { border-color: rgba(59,130,246,0.6) !important; box-shadow: 0 0 20px rgba(59,130,246,0.15); }
 .tradeiq-search-btn { transition: all 0.2s ease; }
@@ -56,30 +42,14 @@ html, body {
 .tradeiq-overview-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .tradeiq-news-item { transition: all 0.2s ease; text-decoration: none; color: inherit; }
 .tradeiq-news-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(59,130,246,0.3) !important; transform: translateX(3px); }
-.glow-bg {
-  position: absolute;
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(0,0,0,0) 70%);
-  border-radius: 50%;
-  z-index: -1;
-  pointer-events: none;
-}
+.glow-bg { position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; z-index: -1; pointer-events: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade { animation: fadeInUp 0.5s ease-out; }
 .tradeiq-content-shell { margin-left: 0; }
 @media (min-width: 1024px) { .tradeiq-content-shell { margin-left: 240px; } }
-
-/* Аудио эквалайзер анимациясы */
-.audio-bar {
-  width: 4px;
-  background-color: ${colors.goldBright};
-  border-radius: 2px;
-  animation-name: sound;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
+.audio-bar { width: 4px; background-color: ${colors.goldBright}; border-radius: 2px; animation-name: sound; animation-iteration-count: infinite; animation-direction: alternate; }
 .bar1 { animation-duration: 0.4s; height: 10px; }
 .bar2 { animation-duration: 0.2s; height: 18px; }
 .bar3 { animation-duration: 0.6s; height: 8px; }
@@ -134,7 +104,7 @@ function SentimentMeter({ score }) {
   };
   const { text, color } = getLabel(score);
   return (
-    <div style={{ marginBottom: "30px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+    <div style={{ marginBottom: "20px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textPrimary, display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ color: colors.goldBright }}>🧠</span> AI Нарық көңіл-күйі
@@ -145,9 +115,41 @@ function SentimentMeter({ score }) {
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", background: `linear-gradient(90deg, ${colors.lossBright} 0%, ${colors.hold} 50%, ${colors.gainBright} 100%)`, borderRadius: "4px", opacity: 0.8 }} />
         <div style={{ position: "absolute", left: `calc(${score}% - 4px)`, top: "-3px", width: "8px", height: "14px", background: "#fff", borderRadius: "4px", boxShadow: "0 0 8px rgba(0,0,0,0.8)", transition: "left 1s ease" }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase", fontWeight: "bold" }}>
-        <span>Қорқыныш</span><span>Ашкөздік</span>
-      </div>
+    </div>
+  );
+}
+
+/* ---------- ЖАҢА КОМПОНЕНТ: Трейдер Психологы ---------- */
+function AiPsychologist({ data }) {
+  if (!data || typeof data.changePercent !== 'number') return null;
+  
+  let message = "";
+  let type = ""; 
+  let icon = "🧠";
+  
+  if (data.changePercent <= -2) {
+     type = "panic";
+     icon = "🧘‍♂️";
+     message = `Сабыр етіңіз! ${data.symbol} бүгін ${Math.abs(data.changePercent).toFixed(2)}%-ға құлап жатыр. Эмоциямен (дүрбелеңмен) минусқа сатуға асықпаңыз. Бұл нарықтағы уақытша түзету (коррекция) болуы мүмкін, әрқашан салқынқанды шешім қабылдаңыз.`;
+  } else if (data.changePercent >= 4) {
+     type = "fomo";
+     icon = "🔥";
+     message = `${data.symbol} күрт өсіп жатыр! "Құр қалам" (FOMO) деген қорқынышпен дәл қазір ең жоғарғы бағада сатып алудан сақ болыңыз. Нарық әрқашан сабырлыларды жақсы көреді.`;
+  } else {
+     return null; 
+  }
+  
+  const bg = type === 'panic' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+  const border = type === 'panic' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+  const textColor = type === 'panic' ? '#a78bfa' : '#fbbf24';
+
+  return (
+    <div className="animate-fade" style={{ marginBottom: "30px", padding: "16px", borderRadius: "16px", background: bg, border: `1px solid ${border}`, display: "flex", gap: "14px", alignItems: "flex-start" }}>
+       <div style={{ fontSize: "2rem", filter: `drop-shadow(0 0 10px ${textColor})` }}>{icon}</div>
+       <div>
+          <h4 style={{ margin: "0 0 6px 0", color: textColor, fontSize: "0.95rem", fontWeight: "bold" }}>Трейдер психологы</h4>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "#e2e8f0", lineHeight: "1.5" }}>{message}</p>
+       </div>
     </div>
   );
 }
@@ -192,8 +194,6 @@ function HalalCard({ halal, currentPrice, currency, usdkzt }) {
           </div>
         ))}
       </div>
-      {halal.disclaimer && <div style={{ marginBottom: "24px", fontSize: "0.7rem", color: colors.textFaint, lineHeight: "1.5" }}>⚠ {halal.disclaimer}</div>}
-
       {halal.status === "pass" && (
         <div style={{ background: "rgba(16,185,129,0.05)", border: `1px solid rgba(16,185,129,0.2)`, borderRadius: "16px", padding: "20px" }}>
             <h4 style={{ margin: "0 0 16px 0", fontSize: "0.85rem", color: colors.gainBright, textTransform: "uppercase", letterSpacing: "1px" }}>Зекет және Тазарту</h4>
@@ -229,15 +229,57 @@ function HalalCard({ halal, currentPrice, currency, usdkzt }) {
   );
 }
 
+function AiRadioPlayer({ stockData, isUp }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+
+  const togglePlay = () => {
+    if (!synth) return;
+    if (isPlaying) { synth.cancel(); setIsPlaying(false); } 
+    else {
+      let textToRead = "Қайырлы күн! Бұл TradeIQ AI нарық шолуы. ";
+      if (stockData) {
+        textToRead += `${stockData.symbol} акциясының қазіргі бағасы ${stockData.currentPrice} доллар. `;
+        textToRead += isUp ? "Бүгін акция құны өсіп жатыр. " : "Бүгін акция құны төмендеуде. ";
+        if (stockData.halal && stockData.halal.status === "pass") textToRead += "Бұл компания халал стандарттарына толық сай келеді. ";
+        textToRead += "Сәтті сауда тілейміз!";
+      } else {
+        textToRead += "Нарықтағы соңғы жаңалықтарды білу үшін жоғарыдағы іздеу жолағына акция тикерін жазыңыз.";
+      }
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = "kk-KZ";
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = () => setIsPlaying(false);
+      synth.speak(utterance);
+      setIsPlaying(true);
+    }
+  };
+
+  useEffect(() => { return () => { if (synth && isPlaying) synth.cancel(); }; }, [synth, isPlaying]);
+
+  return (
+    <div className="glass-card animate-fade" style={{ marginBottom: "40px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid rgba(59,130,246,0.5)`, background: "linear-gradient(90deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.9) 100%)", boxShadow: "0 10px 30px rgba(59,130,246,0.15)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <button onClick={togglePlay} style={{ width: "48px", height: "48px", borderRadius: "50%", background: isPlaying ? "rgba(239,68,68,0.2)" : colors.gold, border: isPlaying ? `1px solid ${colors.lossBright}` : "none", color: isPlaying ? colors.lossBright : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.3s", boxShadow: isPlaying ? "none" : "0 4px 15px rgba(59,130,246,0.5)" }}>
+          {isPlaying ? <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: "3px" }}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>}
+        </button>
+        <div>
+          <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>TradeIQ Подкаст <span style={{ fontSize: "0.6rem", background: colors.lossBright, color: "#fff", padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "1px" }}>LIVE</span></h4>
+          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: colors.textMuted }}>Күндік нарық шолуы</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "24px", width: "40px" }}>
+        {isPlaying ? <><div className="audio-bar bar1"></div><div className="audio-bar bar2"></div><div className="audio-bar bar3"></div><div className="audio-bar bar4"></div><div className="audio-bar bar5"></div></> : <div style={{ fontSize: "1.2rem", opacity: 0.5 }}>🎙️</div>}
+      </div>
+    </div>
+  );
+}
+
 function formatNewsDate(unixSeconds) {
   if (!unixSeconds || typeof unixSeconds !== "number") return "";
   try { return new Date(unixSeconds * 1000).toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" }); } catch (e) { return ""; }
 }
-function safeNum(v, digits) {
-  if (typeof v !== "number" || isNaN(v)) return "—";
-  return v.toFixed(digits);
-}
-
+function safeNum(v, digits) { if (typeof v !== "number" || isNaN(v)) return "—"; return v.toFixed(digits); }
 function evaluateFundamental(key, value) {
   if (typeof value !== "number" || isNaN(value)) return { text: "—", color: colors.textFaint };
   if (key === "PE") {
@@ -272,7 +314,6 @@ function evaluateFundamental(key, value) {
   }
   return { text: "—", color: colors.textMuted };
 }
-
 function fmtCurr(val, curr, rate) {
   if (typeof val !== "number" || isNaN(val)) return "—";
   if (curr === "KZT") {
@@ -284,102 +325,8 @@ function fmtCurr(val, curr, rate) {
 function fmtMarketCap(valInMillions, curr, rate) {
   if (typeof valInMillions !== "number" || isNaN(valInMillions)) return "—";
   const actualValue = valInMillions * 1000000;
-  if (curr === "KZT") {
-    const kzt = actualValue * rate;
-    return (kzt / 1000000000).toFixed(1) + "B ₸";
-  }
+  if (curr === "KZT") return (actualValue * rate / 1000000000).toFixed(1) + "B ₸";
   return "$" + (actualValue / 1000000000).toFixed(1) + "B";
-}
-
-/* ---------- ЖАҢА КОМПОНЕНТ: TradeIQ AI Радиосы ---------- */
-function AiRadioPlayer({ stockData, isUp }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
-
-  const togglePlay = () => {
-    if (!synth) return;
-    
-    if (isPlaying) {
-      synth.cancel();
-      setIsPlaying(false);
-    } else {
-      let textToRead = "Қайырлы күн! Бұл TradeIQ AI нарық шолуы. ";
-      
-      if (stockData) {
-        textToRead += `${stockData.symbol} акциясының қазіргі бағасы ${stockData.currentPrice} доллар. `;
-        textToRead += isUp ? "Бүгін акция құны өсіп жатыр. " : "Бүгін акция құны төмендеуде. ";
-        
-        if (stockData.halal && stockData.halal.status === "pass") {
-          textToRead += "Бұл компания халал стандарттарына толық сай келеді. ";
-        }
-        
-        if (stockData.fundamentals && stockData.fundamentals.peRatio) {
-           const pe = stockData.fundamentals.peRatio;
-           if (pe < 15) textToRead += "Фундаменталды талдау бойынша акция бағасы өте тартымды. ";
-           else if (pe > 25) textToRead += "Дегенмен, қазіргі уақытта акция нарықта қымбат бағаланып тұр. ";
-        }
-        textToRead += "Сәтті сауда тілейміз!";
-      } else {
-        textToRead += "Нарықтағы соңғы жаңалықтарды білу үшін жоғарыдағы іздеу жолағына акция тикерін жазыңыз.";
-      }
-
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      utterance.lang = "kk-KZ"; // Қазақша дауыс (егер браузер қолдаса), әйтпесе стандартты
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => setIsPlaying(false);
-
-      synth.speak(utterance);
-      setIsPlaying(true);
-    }
-  };
-
-  // Компонент жабылғанда дыбысты тоқтату
-  useEffect(() => {
-    return () => {
-      if (synth && isPlaying) synth.cancel();
-    };
-  }, [synth, isPlaying]);
-
-  return (
-    <div className="glass-card animate-fade" style={{ marginBottom: "40px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid rgba(59,130,246,0.5)`, background: "linear-gradient(90deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.9) 100%)", boxShadow: "0 10px 30px rgba(59,130,246,0.15)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <button 
-          onClick={togglePlay}
-          style={{ width: "48px", height: "48px", borderRadius: "50%", background: isPlaying ? "rgba(239,68,68,0.2)" : colors.gold, border: isPlaying ? `1px solid ${colors.lossBright}` : "none", color: isPlaying ? colors.lossBright : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.3s", boxShadow: isPlaying ? "none" : "0 4px 15px rgba(59,130,246,0.5)" }}
-        >
-          {isPlaying ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: "3px" }}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          )}
-        </button>
-        <div>
-          <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
-            TradeIQ Подкаст <span style={{ fontSize: "0.6rem", background: colors.lossBright, color: "#fff", padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "1px" }}>LIVE</span>
-          </h4>
-          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: colors.textMuted }}>Күндік нарық шолуы (AI)</p>
-        </div>
-      </div>
-      
-      {/* Эквалайзер анимациясы */}
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "24px", width: "40px" }}>
-        {isPlaying ? (
-          <>
-            <div className="audio-bar bar1"></div>
-            <div className="audio-bar bar2"></div>
-            <div className="audio-bar bar3"></div>
-            <div className="audio-bar bar4"></div>
-            <div className="audio-bar bar5"></div>
-          </>
-        ) : (
-          <div style={{ fontSize: "1.2rem", opacity: 0.5 }}>🎙️</div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export default function Home() {
@@ -391,12 +338,10 @@ export default function Home() {
   const [newsLoading, setNewsLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
   
   const [chatMessages, setChatMessages] = useState([{ role: "assistant", text: "Қош келдіңіз! Мен TradeIQ AI көмекшісімін. Сізге қандай көмек керек?" }]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
   
   const [overview, setOverview] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
@@ -406,7 +351,6 @@ export default function Home() {
   const [homeNewsLoading, setHomeNewsLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
-  const [watchlistBusy, setWatchlistBusy] = useState(false);
 
   const [currency, setCurrency] = useState("USD");
   const [usdkzt, setUsdkzt] = useState(500);
@@ -437,7 +381,6 @@ export default function Home() {
 
   async function toggleWatchlist(symbol) {
     if (!session || !session.user || !symbol) return;
-    setWatchlistBusy(true);
     const inList = watchlistSymbols.includes(symbol);
     try {
       if (inList) {
@@ -447,7 +390,7 @@ export default function Home() {
         await supabase.from("watchlist").insert({ user_id: session.user.id, symbol });
         setWatchlistSymbols((prev) => [...prev, symbol]);
       }
-    } catch (err) {} finally { setWatchlistBusy(false); }
+    } catch (err) {}
   }
 
   useEffect(() => {
@@ -517,7 +460,7 @@ export default function Home() {
     const raw = symbolOverride || ticker;
     if (!raw || !raw.trim()) return;
     const symbol = raw.trim().toUpperCase();
-    setLoading(true); setError(""); setData(null); setNews([]); setAiSummary(""); setAiError(""); 
+    setLoading(true); setError(""); setData(null); setNews([]); setAiSummary(""); 
     try {
       const res = await fetch(`/api/stock?symbol=${symbol}`);
       const json = await res.json();
@@ -533,18 +476,16 @@ export default function Home() {
 
   async function getAiSummary() {
     if (!data) return;
-    setAiLoading(true); setAiError(""); setAiSummary("");
+    setAiLoading(true); setAiSummary("");
     try {
       const signal = getSignal(data.technicals, data.currentPrice);
       const res = await fetch("/api/summary", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol: data.symbol, name: data.name, currentPrice: data.currentPrice, changePercent: data.changePercent, technicals: data.technicals, fundamentals: data.fundamentals, swingScore: data.swingScore, tradePlan: data.tradePlan, signalLabel: signal ? signal.label : "" }),
+        body: JSON.stringify({ symbol: data.symbol, name: data.name, currentPrice: data.currentPrice, changePercent: data.changePercent, technicals: data.technicals, fundamentals: data.fundamentals, tradePlan: data.tradePlan, signalLabel: signal ? signal.label : "" }),
       });
       const json = await res.json();
-      if (json && json.error) setAiError(json.error + (json.detail ? " — " + json.detail : ""));
-      else if (json && json.summary) setAiSummary(json.summary);
-      else setAiError("Белгісіз жауап");
-    } catch (err) { setAiError("Байланыс қатесі"); } finally { setAiLoading(false); }
+      if (json && json.summary) setAiSummary(json.summary);
+    } catch (err) {} finally { setAiLoading(false); }
   }
 
   async function sendChatMessage(e) {
@@ -556,11 +497,10 @@ export default function Home() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, stockContext: data ? { symbol: data.symbol, name: data.name, currentPrice: data.currentPrice, technicals: data.technicals, swingScore: data.swingScore, swingScoreBreakdown: data.swingScoreBreakdown, fundamentals: data.fundamentals, tradePlan: data.tradePlan } : null }),
+        body: JSON.stringify({ messages: newMessages, stockContext: data ? { symbol: data.symbol, currentPrice: data.currentPrice } : null }),
       });
       const json = await res.json();
-      if (json && json.error) setChatMessages([...newMessages, { role: "assistant", text: "Қате: " + json.error }]);
-      else if (json && json.reply) setChatMessages([...newMessages, { role: "assistant", text: json.reply }]);
+      if (json && json.reply) setChatMessages([...newMessages, { role: "assistant", text: json.reply }]);
     } catch (err) { setChatMessages([...newMessages, { role: "assistant", text: "Байланыс қатесі болды." }]); } finally { setChatLoading(false); }
   }
 
@@ -599,29 +539,9 @@ export default function Home() {
   }));
 
   const convertedChartData = data?.chartData?.map(d => ({
-    ...d,
-    open: d.open * (currency === "KZT" ? usdkzt : 1),
-    high: d.high * (currency === "KZT" ? usdkzt : 1),
-    low: d.low * (currency === "KZT" ? usdkzt : 1),
-    close: d.close * (currency === "KZT" ? usdkzt : 1),
-    ema20: d.ema20 ? d.ema20 * (currency === "KZT" ? usdkzt : 1) : null,
-    ema50: d.ema50 ? d.ema50 * (currency === "KZT" ? usdkzt : 1) : null,
+    ...d, open: d.open * (currency === "KZT" ? usdkzt : 1), high: d.high * (currency === "KZT" ? usdkzt : 1), low: d.low * (currency === "KZT" ? usdkzt : 1), close: d.close * (currency === "KZT" ? usdkzt : 1),
+    ema20: d.ema20 ? d.ema20 * (currency === "KZT" ? usdkzt : 1) : null, ema50: d.ema50 ? d.ema50 * (currency === "KZT" ? usdkzt : 1) : null,
   })) || [];
-
-  const convertedTradePlan = data?.tradePlan ? {
-    entry: data.tradePlan.entry * (currency === "KZT" ? usdkzt : 1),
-    stopLoss: data.tradePlan.stopLoss * (currency === "KZT" ? usdkzt : 1),
-    takeProfit1: data.tradePlan.takeProfit1 * (currency === "KZT" ? usdkzt : 1),
-    takeProfit2: data.tradePlan.takeProfit2 * (currency === "KZT" ? usdkzt : 1),
-  } : null;
-
-  const convertedPivot = data?.pivot ? {
-    pivot: data.pivot.pivot * (currency === "KZT" ? usdkzt : 1),
-    r1: data.pivot.r1 * (currency === "KZT" ? usdkzt : 1),
-    s1: data.pivot.s1 * (currency === "KZT" ? usdkzt : 1),
-    r2: data.pivot.r2 * (currency === "KZT" ? usdkzt : 1),
-    s2: data.pivot.s2 * (currency === "KZT" ? usdkzt : 1),
-  } : null;
 
   return (
     <main style={{ minHeight: "100vh", position: "relative", paddingBottom: "140px" }}>
@@ -660,7 +580,6 @@ export default function Home() {
             </button>
           </form>
 
-          {/* ЖАҢА: TradeIQ Радиосы (Аудио Подкаст) */}
           <AiRadioPlayer stockData={data} isUp={isUp} />
 
           <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
@@ -716,63 +635,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
-            <div className="glass-card" style={{ padding: "24px", position: "relative", overflow: "hidden", borderColor: "rgba(59,130,246,0.4)", boxShadow: "0 0 30px rgba(59,130,246,0.1)" }}>
-              <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "150px", height: "150px", background: "rgba(59,130,246,0.15)", filter: "blur(40px)", borderRadius: "50%" }}></div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", position: "relative", zIndex: 2 }}>
-                <span style={{ color: colors.goldBright, fontSize: "1.3rem", filter: "drop-shadow(0 0 5px rgba(96,165,250,0.8))" }}>✦</span>
-                <h3 style={{ margin: 0, fontWeight: "700", fontSize: "1.1rem" }}>TradeIQ AI</h3>
-              </div>
-
-              <div className="hide-scrollbar" style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "260px", overflowY: "auto", marginBottom: "20px", position: "relative", zIndex: 2 }}>
-                {chatMessages.map((m, i) => (
-                  <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%", background: m.role === "user" ? colors.gold : "rgba(255,255,255,0.06)", color: m.role === "user" ? "#fff" : colors.textPrimary, border: m.role === "user" ? "none" : `1px solid rgba(255,255,255,0.1)`, borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px", padding: "14px 16px", fontSize: "0.9rem", lineHeight: "1.5", boxShadow: m.role === "user" ? "0 4px 15px rgba(59,130,246,0.3)" : "none" }}>
-                    {m.text}
-                  </div>
-                ))}
-                {chatLoading && <div style={{ alignSelf: "flex-start", color: colors.goldBright, fontSize: "0.85rem", fontStyle: "italic" }}>Ойланып жатыр...</div>}
-              </div>
-
-              {chatError && <p style={{ color: colors.lossBright, fontSize: "0.8rem", marginBottom: "12px", position: "relative", zIndex: 2 }}>{chatError}</p>}
-
-              <form onSubmit={sendChatMessage} style={{ display: "flex", gap: "10px", position: "relative", zIndex: 2 }}>
-                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Сұрағыңызды жазыңыз..." style={{ flex: 1, background: "rgba(0,0,0,0.2)", border: `1px solid rgba(255,255,255,0.15)`, borderRadius: "16px", padding: "14px 16px", color: colors.textPrimary, fontSize: "0.95rem", fontFamily: fontBody, outline: "none", transition: "border-color 0.2s" }} onFocus={(e) => e.currentTarget.style.borderColor = "rgba(59,130,246,0.6)"} onBlur={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"} />
-                <button type="submit" disabled={chatLoading} className="tradeiq-search-btn" style={{ width: "50px", height: "50px", borderRadius: "16px", border: "none", background: colors.gold, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: chatLoading ? "default" : "pointer", boxShadow: "0 4px 15px rgba(59,130,246,0.4)" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: colors.textPrimary, marginBottom: "20px", marginTop: 0 }}>Секторлар — ақша қайда құйылуда?</h3>
-            <div className="glass-card" style={{ padding: "24px" }}>
-              {sectorsLoading && sectors.length === 0 ? (
-                <div style={{ fontSize: "0.9rem", color: colors.textFaint, textAlign: "center" }}>Жүктелуде...</div>
-              ) : sectors.length === 0 ? (
-                <div style={{ fontSize: "0.9rem", color: colors.textFaint, textAlign: "center" }}>Сектор деректері жоқ</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {sectors.map((s) => {
-                    const up = typeof s.changePercent === "number" && s.changePercent >= 0;
-                    const magnitude = Math.min(Math.abs(s.changePercent || 0) / 2, 1);
-                    return (
-                      <div key={s.symbol} style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "0.85rem" }}>
-                        <span style={{ width: "120px", color: colors.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: "500" }}>{s.label}</span>
-                        <div style={{ flex: 1, height: "8px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden", position: "relative" }}>
-                          <div style={{ height: "100%", width: `${Math.max(2, magnitude * 100)}%`, background: up ? colors.gain : colors.loss, borderRadius: "4px", boxShadow: `0 0 10px ${up ? colors.gain : colors.loss}` }} />
-                        </div>
-                        <span style={{ width: "55px", textAlign: "right", fontFamily: fontMono, fontWeight: "700", color: up ? colors.gainBright : colors.lossBright }}>
-                          {up ? "▲" : "▼"}{safeNum(Math.abs(s.changePercent), 2)}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
           {loading && <p style={{ margin: "24px 0", color: colors.goldBright, animation: "fadeInUp 1s infinite alternate" }}>Мәліметтер ізделуде...</p>}
           {error && <p style={{ margin: "24px 0", color: colors.lossBright }}>{error}</p>}
 
@@ -801,18 +663,21 @@ export default function Home() {
                 )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "baseline", gap: "14px", fontFamily: fontMono, marginBottom: "30px", position: "relative", zIndex: 2 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "14px", fontFamily: fontMono, marginBottom: "20px", position: "relative", zIndex: 2 }}>
                 <span style={{ fontSize: "2.8rem", fontWeight: "800", letterSpacing: "-1px" }}>{fmtCurr(data.currentPrice, currency, usdkzt)}</span>
                 <span style={{ fontSize: "1rem", fontWeight: "700", color: isUp ? colors.gain : colors.loss }}>
                   {isUp ? "▲" : "▼"}{fmtCurr(Math.abs(data.change), currency, usdkzt)} ({safeNum(data.changePercent, 2)}%)
                 </span>
               </div>
 
+              {/* ЖАҢА: Трейдер психологы (Егер акция 2%-дан төмен түссе немесе 4%-дан жоғары өссе шығады) */}
+              <AiPsychologist data={data} />
+
               <SentimentMeter score={currentSentimentScore} />
 
               {Array.isArray(data.chartData) && data.chartData.length > 1 ? (
                 <div style={{ marginBottom: "30px", height: "180px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, overflow: "hidden" }}>
-                  <ProChart chartData={convertedChartData} pivot={convertedPivot} tradePlan={convertedTradePlan} colors={colors} />
+                  <ProChart chartData={convertedChartData} />
                 </div>
               ) : hasHistory && (
                 <div style={{ marginBottom: "30px", height: "90px", background: "rgba(255,255,255,0.02)", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, position: "relative", overflow: "hidden" }}>
@@ -830,14 +695,13 @@ export default function Home() {
               {hasFundamentals && (
                 <div style={{ marginBottom: "30px" }}>
                   <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", marginTop: 0 }}>Ақылды Фундаменталды Анализ</h4>
-                  
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "16px", textAlign: "center" }}>
                     <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
                       <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>Нарық құны</div>
                       <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{fmtMarketCap(data.marketCap, currency, usdkzt)}</div>
                     </div>
                     <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
-                      <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>EPS (Пайда)</div>
+                      <div style={{ fontSize: "0.65rem", color: colors.textFaint, textTransform: "uppercase" }}>EPS</div>
                       <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{fmtCurr(data.fundamentals.eps, currency, usdkzt)}</div>
                     </div>
                     <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
@@ -845,104 +709,17 @@ export default function Home() {
                       <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{data.fundamentals.dividendYield ? safeNum(data.fundamentals.dividendYield, 2) + "%" : "—"}</div>
                     </div>
                   </div>
-
                   <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, fontFamily: fontMono }}>
                     {renderSmartFundItem("P/E (Баға/Табыс)", data.fundamentals.peRatio, "PE")}
                     {renderSmartFundItem("Қарыз / Капитал (D/E)", data.fundamentals.debtToEquity, "DE")}
                     {renderSmartFundItem("Ағымдағы өтімділік", data.fundamentals.currentRatio, "CR")}
-                    {renderSmartFundItem("ROE (Тиімділік)", data.fundamentals.roe, "ROE")}
-                    {renderSmartFundItem("Таза маржа (Пайда)", data.fundamentals.profitMargin, "PM")}
-                    {renderSmartFundItem("P/B (Баға/Мүлік құны)", data.fundamentals.pbRatio, "PB")}
                   </div>
-                </div>
-              )}
-
-              {data.tradePlan && (
-                <div style={{ marginBottom: "30px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.06)" }}>
-                  <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.goldBright, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: colors.gold, boxShadow: "0 0 8px #3b82f6" }}></span>
-                    Сауда жоспары
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "0.9rem", fontFamily: fontMono }}>
-                    <div>Entry: <span style={{ color: colors.textPrimary, fontWeight: "bold" }}>{fmtCurr(data.tradePlan.entry, currency, usdkzt)}</span></div>
-                    <div>Stop Loss: <span style={{ color: colors.lossBright, fontWeight: "bold" }}>{fmtCurr(data.tradePlan.stopLoss, currency, usdkzt)}</span></div>
-                    <div>TP 1: <span style={{ color: colors.gainBright, fontWeight: "bold" }}>{fmtCurr(data.tradePlan.takeProfit1, currency, usdkzt)}</span></div>
-                    <div>TP 2: <span style={{ color: colors.gainBright, fontWeight: "bold" }}>{fmtCurr(data.tradePlan.takeProfit2, currency, usdkzt)}</span></div>
-                  </div>
-                </div>
-              )}
-
-              {hasTechnicals && (
-                <div style={{ marginBottom: "30px" }}>
-                  <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", marginTop: 0 }}>Техникалық анализ</h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "0.85rem", fontFamily: fontMono, color: colors.textMuted }}>
-                    <div>RSI (14): <span style={{ fontWeight: "700", color: data.technicals.rsi > 70 ? colors.lossBright : data.technicals.rsi < 30 ? colors.gainBright : colors.textPrimary }}>{safeNum(data.technicals.rsi, 2)}</span></div>
-                    <div>MACD: <span style={{ fontWeight: "700", color: data.technicals.macd > 0 ? colors.gainBright : colors.lossBright }}>{safeNum(data.technicals.macd, 2)}</span></div>
-                    <div>SMA20: <span style={{ fontWeight: "600", color: colors.textPrimary }}>{fmtCurr(data.technicals.sma20, currency, usdkzt)}</span></div>
-                    <div>SMA50: <span style={{ fontWeight: "600", color: colors.textPrimary }}>{fmtCurr(data.technicals.sma50, currency, usdkzt)}</span></div>
-                  </div>
-                  
-                  {signal && (
-                    <div style={{ marginTop: "20px", padding: "16px", borderRadius: "14px", border: `1px solid rgba(255,255,255,0.1)`, background: "rgba(255,255,255,0.04)" }}>
-                      <div style={{ fontSize: "0.95rem", fontWeight: "bold", fontFamily: fontMono, marginBottom: "10px", color: signal.level === 'bullish' ? colors.gainBright : signal.level === 'bearish' ? colors.lossBright : colors.hold }}>
-                        Сигнал: {signal.label}
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.6" }}>
-                        {signal.reasons.map((r, i) => <li key={i}>{r}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button onClick={getAiSummary} disabled={aiLoading} className="tradeiq-search-btn" style={{ width: "100%", padding: "16px", borderRadius: "16px", border: `1px solid rgba(59,130,246,0.6)`, background: "rgba(59,130,246,0.08)", color: colors.goldBright, fontWeight: "bold", fontSize: "0.95rem", cursor: aiLoading ? "default" : "pointer", boxShadow: "0 0 20px rgba(59,130,246,0.15)", marginTop: "8px" }}>
-                {aiLoading ? "Талдау жасалуда..." : "✨ AI қорытынды алу"}
-              </button>
-              
-              {aiSummary && (
-                <div style={{ marginTop: "20px", padding: "20px", borderRadius: "16px", background: "rgba(255,255,255,0.04)", border: `1px solid ${colors.cardBorder}`, fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.6" }}>
-                  {aiSummary}
                 </div>
               )}
 
               <HalalCard halal={data.halal} currentPrice={data.currentPrice} currency={currency} usdkzt={usdkzt} />
             </div>
           )}
-
-          <div className="animate-fade" style={{ width: "100%", marginBottom: "40px" }}>
-            <div className="glass-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: colors.textPrimary }}>Нарық жаңалықтары</h3>
-                <a href="/news" style={{ fontSize: "0.85rem", color: colors.goldBright, textDecoration: "none", fontWeight: "600" }}>Барлығы →</a>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {homeNewsLoading ? (
-                  <div style={{ fontSize: "0.85rem", color: colors.textFaint }}>Жүктелуде...</div>
-                ) : (
-                  homeNews.map((item, i) => {
-                    const isBullishNews = i % 2 === 0;
-                    const aiNewsTag = isBullishNews ? "🟩 Bullish" : "🟥 Bearish";
-                    const aiNewsColor = isBullishNews ? colors.gainBright : colors.lossBright;
-
-                    return (
-                      <a key={i} href={item.url} target="_blank" rel="noreferrer" className="tradeiq-news-item" style={{ display: "flex", gap: "14px", alignItems: "flex-start", padding: "12px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
-                        <div style={{ width: "56px", height: "56px", borderRadius: "14px", background: "rgba(255,255,255,0.05)", border: `1px solid ${colors.cardBorder}`, flexShrink: 0 }}></div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "0.9rem", color: "#e2e8f0", lineHeight: "1.4", marginBottom: "8px", fontWeight: "500" }}>{item.headline}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>{item.source} · {formatNewsDate(item.datetime)}</div>
-                            <div style={{ fontSize: "0.65rem", fontWeight: "bold", color: aiNewsColor, background: "rgba(255,255,255,0.05)", padding: "3px 8px", borderRadius: "6px" }}>{aiNewsTag}</div>
-                          </div>
-                        </div>
-                      </a>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-
-          <p style={{ margin: "20px 0 40px", textAlign: "center", color: colors.textFaint, fontSize: "0.75rem", letterSpacing: "1px" }}>© TradeIQ — ДАЛА РУХЫМЕН САУДА</p>
         </div>
       </div>
     </main>
