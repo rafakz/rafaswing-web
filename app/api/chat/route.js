@@ -1,94 +1,60 @@
+import { NextResponse } from "next/server";
+
 export async function POST(request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return Response.json(
-        { error: "GEMINI_API_KEY орнатылмаған" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "GEMINI_API_KEY орнатылмаған" }, { status: 500 });
     }
 
     const body = await request.json();
-
-    const messages = Array.isArray(body.messages)
-      ? body.messages
-      : [];
-
+    const messages = Array.isArray(body.messages) ? body.messages : [];
     const stockContext = body.stockContext || null;
 
     if (messages.length === 0) {
-      return Response.json(
-        { error: "Хабарлама жоқ" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Хабарлама жоқ" }, { status: 400 });
     }
 
-    let systemNote =
-      "Сен 'TradeIQ' атты қазақ тіліндегі AI-powered swing-трейдинг платформасының AI көмекшісісің. " +
-      "Пайдаланушымен әрқашан ҚАЗАҚ ТІЛІНДЕ сөйлес. " +
-      "Акциялар, инвестиция, техникалық және фундаменталды анализ туралы түсіндір. " +
-      "Деректерді түсіндір, бірақ нақты 'мына акцияны сатып ал' немесе 'сат' деген жеке қаржылық кеңес берме. " +
-      "Жауаптарың қысқа, нақты және түсінікті болсын.";
+    // 1. AI Психолог және Аналитик промпты (TradeIQ стилінде)
+    let systemNote = `Сен 'TradeIQ' атты қазақ тіліндегі элиталық AI-powered инвестициялық платформасының жасанды интеллект көмекшісісің. 
+Сенің басты мақсатың - трейдерлерге техникалық/фундаменталды талдау жасауға көмектесу ЖӘНЕ олардың эмоцияларын (ФОМО, дүрбелең) басқаруға психологиялық қолдау көрсету.
+- Пайдаланушымен әрқашан ҚАЗАҚ ТІЛІНДЕ сөйлес.
+- Жауаптарың қысқа, кәсіби, нақты және түсінікті болсын (артық суреттемесіз).
+- Акцияның құлағанын көрсең, сабырға шақыр. Күрт өссе, ашкөздіктен (FOMO) сақтандыр.
+- Нақты 'мына акцияны сатып ал' немесе 'сат' деген қаржылық кеңес берме, тек талдау нәтижесін ұсын.`;
 
+    // 2. Акция контекстін AI-ға беру
     if (stockContext && stockContext.symbol) {
-      systemNote +=
-        "\n\nПайдаланушы қарап отырған акция: " +
-        stockContext.symbol +
-        " (" +
-        (stockContext.name || "") +
-        ")" +
-        "\nБағасы: $" +
-        (stockContext.currentPrice ?? "жоқ") +
-        "\nRSI: " +
-        (stockContext.technicals?.rsi ?? "жоқ") +
-        "\nMACD: " +
-        (stockContext.technicals?.macd ?? "жоқ") +
-        "\nSMA20: " +
-        (stockContext.technicals?.sma20 ?? "жоқ") +
-        "\nSMA50: " +
-        (stockContext.technicals?.sma50 ?? "жоқ") +
-        "\nEMA20/50/200: " +
-        (stockContext.technicals?.ema20 ?? "жоқ") + " / " +
-        (stockContext.technicals?.ema50 ?? "жоқ") + " / " +
-        (stockContext.technicals?.ema200 ?? "жоқ");
+      systemNote += `\n\nПАЙДАЛАНУШЫ ҚАРАП ОТЫРҒАН АКЦИЯ: ${stockContext.symbol} (${stockContext.name || ""})
+- Қазіргі бағасы: $${stockContext.currentPrice ?? "белгісіз"}`;
+
+      if (stockContext.halal) {
+        systemNote += `\n- Халал статусы: ${stockContext.halal.label} (Статус: ${stockContext.halal.status}). Егер қолданушы халал ма деп сұраса, осыған сүйен.`;
+      }
+
+      if (stockContext.technicals) {
+        const t = stockContext.technicals;
+        systemNote += `\n- Техникалық көрсеткіштер: RSI=${t.rsi ?? "-"}, MACD=${t.macd ?? "-"}, SMA20=${t.sma20 ?? "-"}, SMA50=${t.sma50 ?? "-"}, EMA20/50=${t.ema20 ?? "-"}/${t.ema50 ?? "-"}`;
+      }
 
       if (typeof stockContext.swingScore === "number") {
-        systemNote += "\nSwing Score (жалпы): " + stockContext.swingScore + "/100";
+        systemNote += `\n- TradeIQ Swing Score: ${stockContext.swingScore}/100`;
       }
 
       if (stockContext.swingScoreBreakdown) {
         const b = stockContext.swingScoreBreakdown;
-        systemNote +=
-          "\nSwing Score құрамдас бөліктері (әрқайсысы 0-100, салмағымен):" +
-          "\n  - Technical (35%): " + (b.technical ?? "жоқ") +
-          "\n  - Momentum (20%): " + (b.momentum ?? "жоқ") +
-          "\n  - Fundamental (20%): " + (b.fundamental ?? "жоқ") +
-          "\n  - Volume (10%): " + (b.volume ?? "жоқ") +
-          "\n  - Sentiment (10%): " + (b.sentiment ?? "жоқ") +
-          "\n  - Risk/Beta (5%): " + (b.risk ?? "жоқ") +
-          "\nПайдаланушы 'неге бұл score' деп сұраса, дәл осы бөліктерге сүйеніп, " +
-          "қайсысы score-ды көтергенін немесе төмендеткенін нақты түсіндір.";
+        systemNote += ` (Technical: ${b.technical ?? "-"}, Momentum: ${b.momentum ?? "-"}, Fundamental: ${b.fundamental ?? "-"}, Volume: ${b.volume ?? "-"}, Sentiment: ${b.sentiment ?? "-"})`;
       }
 
       if (stockContext.fundamentals) {
         const f = stockContext.fundamentals;
-        systemNote +=
-          "\nФундаментал көрсеткіштер: P/E=" + (f.pe ?? "жоқ") +
-          ", ROE=" + (f.roe ?? "жоқ") +
-          ", кіріс өсімі=" + (f.revenueGrowth ?? "жоқ") +
-          ", EPS өсімі=" + (f.epsGrowth ?? "жоқ") +
-          ", Beta=" + (f.beta ?? "жоқ");
+        systemNote += `\n- Фундаментал көрсеткіштер: P/E=${f.peRatio ?? "-"}, ROE=${f.roe ?? "-"}%, Қарыз/Капитал(D/E)=${f.debtToEquity ?? "-"}`;
       }
 
       if (stockContext.tradePlan) {
-        const t = stockContext.tradePlan;
-        systemNote +=
-          "\nСауда жоспары: Entry=$" + (t.entry ?? "жоқ") +
-          ", Stop Loss=$" + (t.stopLoss ?? "жоқ") +
-          ", TP1=$" + (t.takeProfit1 ?? "жоқ") +
-          ", TP2=$" + (t.takeProfit2 ?? "жоқ") +
-          ", Risk/Reward=" + (t.riskReward ?? "жоқ");
+        const p = stockContext.tradePlan;
+        systemNote += `\n- Сауда жоспары: Entry=$${p.entry ?? "-"}, Stop Loss=$${p.stopLoss ?? "-"}, TP1=$${p.takeProfit1 ?? "-"}, TP2=$${p.takeProfit2 ?? "-"}`;
       }
     }
 
@@ -96,42 +62,26 @@ export async function POST(request) {
 
     for (const m of messages) {
       const text = String(m.text || "").trim();
-
       if (!text) continue;
-
       contents.push({
         role: m.role === "assistant" ? "model" : "user",
-        parts: [
-          {
-            text: text
-          }
-        ]
+        parts: [{ text: text }]
       });
     }
 
     if (contents.length === 0) {
-      return Response.json(
-        { error: "Жіберілетін хабарлама жоқ" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Жіберілетін хабарлама жоқ" }, { status: 400 });
     }
 
-    const geminiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+    // 3. Дұрыс әрі жұмыс істейтін модель аты: gemini-1.5-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        system_instruction: {
-          parts: [
-            {
-              text: systemNote
-            }
-          ]
+        systemInstruction: {
+          parts: [{ text: systemNote }]
         },
         contents: contents
       })
@@ -140,34 +90,18 @@ export async function POST(request) {
     const rawText = await geminiRes.text();
 
     if (!geminiRes.ok) {
-      return Response.json(
-        {
-          error: "Gemini API қатесі",
-          status: geminiRes.status,
-          detail: rawText.slice(0, 1000)
-        },
-        { status: 200 }
-      );
+      return NextResponse.json({ error: "Gemini API қатесі", status: geminiRes.status, detail: rawText.slice(0, 1000) }, { status: 502 });
     }
 
     let geminiData;
-
     try {
       geminiData = JSON.parse(rawText);
     } catch {
-      return Response.json(
-        {
-          error: "Gemini жауабын оқу кезінде қате",
-          detail: rawText.slice(0, 1000)
-        },
-        { status: 200 }
-      );
+      return NextResponse.json({ error: "Gemini жауабын оқу кезінде қате", detail: rawText.slice(0, 1000) }, { status: 500 });
     }
 
     let replyText = "";
-
-    const parts =
-      geminiData?.candidates?.[0]?.content?.parts || [];
+    const parts = geminiData?.candidates?.[0]?.content?.parts || [];
 
     for (const part of parts) {
       if (part && typeof part.text === "string") {
@@ -176,26 +110,12 @@ export async function POST(request) {
     }
 
     if (!replyText.trim()) {
-      return Response.json(
-        {
-          error: "AI жауабы бос келді",
-          detail: rawText.slice(0, 1000)
-        },
-        { status: 200 }
-      );
+      return NextResponse.json({ error: "AI жауабы бос келді", detail: rawText.slice(0, 1000) }, { status: 500 });
     }
 
-    return Response.json({
-      reply: replyText.trim()
-    });
+    return NextResponse.json({ reply: replyText.trim() });
 
   } catch (err) {
-    return Response.json(
-      {
-        error: "Жалпы қате",
-        detail: err?.message || String(err)
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ error: "Жалпы қате", detail: err?.message || String(err) }, { status: 500 });
   }
 }
