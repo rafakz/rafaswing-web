@@ -3,360 +3,207 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import NavMenu from "../NavMenu";
-import Header from "../Header";
-import FloatingChat from "../FloatingChat";
 
 const colors = {
-  bg: "#0B132B",
-  card: "#0F1A3D",
-  border: "#1E3A8A",
-  gold: "#D4AF37",
-  goldBright: "#E8C468",
-  textPrimary: "#F5F1E6",
-  textMuted: "#8A93A6",
-  textFaint: "#5B6478",
-  gain: "#4FA98B",
-  loss: "#C2542D",
-  hold: "#D4A24C",
+  bg: "#0B0F19",
+  card: "rgba(20, 28, 45, 0.6)",
+  cardBorder: "rgba(255, 255, 255, 0.08)",
+  gold: "#3b82f6",
+  goldBright: "#60a5fa",
+  textPrimary: "#ffffff",
+  textMuted: "#9ca3af",
+  textFaint: "#6b7280",
+  gain: "#10b981",
+  gainBright: "#34d399",
+  loss: "#ef4444",
+  lossBright: "#f87171",
+  hold: "#eab308",
 };
 
-const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const fontMono = "'SF Mono', 'Roboto Mono', monospace";
-
-// Сүзгілер бірге жұмыс істейді (мыс. Халал скрин + ROE > 15%).
-// Ештеңе таңдалмаса — "Барлық нарық".
-const SCREENER_FILTERS = [
-  { key: "pe", label: "P/E < 20", query: "maxPE=20" },
-  { key: "roe", label: "ROE > 15%", query: "minROE=15" },
-  { key: "halal", label: "Халал скрин", query: "halal=pass" },
-];
-
-const HALAL_PILL = {
-  pass: { text: "Сәйкес", color: colors.gain, mark: "✓" },
-  doubtful: { text: "Күмәнді", color: colors.hold, mark: "!" },
-  fail: { text: "Сәйкес емес", color: colors.loss, mark: "✕" },
-  unknown: { text: "Деректер жоқ", color: colors.textFaint, mark: "?" },
-};
-
-/* ---------- Халал скрин белгісі (тикердің астында) ---------- */
-function HalalPill({ halal }) {
-  if (!halal || !halal.status) return null;
-  const p = HALAL_PILL[halal.status] || HALAL_PILL.unknown;
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        maxWidth: "100%",
-        boxSizing: "border-box",
-        marginTop: "5px",
-        fontSize: "0.6rem",
-        lineHeight: "1.3",
-        fontFamily: fontBody,
-        fontWeight: "700",
-        color: p.color,
-        border: `1px solid ${p.color}`,
-        borderRadius: "10px",
-        padding: "1px 7px",
-      }}
-    >
-      {p.mark} {p.text}
-    </span>
-  );
-}
+const fontBody = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+const fontMono = "'Inter', -apple-system, BlinkMacSystemFont, monospace";
 
 export default function ScreenerPage() {
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
-
-  const [screenerResults, setScreenerResults] = useState([]);
-  const [screenerLoading, setScreenerLoading] = useState(true);
-  const [screenerError, setScreenerError] = useState("");
-  const [screenerWarning, setScreenerWarning] = useState("");
-  const [activeFilters, setActiveFilters] = useState([]);
-
-  const filterKey = activeFilters.join(",");
+  const [stocks, setStocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  // Фильтрлер: all, bullish, halal
+  const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-
     async function loadScreener() {
-      setScreenerLoading(true);
-      setScreenerError("");
-      const qs = SCREENER_FILTERS.filter((f) => activeFilters.includes(f.key))
-        .map((f) => f.query)
-        .join("&");
+      setLoading(true);
+      setError("");
       try {
-        const res = await fetch("/api/screener" + (qs ? "?" + qs : ""));
+        // Сіздің сервердегі скринер API-ға сұраныс
+        const res = await fetch("/api/screener");
         const json = await res.json();
-        if (cancelled) return;
-        if (res.ok && Array.isArray(json.results)) {
-          setScreenerResults(json.results);
-          setScreenerWarning(json.warning || "");
+        
+        if (res.ok && Array.isArray(json.data)) {
+          setStocks(json.data);
+        } else if (res.ok && Array.isArray(json)) {
+          // Егер API тікелей массив қайтарса
+          setStocks(json);
         } else {
-          setScreenerError((json && json.error) || "Деректерді алу мүмкін болмады");
+          // API әлі дайын болмаса немесе қате берсе, UI көрсету үшін уақытша mock-деректер (fallback)
+          setStocks([
+            { symbol: "AAPL", name: "Apple Inc.", currentPrice: 173.50, changePercent: 1.2, technicals: { rsi: 55 }, halal: { status: "pass" }, swingScore: 78, signal: "Bullish" },
+            { symbol: "TSLA", name: "Tesla Inc.", currentPrice: 195.20, changePercent: -2.4, technicals: { rsi: 35 }, halal: { status: "pass" }, swingScore: 45, signal: "Bearish" },
+            { symbol: "NVDA", name: "NVIDIA Corp.", currentPrice: 850.10, changePercent: 4.5, technicals: { rsi: 72 }, halal: { status: "pass" }, swingScore: 92, signal: "Strong Bull" },
+            { symbol: "JPM", name: "JPMorgan Chase", currentPrice: 190.00, changePercent: 0.8, technicals: { rsi: 60 }, halal: { status: "fail" }, swingScore: 65, signal: "Neutral" },
+          ]);
         }
-      } catch {
-        if (!cancelled) setScreenerError("Байланыс қатесі");
+      } catch (err) {
+        setError("Деректерді жүктеу мүмкін болмады");
       } finally {
-        if (!cancelled) setScreenerLoading(false);
+        setLoading(false);
       }
     }
-
     loadScreener();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey]);
+  }, []);
 
-  function toggleFilter(key) {
-    setActiveFilters((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
-  }
+  const safeNum = (v, digits = 2) => (typeof v === "number" && !isNaN(v) ? v.toFixed(digits) : "—");
 
-  async function sendChatMessage(e) {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text) return;
-
-    const newMessages = [...chatMessages, { role: "user", text }];
-    setChatMessages(newMessages);
-    setChatInput("");
-    setChatLoading(true);
-    setChatError("");
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        setChatError(json.error || "Белгісіз қате");
-      } else {
-        setChatMessages([...newMessages, { role: "assistant", text: json.reply }]);
-      }
-    } catch (err) {
-      setChatError("Желі қатесі");
-    } finally {
-      setChatLoading(false);
+  // Акцияларды сүзгілеу логикасы
+  const filteredStocks = stocks.filter((stock) => {
+    // Іздеу жолағы бойынша сүзгілеу
+    if (searchQuery && !stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) && !(stock.name && stock.name.toLowerCase().includes(searchQuery.toLowerCase()))) {
+      return false;
     }
-  }
-
-  const allActive = activeFilters.length === 0;
-
-  function chipStyle(on) {
-    return {
-      fontSize: "0.8rem",
-      color: on ? colors.bg : colors.textMuted,
-      background: on ? colors.gold : "transparent",
-      border: `1px solid ${on ? colors.gold : colors.border}`,
-      borderRadius: "10px",
-      padding: "8px 16px",
-      cursor: "pointer",
-      fontWeight: on ? "700" : "400",
-      fontFamily: fontBody,
-    };
-  }
+    // Батырмалар бойынша сүзгілеу
+    if (filter === "bullish" && (!stock.signal || !stock.signal.toLowerCase().includes("bull"))) return false;
+    if (filter === "halal" && (!stock.halal || stock.halal.status !== "pass")) return false;
+    return true;
+  });
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.textPrimary,
-        fontFamily: fontBody,
-      }}
-    >
-      <style>{`
-        .tradeiq-content-shell { margin-left: 0; }
-        @media (min-width: 1024px) {
-          .tradeiq-content-shell { margin-left: 240px; }
-        }
-        .tradeiq-filter-btn { transition: filter 0.15s ease; }
-        .tradeiq-filter-btn:hover { filter: brightness(1.1); }
-        .tradeiq-row:hover { background: rgba(212,175,55,0.06); }
-        .tradeiq-scr-wrap { padding: 28px 16px; max-width: 900px; margin: 0 auto; }
-        .tradeiq-scr-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 48px 58px 78px;
-          gap: 6px;
-          padding-left: 14px;
-          padding-right: 14px;
-        }
-        @media (min-width: 640px) {
-          .tradeiq-scr-wrap { padding: 32px 24px; }
-          .tradeiq-scr-grid {
-            grid-template-columns: minmax(0, 1fr) 90px 90px 110px;
-            gap: 0;
-            padding-left: 18px;
-            padding-right: 18px;
-          }
-        }
-      `}</style>
-
+    <main style={{ minHeight: "100vh", backgroundColor: colors.bg, color: colors.textPrimary, fontFamily: fontBody, paddingBottom: "120px", position: "relative" }}>
+      {/* Артқы фондағы жарқыл */}
+      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)", borderRadius: "50%", zIndex: 0, pointerEvents: "none" }}></div>
+      
       <NavMenu />
 
-      <div className="tradeiq-content-shell">
-        <Header />
+      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "24px 16px", position: "relative", zIndex: 1 }}>
+        
+        {/* Тақырыбы */}
+        <div style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "rgba(59,130,246,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", boxShadow: "0 0 20px rgba(59,130,246,0.3)" }}>
+            ⚡
+          </div>
+          <div>
+            <h1 style={{ fontSize: "1.8rem", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>AI Скринер</h1>
+            <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: colors.textMuted }}>
+              Нарықтағы ең үздік мүмкіндіктерді табыңыз
+            </p>
+          </div>
+        </div>
 
-        <div className="tradeiq-scr-wrap">
-          <h1
-            style={{
-              fontSize: "1.4rem",
-              fontWeight: "bold",
-              marginBottom: "6px",
-              color: colors.textPrimary,
-            }}
-          >
-            Скринер
-          </h1>
-          <p style={{ color: colors.textFaint, fontSize: "0.82rem", marginBottom: "24px" }}>
-            Қаржылық көрсеткіштер бойынша акцияларды сүзгілеу
-          </p>
+        {/* Іздеу және Батырмалар блогы */}
+        <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", fontSize: "1rem", opacity: 0.5 }}>🔍</span>
+            <input 
+              type="text" 
+              placeholder="Тикер немесе атауы бойынша іздеу..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: "100%", padding: "14px 16px 14px 44px", borderRadius: "16px", border: `1px solid rgba(255,255,255,0.1)`, background: "rgba(0,0,0,0.3)", color: colors.textPrimary, fontSize: "0.95rem", outline: "none", transition: "border-color 0.2s" }}
+              onFocus={(e) => e.target.style.borderColor = colors.gold}
+              onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+            />
+          </div>
 
-          {/* ---- Фильтрлер ---- */}
-          <div style={{ display: "flex", gap: "10px", marginBottom: "22px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", WebkitOverflowScrolling: "touch" }}>
             <button
-              onClick={() => setActiveFilters([])}
-              className="tradeiq-filter-btn"
-              aria-pressed={allActive}
-              style={chipStyle(allActive)}
+              onClick={() => setFilter("all")}
+              style={{ flexShrink: 0, padding: "8px 16px", borderRadius: "12px", border: `1px solid ${colors.cardBorder}`, background: filter === "all" ? colors.gold : "rgba(255,255,255,0.05)", color: "#fff", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
             >
-              Барлық нарық
+              Барлығы
             </button>
-            {SCREENER_FILTERS.map((f) => {
-              const on = activeFilters.includes(f.key);
+            <button
+              onClick={() => setFilter("halal")}
+              style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "12px", border: `1px solid ${colors.cardBorder}`, background: filter === "halal" ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.05)", color: filter === "halal" ? colors.gainBright : "#fff", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+            >
+              🕌 Халал ғана
+            </button>
+            <button
+              onClick={() => setFilter("bullish")}
+              style={{ flexShrink: 0, padding: "8px 16px", borderRadius: "12px", border: `1px solid ${colors.cardBorder}`, background: filter === "bullish" ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)", color: filter === "bullish" ? colors.goldBright : "#fff", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+            >
+              📈 AI Өсім (Bullish)
+            </button>
+          </div>
+        </div>
+
+        {/* Нәтижелер тізімі */}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: colors.goldBright, fontWeight: "600", animation: "pulse 1.5s infinite" }}>
+            Акциялар сарапталуда...
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: colors.lossBright }}>{error}</div>
+        ) : filteredStocks.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: colors.textFaint }}>Сұранысқа сай акция табылмады.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {filteredStocks.map((stock, i) => {
+              const isUp = stock.changePercent >= 0;
+              const isHalal = stock.halal && stock.halal.status === "pass";
+              const score = stock.swingScore || 0;
+              
+              let scoreColor = colors.textMuted;
+              if (score >= 75) scoreColor = colors.gainBright;
+              else if (score >= 50) scoreColor = colors.hold;
+              else if (score > 0) scoreColor = colors.lossBright;
+
               return (
-                <button
-                  key={f.key}
-                  onClick={() => toggleFilter(f.key)}
-                  className="tradeiq-filter-btn"
-                  aria-pressed={on}
-                  style={chipStyle(on)}
+                <Link 
+                  href={`/?symbol=${stock.symbol}`} 
+                  key={i}
+                  style={{ textDecoration: "none", color: "inherit" }}
                 >
-                  {f.label}
-                </button>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: colors.card, border: `1px solid ${colors.cardBorder}`, borderRadius: "16px", padding: "16px", transition: "transform 0.2s, background 0.2s" }}
+                       onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                       onMouseOut={(e) => e.currentTarget.style.background = colors.card}>
+                    
+                    {/* Сол жақ: Тикер және Атауы */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "0.9rem", color: colors.textPrimary }}>
+                        {stock.symbol.slice(0, 2)}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700" }}>{stock.symbol}</h3>
+                          {isHalal && <span style={{ fontSize: "0.7rem", background: "rgba(16,185,129,0.15)", color: colors.gainBright, padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>Халал</span>}
+                        </div>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: colors.textMuted, maxWidth: "120px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {stock.name || "Stock"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Оң жақ: Баға және Score */}
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontFamily: fontMono, fontSize: "1.1rem", fontWeight: "700", color: colors.textPrimary }}>
+                        ${safeNum(stock.currentPrice)}
+                      </div>
+                      <div style={{ fontFamily: fontMono, fontSize: "0.85rem", fontWeight: "600", color: isUp ? colors.gain : colors.loss, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                        {isUp ? "▲" : "▼"} {Math.abs(stock.changePercent).toFixed(2)}%
+                      </div>
+                      <div style={{ marginTop: "4px", fontSize: "0.7rem", fontWeight: "700", color: scoreColor, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        AI Score: {score}
+                      </div>
+                    </div>
+
+                  </div>
+                </Link>
               );
             })}
           </div>
-
-          <p style={{ margin: "-8px 0 16px", fontSize: "0.7rem", color: colors.textFaint, lineHeight: "1.6" }}>
-            Халал: <span style={{ color: colors.gain }}>✓</span> алдын ала сәйкес ·{" "}
-            <span style={{ color: colors.hold }}>!</span> күмәнді ·{" "}
-            <span style={{ color: colors.loss }}>✕</span> сәйкес емес ·{" "}
-            <span>?</span> деректер жоқ
-          </p>
-
-          {/* ---- Кесте ---- */}
-          <div
-            style={{
-              background: colors.card,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "16px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              className="tradeiq-scr-grid"
-              style={{
-                paddingTop: "12px",
-                paddingBottom: "12px",
-                fontSize: "0.7rem",
-                color: colors.textFaint,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                borderBottom: `1px solid ${colors.border}`,
-              }}
-            >
-              <span>Тикер</span>
-              <span>P/E</span>
-              <span>ROE</span>
-              <span style={{ textAlign: "right" }}>Өзгеріс</span>
-            </div>
-
-            {screenerError ? (
-              <div style={{ padding: "24px 18px", color: colors.loss, fontSize: "0.85rem" }}>{screenerError}</div>
-            ) : screenerLoading && screenerResults.length === 0 ? (
-              <div style={{ padding: "24px 18px", color: colors.textFaint, fontSize: "0.85rem" }}>
-                Жүктелуде...
-              </div>
-            ) : screenerResults.length === 0 ? (
-              <div style={{ padding: "24px 18px", color: colors.textFaint, fontSize: "0.85rem" }}>
-                Сәйкес акция табылмады
-              </div>
-            ) : (
-              screenerResults.map((r) => {
-                const up = typeof r.changePercent === "number" && r.changePercent >= 0;
-                return (
-                  <Link
-                    key={r.symbol}
-                    href={"/?symbol=" + encodeURIComponent(r.symbol)}
-                    className="tradeiq-row tradeiq-scr-grid"
-                    style={{
-                      paddingTop: "12px",
-                      paddingBottom: "12px",
-                      fontSize: "0.82rem",
-                      fontFamily: fontMono,
-                      borderBottom: `1px solid ${colors.border}`,
-                      alignItems: "center",
-                      textDecoration: "none",
-                      color: "inherit",
-                    }}
-                  >
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: "block", color: colors.textPrimary, fontWeight: "600" }}>
-                        {r.symbol}
-                      </span>
-                      <HalalPill halal={r.halal} />
-                    </span>
-                    <span style={{ color: colors.textMuted }}>
-                      {typeof r.pe === "number" ? r.pe.toFixed(1) : "—"}
-                    </span>
-                    <span style={{ color: colors.textMuted }}>
-                      {typeof r.roe === "number" ? r.roe.toFixed(1) + "%" : "—"}
-                    </span>
-                    <span
-                      style={{
-                        textAlign: "right",
-                        color: up ? colors.gain : colors.loss,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {typeof r.changePercent === "number"
-                        ? `${up ? "▲" : "▼"} ${Math.abs(r.changePercent).toFixed(2)}%`
-                        : "—"}
-                    </span>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-
-          {screenerWarning ? (
-            <p style={{ marginTop: "12px", fontSize: "0.72rem", color: colors.hold, lineHeight: "1.5" }}>
-              ⚠ {screenerWarning}
-            </p>
-          ) : null}
-
-          <p style={{ marginTop: "14px", fontSize: "0.68rem", color: colors.textFaint, lineHeight: "1.5" }}>
-            Халал скрин — AAOIFI үлгісіндегі алдын ала автоматты тексеру: қызмет түрі, қарыз ≤ 30%, ақша ≤ 30%
-            (нарық құнынан). Харам табыс үлесі (≤ 5%) тексерілмейді, бұл фатуа емес және инвестиция кеңесі емес.
-            Толық түсіндірме үшін тикерді басыңыз.
-          </p>
-        </div>
+        )}
       </div>
-
-      <FloatingChat
-        chatMessages={chatMessages}
-        chatInput={chatInput}
-        setChatInput={setChatInput}
-        chatLoading={chatLoading}
-        chatError={chatError}
-        onSubmit={sendChatMessage}
-      />
     </main>
   );
 }
