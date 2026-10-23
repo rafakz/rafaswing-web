@@ -1,149 +1,127 @@
+import { NextResponse } from 'next/server';
+
 export const revalidate = 3600; // сағат сайын жаңарады
 
-async function translateItems(items, apiKey) {
+// ЖАҢАРТЫЛҒАН AI ФУНКЦИЯСЫ: Аударма + Нарық көңіл-күйі (Sentiment)
+async function translateAndAnalyzeItems(items, apiKey) {
   if (!apiKey || items.length === 0) return items;
 
-  var numbered = items
-    .map(function (it, i) {
-      var summary = it.summary && it.summary.trim() ? it.summary : "(жоқ)";
-      return (i + 1) + ".\nТАҚЫРЫП: " + it.headline + "\nМАЗМҰНЫ: " + summary;
-    })
-    .join("\n\n");
+  // AI-ға оңай болу үшін деректерді ықшамдап береміз
+  const newsData = items.map((it, i) => ({
+    id: i + 1,
+    headline: it.headline,
+    summary: it.summary && it.summary.trim() ? it.summary : "(жоқ)"
+  }));
 
-  var prompt =
-    "Мына акша-нарық жаңалықтарының әрқайсысының ТАҚЫРЫБЫН және МАЗМҰНЫН қазақ тіліне аудар. " +
-    "Әр жаңалық үшін дәл осы форматта жауап бер (нөмірін сақта):\n" +
-    "N.\nТАҚЫРЫП: <аударылған тақырып>\nМАЗМҰНЫ: <аударылған мазмұн>\n\n" +
-    "Басқа ешнәрсе қоспа, тек аудармаларды қайтар.\n\n" +
-    numbered;
+  // ПРОМПТ: JSON форматын талап етеміз және Sentiment сұраймыз
+  const prompt = `Мына қаржы жаңалықтарына сараптама жаса. Әр жаңалық үшін:
+1. ТАҚЫРЫБЫН қазақ тіліне аудар.
+2. МАЗМҰНЫН қазақ тіліне аудар.
+3. Бұл жаңалық нарық үшін қандай екенін анықта (тек мына үш сөздің бірін таңда: "Bullish", "Bearish", "Neutral").
 
-  var geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+Жауапты ТЕК қана мынадай қатаң JSON массив форматында қайтар (ешқандай маркдаун, түсіндірме немесе қосымша мәтінсіз):
+[
+  { "id": 1, "headline": "Аударылған тақырып", "summary": "Аударылған мазмұн", "sentiment": "Bullish" }
+]
+
+Жаңалықтар:
+${JSON.stringify(newsData)}`;
+
+  // Дұрыс әрі соңғы модель: gemini-1.5-flash
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   try {
-    var res = await fetch(geminiUrl, {
+    const res = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       }),
-      next: { revalidate: 3600 },
     });
 
     if (!res.ok) {
-      var errBody = await res.text();
-      console.error("Gemini translate error (market-news):", res.status, errBody.slice(0, 500));
+      const errBody = await res.text();
+      console.error("Gemini API Error (market-news):", res.status, errBody.slice(0, 500));
       return items;
     }
 
-    var data = await res.json();
-    var text = "";
-    if (
-      data &&
-      Array.isArray(data.candidates) &&
-      data.candidates[0] &&
-      data.candidates[0].content &&
-      Array.isArray(data.candidates[0].content.parts)
-    ) {
-      for (var i = 0; i < data.candidates[0].content.parts.length; i++) {
-        var part = data.candidates[0].content.parts[i];
-        if (part && typeof part.text === "string") text += part.text;
-      }
-    }
+    const data = await res.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!text) return items;
 
-    var blocks = text.split(/\n(?=\d+\.\s*\n)/);
+    // AI кейде жауапты ```json ... ``` деп қайтарады, соны тазалаймыз
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    var translatedMap = {};
-    blocks.forEach(function (block) {
-      var numMatch = block.match(/^\s*(\d+)\./);
-      if (!numMatch) return;
-      var num = parseInt(numMatch[1], 10);
+    const parsedAiData = JSON.parse(text); // Қатесіз JSON парсинг
 
-      var headlineMatch = block.match(/ТАҚЫРЫП:\s*([^\n]+)/);
-      var summaryMatch = block.match(/МАЗМҰНЫ:\s*([\s\S]+)/);
-
-      translatedMap[num] = {
-        headline: headlineMatch ? headlineMatch[1].trim() : null,
-        summary: summaryMatch ? summaryMatch[1].trim() : null,
+    // AI қайтарған массивті бастапқы жаңалықтармен біріктіру
+    return items.map((it, i) => {
+      const aiResult = parsedAiData.find(a => a.id === i + 1);
+      if (!aiResult) return it;
+      
+      return {
+        ...it,
+        headline: aiResult.headline || it.headline,
+        summary: aiResult.summary !== "(жоқ)" ? aiResult.summary : it.summary,
+        sentiment: aiResult.sentiment || "Neutral" // 🔥 ЖАҢА: AI Сигналы қосылды!
       };
     });
 
-    return items.map(function (it, i) {
-      var t = translatedMap[i + 1];
-      if (!t) return it;
-      return Object.assign({}, it, {
-        headline: t.headline || it.headline,
-        summary: t.summary && t.summary !== "(жоқ)" ? t.summary : it.summary,
-      });
-    });
   } catch (err) {
-    console.error("Gemini translate exception (market-news):", err.message);
-    return items;
+    console.error("Gemini Analysis Exception (market-news):", err.message);
+    return items; // Қате болса, ағылшынша түпнұсқасын қайтара береміз
   }
 }
 
 export async function GET() {
   try {
-    var finnhubKey = process.env.FINNHUB_API_KEY;
-    var geminiKey = process.env.GEMINI_API_KEY;
+    const finnhubKey = process.env.FINNHUB_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
 
     if (!finnhubKey) {
-      return Response.json(
-        { error: "FINNHUB_API_KEY орнатылмаган" },
-        { status: 200 }
-      );
+      return NextResponse.json({ error: "FINNHUB_API_KEY орнатылмаған" }, { status: 200 });
     }
 
-    var url = "https://finnhub.io/api/v1/news?category=general&token=" + finnhubKey;
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`;
 
-    var res;
+    let res;
     try {
       res = await fetch(url, { next: { revalidate: 3600 } });
     } catch (fetchErr) {
-      return Response.json(
-        { error: "Finnhub-ке сұрау жіберу кезінде кате", detail: fetchErr.message },
-        { status: 200 }
-      );
+      return NextResponse.json({ error: "Finnhub-ке сұрау жіберу кезінде қате", detail: fetchErr.message }, { status: 200 });
     }
 
     if (!res.ok) {
-      var rawText = await res.text();
-      return Response.json(
-        { error: "Finnhub API катесi", status: res.status, detail: rawText.slice(0, 300) },
-        { status: 200 }
-      );
+      const rawText = await res.text();
+      return NextResponse.json({ error: "Finnhub API қатесi", status: res.status, detail: rawText.slice(0, 300) }, { status: 200 });
     }
 
-    var data = await res.json();
+    const data = await res.json();
 
     if (!Array.isArray(data)) {
-      return Response.json({ news: [] });
+      return NextResponse.json({ news: [] });
     }
 
-    var cleaned = data.slice(0, 25).map(function (item) {
-      return {
-        id: item.id,
-        headline: item.headline || "",
-        summary: item.summary || "",
-        source: item.source || "",
-        url: item.url || "",
-        image: item.image || "",
-        datetime: item.datetime || 0,
-        related: item.related || "",
-      };
-    });
+    // Тек алғашқы 15 жаңалықты аламыз (AI-ды қатты қинамау үшін және тез жұмыс істеуі үшін)
+    const cleaned = data.slice(0, 15).map((item) => ({
+      id: item.id,
+      headline: item.headline || "",
+      summary: item.summary || "",
+      source: item.source || "",
+      url: item.url || "",
+      image: item.image || "",
+      datetime: item.datetime || 0,
+      related: item.related || "",
+    }));
 
-    var translated = await translateItems(cleaned, geminiKey);
+    // AI арқылы аудару және сараптау
+    const translatedAndAnalyzed = await translateAndAnalyzeItems(cleaned, geminiKey);
 
-    return Response.json({ news: translated });
+    return NextResponse.json({ news: translatedAndAnalyzed });
   } catch (err) {
-    return Response.json(
-      { error: "Жалпы кате", detail: (err && err.message) ? err.message : String(err) },
+    return NextResponse.json(
+      { error: "Жалпы қате", detail: (err && err.message) ? err.message : String(err) },
       { status: 200 }
     );
   }
