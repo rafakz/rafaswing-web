@@ -40,8 +40,6 @@ html, body { background-color: ${colors.bg}; color: ${colors.textPrimary}; font-
 .tradeiq-search-btn:active { transform: scale(0.97); }
 .tradeiq-overview-card { transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
 .tradeiq-overview-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-.tradeiq-news-item { transition: all 0.2s ease; text-decoration: none; color: inherit; }
-.tradeiq-news-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(59,130,246,0.3) !important; transform: translateX(3px); }
 .glow-bg { position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; z-index: -1; pointer-events: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -119,25 +117,16 @@ function SentimentMeter({ score }) {
   );
 }
 
-/* ---------- ЖАҢА КОМПОНЕНТ: Трейдер Психологы ---------- */
 function AiPsychologist({ data }) {
   if (!data || typeof data.changePercent !== 'number') return null;
-  
-  let message = "";
-  let type = ""; 
-  let icon = "🧠";
-  
+  let message = ""; let type = ""; let icon = "🧠";
   if (data.changePercent <= -2) {
-     type = "panic";
-     icon = "🧘‍♂️";
+     type = "panic"; icon = "🧘‍♂️";
      message = `Сабыр етіңіз! ${data.symbol} бүгін ${Math.abs(data.changePercent).toFixed(2)}%-ға құлап жатыр. Эмоциямен (дүрбелеңмен) минусқа сатуға асықпаңыз. Бұл нарықтағы уақытша түзету (коррекция) болуы мүмкін, әрқашан салқынқанды шешім қабылдаңыз.`;
   } else if (data.changePercent >= 4) {
-     type = "fomo";
-     icon = "🔥";
+     type = "fomo"; icon = "🔥";
      message = `${data.symbol} күрт өсіп жатыр! "Құр қалам" (FOMO) деген қорқынышпен дәл қазір ең жоғарғы бағада сатып алудан сақ болыңыз. Нарық әрқашан сабырлыларды жақсы көреді.`;
-  } else {
-     return null; 
-  }
+  } else { return null; }
   
   const bg = type === 'panic' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(245, 158, 11, 0.1)';
   const border = type === 'panic' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(245, 158, 11, 0.3)';
@@ -169,8 +158,7 @@ function HalalCard({ halal, currentPrice, currency, usdkzt }) {
   }
 
   const numShares = parseFloat(shares);
-  let totalValue = 0;
-  let zakatAmount = 0;
+  let totalValue = 0; let zakatAmount = 0;
   if (!isNaN(numShares) && numShares > 0 && currentPrice) {
       const baseValue = numShares * currentPrice;
       totalValue = baseValue * (currency === "KZT" ? usdkzt : 1);
@@ -275,10 +263,6 @@ function AiRadioPlayer({ stockData, isUp }) {
   );
 }
 
-function formatNewsDate(unixSeconds) {
-  if (!unixSeconds || typeof unixSeconds !== "number") return "";
-  try { return new Date(unixSeconds * 1000).toLocaleDateString("kk-KZ", { day: "2-digit", month: "2-digit" }); } catch (e) { return ""; }
-}
 function safeNum(v, digits) { if (typeof v !== "number" || isNaN(v)) return "—"; return v.toFixed(digits); }
 function evaluateFundamental(key, value) {
   if (typeof value !== "number" || isNaN(value)) return { text: "—", color: colors.textFaint };
@@ -334,21 +318,9 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [news, setNews] = useState([]);
-  const [newsLoading, setNewsLoading] = useState(false);
-  const [aiSummary, setAiSummary] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  
-  const [chatMessages, setChatMessages] = useState([{ role: "assistant", text: "Қош келдіңіз! Мен TradeIQ AI көмекшісімін. Сізге қандай көмек керек?" }]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
   
   const [overview, setOverview] = useState([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
-  const [sectors, setSectors] = useState([]);
-  const [sectorsLoading, setSectorsLoading] = useState(true);
-  const [homeNews, setHomeNews] = useState([]);
-  const [homeNewsLoading, setHomeNewsLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [watchlistSymbols, setWatchlistSymbols] = useState([]);
 
@@ -393,20 +365,6 @@ export default function Home() {
     } catch (err) {}
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadHomeNews() {
-      setHomeNewsLoading(true);
-      try {
-        const res = await fetch("/api/news?symbol=SPY");
-        const json = await res.json();
-        if (!cancelled && res.ok && Array.isArray(json.news)) setHomeNews(json.news.slice(0, 3));
-      } catch (err) {} finally { if (!cancelled) setHomeNewsLoading(false); }
-    }
-    loadHomeNews();
-    return () => { cancelled = true; };
-  }, []);
-
   const OVERVIEW_SYMBOLS = [ { symbol: "QQQ", label: "NASDAQ" }, { symbol: "SPY", label: "S&P 500" } ];
 
   useEffect(() => {
@@ -429,20 +387,6 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadSectors() {
-      setSectorsLoading(true);
-      try {
-        const res = await fetch("/api/sectors");
-        const json = await res.json();
-        if (!cancelled && res.ok && Array.isArray(json.sectors)) setSectors(json.sectors);
-      } catch (err) {} finally { if (!cancelled) setSectorsLoading(false); }
-    }
-    loadSectors();
-    return () => { cancelled = true; };
-  }, []);
-
   function loadFromOverview(symbol) {
     setTicker(symbol);
     searchStock({ preventDefault: () => {} }, symbol);
@@ -460,54 +404,16 @@ export default function Home() {
     const raw = symbolOverride || ticker;
     if (!raw || !raw.trim()) return;
     const symbol = raw.trim().toUpperCase();
-    setLoading(true); setError(""); setData(null); setNews([]); setAiSummary(""); 
+    setLoading(true); setError(""); setData(null);
     try {
       const res = await fetch(`/api/stock?symbol=${symbol}`);
       const json = await res.json();
       if (!res.ok) setError((json && json.error) || "Қате шықты"); else setData(json);
     } catch (err) { setError("Байланыс қатесі"); } finally { setLoading(false); }
-    setNewsLoading(true);
-    try {
-      const newsRes = await fetch(`/api/news?symbol=${symbol}`);
-      const newsJson = await newsRes.json();
-      if (newsRes.ok && newsJson && Array.isArray(newsJson.news)) setNews(newsJson.news);
-    } catch (err) {} finally { setNewsLoading(false); }
-  }
-
-  async function getAiSummary() {
-    if (!data) return;
-    setAiLoading(true); setAiSummary("");
-    try {
-      const signal = getSignal(data.technicals, data.currentPrice);
-      const res = await fetch("/api/summary", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol: data.symbol, name: data.name, currentPrice: data.currentPrice, changePercent: data.changePercent, technicals: data.technicals, fundamentals: data.fundamentals, tradePlan: data.tradePlan, signalLabel: signal ? signal.label : "" }),
-      });
-      const json = await res.json();
-      if (json && json.summary) setAiSummary(json.summary);
-    } catch (err) {} finally { setAiLoading(false); }
-  }
-
-  async function sendChatMessage(e) {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (!text || chatLoading) return;
-    const newMessages = [...chatMessages, { role: "user", text: text }];
-    setChatMessages(newMessages); setChatInput(""); setChatLoading(true);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, stockContext: data ? { symbol: data.symbol, currentPrice: data.currentPrice } : null }),
-      });
-      const json = await res.json();
-      if (json && json.reply) setChatMessages([...newMessages, { role: "assistant", text: json.reply }]);
-    } catch (err) { setChatMessages([...newMessages, { role: "assistant", text: "Байланыс қатесі болды." }]); } finally { setChatLoading(false); }
   }
 
   const isUp = !!(data && typeof data.change === "number" && data.change >= 0);
-  const signal = data ? getSignal(data.technicals, data.currentPrice) : null;
   const hasHistory = data && Array.isArray(data.history) && data.history.length > 1;
-  const hasTechnicals = data && data.technicals && typeof data.technicals === "object";
   const hasFundamentals = data && data.fundamentals && typeof data.fundamentals === "object";
 
   let currentSentimentScore = 50;
@@ -670,7 +576,7 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* ЖАҢА: Трейдер психологы (Егер акция 2%-дан төмен түссе немесе 4%-дан жоғары өссе шығады) */}
+              {/* Трейдер психологы */}
               <AiPsychologist data={data} />
 
               <SentimentMeter score={currentSentimentScore} />
@@ -692,6 +598,7 @@ export default function Home() {
                 <div>Low: <span style={{ color: colors.textPrimary, fontWeight: "600" }}>{fmtCurr(data.low, currency, usdkzt)}</span></div>
               </div>
 
+              {/* --- 1. ФУНДАМЕНТАЛДЫ АНАЛИЗ (Толықтырылған) --- */}
               {hasFundamentals && (
                 <div style={{ marginBottom: "30px" }}>
                   <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px", marginTop: 0 }}>Ақылды Фундаменталды Анализ</h4>
@@ -709,10 +616,49 @@ export default function Home() {
                       <div style={{ color: colors.textPrimary, fontWeight: "600", fontSize: "0.9rem", marginTop: "6px" }}>{data.fundamentals.dividendYield ? safeNum(data.fundamentals.dividendYield, 2) + "%" : "—"}</div>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, fontFamily: fontMono }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, fontFamily: fontMono }}>
                     {renderSmartFundItem("P/E (Баға/Табыс)", data.fundamentals.peRatio, "PE")}
-                    {renderSmartFundItem("Қарыз / Капитал (D/E)", data.fundamentals.debtToEquity, "DE")}
-                    {renderSmartFundItem("Ағымдағы өтімділік", data.fundamentals.currentRatio, "CR")}
+                    {renderSmartFundItem("Қарыз / Капитал", data.fundamentals.debtToEquity, "DE")}
+                    {renderSmartFundItem("Өтімділік (Current)", data.fundamentals.currentRatio, "CR")}
+                    {renderSmartFundItem("ROE (Тиімділік)", data.fundamentals.roe, "ROE")}
+                    {renderSmartFundItem("Таза маржа", data.fundamentals.profitMargin, "PM")}
+                    {renderSmartFundItem("P/B (Баға/Баланс)", data.fundamentals.pbRatio, "PB")}
+                  </div>
+                </div>
+              )}
+
+              {/* --- 2. ТЕХНИКАЛЫҚ АНАЛИЗ --- */}
+              {data.technicals && typeof data.technicals.rsi === 'number' && (
+                <div style={{ marginBottom: "30px" }}>
+                  <h4 style={{ fontSize: "0.85rem", fontWeight: "bold", color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "16px" }}>Техникалық Анализ</h4>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "16px", border: `1px solid ${colors.cardBorder}`, fontFamily: fontMono }}>
+                    <div>RSI (Күш): <span style={{ color: data.technicals.rsi > 70 ? colors.lossBright : data.technicals.rsi < 30 ? colors.gainBright : colors.textPrimary, fontWeight: "bold" }}>{safeNum(data.technicals.rsi, 2)}</span></div>
+                    <div>MACD: <span style={{ color: data.technicals.macd > 0 ? colors.gainBright : colors.lossBright, fontWeight: "bold" }}>{safeNum(data.technicals.macd, 2)}</span></div>
+                    <div>SMA 20: <span style={{ color: colors.textPrimary, fontWeight: "bold" }}>{fmtCurr(data.technicals.sma20, currency, usdkzt)}</span></div>
+                    <div>SMA 50: <span style={{ color: colors.textPrimary, fontWeight: "bold" }}>{fmtCurr(data.technicals.sma50, currency, usdkzt)}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- 3. СУИНГ ТРЕЙДИНГ СИГНАЛЫ (САУДА ЖОСПАРЫ) --- */}
+              {data.tradePlan && data.tradePlan.entry && (
+                <div style={{ marginBottom: "30px", background: "rgba(59,130,246,0.05)", border: `1px solid rgba(59,130,246,0.3)`, borderRadius: "16px", padding: "20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                    <span style={{ fontSize: "1.5rem" }}>🎯</span>
+                    <h4 style={{ margin: 0, fontSize: "0.85rem", color: colors.goldBright, textTransform: "uppercase", letterSpacing: "1px" }}>Суинг-трейдинг жоспары</h4>
+                  </div>
+                  
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontFamily: fontMono, paddingBottom: "8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span style={{ color: colors.textMuted }}>Кіру (Entry):</span>
+                    <span style={{ fontWeight: "bold", color: colors.textPrimary, fontSize: "1.1rem" }}>{fmtCurr(data.tradePlan.entry, currency, usdkzt)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontFamily: fontMono, paddingBottom: "8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span style={{ color: colors.textMuted }}>Пайда алу (Take Profit):</span>
+                    <span style={{ fontWeight: "bold", color: colors.gainBright, fontSize: "1.1rem" }}>{fmtCurr(data.tradePlan.takeProfit1, currency, usdkzt)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontFamily: fontMono }}>
+                    <span style={{ color: colors.textMuted }}>Шығынды шектеу (Stop Loss):</span>
+                    <span style={{ fontWeight: "bold", color: colors.lossBright, fontSize: "1.1rem" }}>{fmtCurr(data.tradePlan.stopLoss, currency, usdkzt)}</span>
                   </div>
                 </div>
               )}
