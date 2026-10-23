@@ -30,7 +30,8 @@ export default function NewsPage() {
     async function fetchNews() {
       setLoading(true);
       try {
-        const res = await fetch("/api/news?symbol=SPY");
+        // Жаңа ғана біз жазған нақты API-ға сұраныс жібереміз
+        const res = await fetch("/api/market-news");
         const json = await res.json();
         if (res.ok && Array.isArray(json.news)) {
           setNewsList(json.news);
@@ -58,11 +59,11 @@ export default function NewsPage() {
     }
   };
 
-  const filteredNews = newsList.filter((item, index) => {
-    const isBullish = index % 2 === 0;
-    if (filter === "bullish") return isBullish;
-    if (filter === "bearish") return !isBullish;
-    return true;
+  // AI сигналы бойынша сүзгілеу (фильтр)
+  const filteredNews = newsList.filter((item) => {
+    if (filter === "bullish") return item.sentiment === "Bullish";
+    if (filter === "bearish") return item.sentiment === "Bearish";
+    return true; // 'all' болса бәрін көрсетеді
   });
 
   return (
@@ -70,6 +71,7 @@ export default function NewsPage() {
       <NavMenu />
 
       <div style={{ maxWidth: "500px", margin: "0 auto", padding: "20px 16px" }}>
+        
         {/* Тақырыбы */}
         <div style={{ marginBottom: "24px" }}>
           <h1 style={{ fontSize: "1.8rem", fontWeight: "800", margin: 0 }}>Нарық жаңалықтары</h1>
@@ -108,7 +110,7 @@ export default function NewsPage() {
               cursor: "pointer",
             }}
           >
-            🟩 Bullish (Өсім)
+            🟩 Bullish
           </button>
           <button
             onClick={() => setFilter("bearish")}
@@ -123,7 +125,7 @@ export default function NewsPage() {
               cursor: "pointer",
             }}
           >
-            🟥 Bearish (Түсу)
+            🟥 Bearish
           </button>
         </div>
 
@@ -131,7 +133,7 @@ export default function NewsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {loading ? (
             <div style={{ textAlign: "center", color: colors.textFaint, padding: "40px 0" }}>
-              Жаңалықтар жүктелуде...
+              Жаңалықтар жүктелуде (AI сараптама жасауда)...
             </div>
           ) : filteredNews.length === 0 ? (
             <div style={{ textAlign: "center", color: colors.textFaint, padding: "40px 0" }}>
@@ -139,10 +141,23 @@ export default function NewsPage() {
             </div>
           ) : (
             filteredNews.map((item, i) => {
-              const isBullish = i % 2 === 0;
-              const aiTag = isBullish ? "Bullish" : "Bearish";
-              const tagColor = isBullish ? colors.gainBright : colors.lossBright;
-              const tagBg = isBullish ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
+              // AI-дан келген нақты мән бойынша түс пен маркер береміз
+              const isBullish = item.sentiment === "Bullish";
+              const isBearish = item.sentiment === "Bearish";
+              
+              let aiTag = "⬜ Neutral";
+              let tagColor = colors.textMuted;
+              let tagBg = "rgba(255,255,255,0.05)";
+
+              if (isBullish) {
+                aiTag = "🟩 Bullish";
+                tagColor = colors.gainBright;
+                tagBg = "rgba(16,185,129,0.15)";
+              } else if (isBearish) {
+                aiTag = "🟥 Bearish";
+                tagColor = colors.lossBright;
+                tagBg = "rgba(239,68,68,0.15)";
+              }
 
               return (
                 <a
@@ -166,17 +181,17 @@ export default function NewsPage() {
                     {item.headline}
                   </div>
 
-                  {item.summary && (
-                    <div style={{ fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.5", marginBottom: "14px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {item.summary && item.summary !== "(жоқ)" && (
+                    <div style={{ fontSize: "0.8rem", color: colors.textMuted, lineHeight: "1.5", marginBottom: "14px", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                       {item.summary}
                     </div>
                   )}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
                     <span style={{ fontSize: "0.75rem", color: colors.textFaint, fontFamily: fontMono }}>
                       {item.source} · {formatNewsDate(item.datetime)}
                     </span>
-                    <span style={{ fontSize: "0.7rem", fontWeight: "bold", color: tagColor, background: tagBg, padding: "3px 10px", borderRadius: "8px" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: "bold", color: tagColor, background: tagBg, padding: "4px 10px", borderRadius: "8px" }}>
                       {aiTag}
                     </span>
                   </div>
