@@ -1,33 +1,19 @@
+import { NextResponse } from 'next/server';
 import { supabase } from "../../supabaseClient";
 import { computeHalalStatus } from "../../../lib/halal";
 
-/**
- * Скринер.
- *
- * Бұрын әр сүзгі басқанда 8 акция × 2 сұрау = 16 Finnhub сұрауы кететін (лимит — минутына 60).
- * Енді бүкіл тізім Supabase-те (stock_cache кестесі, "_screener" кілтімен) 15 минут сақталады,
- * ал сүзгілер (P/E, ROE, халал) кэштен жадта қолданылады — Finnhub-қа қайта соқпайды.
- *
- * Finnhub лимитке тірелсе — сәтсіз акцияның ескі қатары көрсетіледі (жаңа деректер
- * 2 минуттан кейін қайта сұралады).
- *
- * ROE: Finnhub roeTTM — пайыз (62.4 = 62.4%). Бұрын ×100 қате жасалатын, енді жасалмайды.
- */
-const SCREENER_SYMBOLS = ["AMD", "INTC", "CRM", "QCOM", "ADBE", "NVDA", "MSFT", "AAPL"];
+// Нарықтық скринер үшін танымал акциялар тізімі кеңейтілді
+const SCREENER_SYMBOLS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMD", "INTC", "GOOGL", "AMZN", "META", "CRM"];
 
-const CACHE_KEY = "_screener";
+const CACHE_KEY = "_screener_v2";
 const TTL_COMPLETE_MS = 15 * 60 * 1000; // бәрі сәтті келсе — 15 минут
 const TTL_PARTIAL_MS = 2 * 60 * 1000; // кейбірі келмесе — 2 минуттан кейін қайта көреміз
 const PARTIAL_WARNING = "Кейбір акциялардың деректері жаңартылмады (API лимиті). Біраздан кейін қайта көріңіз.";
-// Тізімді өзгертсең (тикер қоссаң/алсаң), ескі кэш бірден қолданылмай, жаңа тізім жүктеледі
 const SYMBOLS_SIGNATURE = SCREENER_SYMBOLS.join(",");
 
-// Сәтсіз болса null қайтарады. degraded = қосымша деректер (metric/profile) келмеді,
-// сондықтан P/E, ROE немесе халал нәтижесі толық емес.
 async function fetchOne(symbol, apiKey) {
   try {
     const base = "https://finnhub.io/api/v1/";
-    // metric мен profile URL-дері /api/stock-тағымен бірдей — Next кэшін бірге пайдаланады
     const [quoteRes, metricRes, profileRes] = await Promise.all([
       fetch(base + "quote?symbol=" + symbol + "&token=" + apiKey, { cache: "no-store" }),
       fetch(base + "stock/metric?symbol=" + symbol + "&metric=all&token=" + apiKey, { next: { revalidate: 86400 } }),
@@ -43,19 +29,8 @@ async function fetchOne(symbol, apiKey) {
     const profile = profileRes.ok ? await profileRes.json() : null;
     const metric = metricData && metricData.metric ? metricData.metric : {};
 
-    const pe =
-      typeof metric.peTTM === "number"
-        ? metric.peTTM
-        : typeof metric.peNormalizedAnnual === "number"
-        ? metric.peNormalizedAnnual
-        : null;
-
-    const roe =
-      typeof metric.roeTTM === "number"
-        ? metric.roeTTM
-        : typeof metric.roeRfy === "number"
-        ? metric.roeRfy
-        : null;
+    const pe = typeof metric.peTTM === "number" ? metric.peTTM : typeof metric.peNormalizedAnnual === "number" ? metric.peNormalizedAnnual : null;
+    const roe = typeof metric.roeTTM === "number" ? metric.roeTTM : typeof metric.roeRfy === "number" ? metric.roeRfy : null;
 
     let halal = null;
     try {
@@ -71,14 +46,37 @@ async function fetchOne(symbol, apiKey) {
       halal = null;
     }
 
+    // ---------- ЖЕҢІЛДЕТІЛГЕН AI SCORE (API лимитін бұзбау үшін) ----------
+    let swingScore = 50;
+    let signal = "Neutral";
+    let rsiEstimate = 50;
+
+    if (quote.dp !== undefined) {
+      const changeBoost = quote.dp * 5; 
+      const high52 = metric['52WeekHigh'];
+      const distFromHigh = high52 ? (quote.c / high52) * 100 : 80;
+      
+      swingScore = Math.min(100, Math.max(0, Math.round(distFromHigh * 0.4 + changeBoost + 20)));
+      
+      if (swingScore >= 75) signal = "Strong Bull";
+      else if (swingScore >= 60) signal = "Bullish";
+      else if (swingScore <= 40) signal = "Bearish";
+
+      rsiEstimate = Math.min(100, Math.max(0, Math.round(50 + (quote.dp * 7))));
+    }
+
     return {
       row: {
         symbol: symbol,
-        price: quote.c,
+        name: profile ? profile.name : symbol,
+        currentPrice: quote.c,
         changePercent: typeof quote.dp === "number" ? quote.dp : null,
         pe: pe,
         roe: roe,
         halal: halal,
+        technicals: { rsi: rsiEstimate },
+        swingScore: swingScore,
+        signal: signal
       },
       degraded: !metricData || !profile,
     };
@@ -95,7 +93,6 @@ function cacheIsFresh(row) {
 }
 
 async function loadUniverse(apiKey) {
-  // ---------- 1) Кэшті оқимыз ----------
   let cacheRow = null;
   let cacheError = null;
   try {
@@ -116,41 +113,31 @@ async function loadUniverse(apiKey) {
   const cachedRows = cacheRow ? cacheRow.payload.results : [];
 
   if (cacheRow && cacheIsFresh(cacheRow)) {
-    return {
-      rows: cachedRows,
-      source: "cache",
-      warning: cacheRow.payload.complete ? null : PARTIAL_WARNING,
-      cacheError: null,
-    };
+    return { rows: cachedRows, source: "cache", warning: cacheRow.payload.complete ? null : PARTIAL_WARNING, cacheError: null };
   }
 
-  // ---------- 2) Кэш жоқ немесе ескірген — Finnhub-тан жаңасын аламыз ----------
   const live = await Promise.all(SCREENER_SYMBOLS.map((s) => fetchOne(s, apiKey)));
-
   const rows = [];
   let complete = true;
+  
   for (let i = 0; i < SCREENER_SYMBOLS.length; i++) {
     const sym = SCREENER_SYMBOLS[i];
     const fresh = live[i];
     const stale = cachedRows.find((r) => r.symbol === sym) || null;
 
     if (fresh && !fresh.degraded) {
-      rows.push(fresh.row); // толық жаңа дерек
+      rows.push(fresh.row);
       continue;
     }
     complete = false;
-    if (stale) rows.push(stale); // жақсы ескі қатар толық емес жаңасынан артық
-    else if (fresh) rows.push(fresh.row); // ескісі жоқ — толық емесін көрсетеміз
+    if (stale) rows.push(stale);
+    else if (fresh) rows.push(fresh.row);
   }
 
   if (rows.length > 0) {
     try {
       const w = await supabase.from("stock_cache").upsert(
-        {
-          symbol: CACHE_KEY,
-          payload: { results: rows, complete: complete, symbols: SYMBOLS_SIGNATURE },
-          updated_at: new Date().toISOString(),
-        },
+        { symbol: CACHE_KEY, payload: { results: rows, complete: complete, symbols: SYMBOLS_SIGNATURE }, updated_at: new Date().toISOString() },
         { onConflict: "symbol" }
       );
       if (w && w.error) cacheError = w.error.message;
@@ -159,55 +146,26 @@ async function loadUniverse(apiKey) {
     }
   }
 
-  return {
-    rows: rows,
-    source: complete ? "live" : "partial",
-    warning: complete ? null : PARTIAL_WARNING,
-    cacheError: cacheError,
-  };
+  return { rows: rows, source: complete ? "live" : "partial", warning: complete ? null : PARTIAL_WARNING, cacheError: cacheError };
 }
 
 export async function GET(request) {
   const apiKey = process.env.FINNHUB_API_KEY;
 
   if (!apiKey) {
-    return Response.json(
-      { error: "FINNHUB_API_KEY орнатылмаған" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "FINNHUB_API_KEY орнатылмаған" }, { status: 500 });
   }
-
-  const searchParams = new URL(request.url).searchParams;
-  const maxPE = parseFloat(searchParams.get("maxPE"));
-  const minROE = parseFloat(searchParams.get("minROE"));
-  const halalParam = searchParams.get("halal"); // pass | pass,doubtful | 1 (= pass)
 
   try {
     const universe = await loadUniverse(apiKey);
-    let filtered = universe.rows;
-
-    if (isFinite(maxPE)) {
-      filtered = filtered.filter((r) => typeof r.pe === "number" && r.pe <= maxPE);
-    }
-
-    if (isFinite(minROE)) {
-      // roe — пайыз (62.4 = 62.4%), сондықтан тікелей салыстырамыз
-      filtered = filtered.filter((r) => typeof r.roe === "number" && r.roe >= minROE);
-    }
-
-    if (halalParam) {
-      const wanted = halalParam === "1" ? ["pass"] : halalParam.split(",");
-      filtered = filtered.filter((r) => r.halal && wanted.indexOf(r.halal.status) !== -1);
-    }
-
-    const body = { results: filtered, source: universe.source };
+    
+    // Фронтендтің жаңа форматына сай `data` кілтімен қайтарамыз
+    const body = { data: universe.rows, source: universe.source };
     if (universe.warning) body.warning = universe.warning;
     if (universe.cacheError) body.cacheError = universe.cacheError;
-    return Response.json(body);
+    
+    return NextResponse.json(body);
   } catch (err) {
-    return Response.json(
-      { error: "Скринер деректерін алу кезінде қате", detail: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Скринер деректерін алу кезінде қате", detail: err.message }, { status: 500 });
   }
 }
