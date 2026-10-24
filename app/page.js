@@ -47,13 +47,6 @@ html, body { background-color: ${colors.bg}; color: ${colors.textPrimary}; font-
 .animate-fade { animation: fadeInUp 0.5s ease-out; }
 .tradeiq-content-shell { margin-left: 0; }
 @media (min-width: 1024px) { .tradeiq-content-shell { margin-left: 240px; } }
-.audio-bar { width: 4px; background-color: ${colors.goldBright}; border-radius: 2px; animation-name: sound; animation-iteration-count: infinite; animation-direction: alternate; }
-.bar1 { animation-duration: 0.4s; height: 10px; }
-.bar2 { animation-duration: 0.2s; height: 18px; }
-.bar3 { animation-duration: 0.6s; height: 8px; }
-.bar4 { animation-duration: 0.3s; height: 22px; }
-.bar5 { animation-duration: 0.5s; height: 12px; }
-@keyframes sound { 0% { height: 4px; opacity: 0.5; } 100% { height: 24px; opacity: 1; box-shadow: 0 0 10px ${colors.goldBright}; } }
 `;
 
 function TradeIQMark({ size = 44 }) {
@@ -202,51 +195,6 @@ function HalalCard({ halal, currentPrice, currency, usdkzt }) {
   );
 }
 
-function AiRadioPlayer({ stockData, isUp }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
-
-  const togglePlay = () => {
-    if (!synth) return;
-    if (isPlaying) { synth.cancel(); setIsPlaying(false); } 
-    else {
-      let textToRead = "Қайырлы күн! Бұл TradeIQ AI нарық шолуы. ";
-      if (stockData) {
-        textToRead += `${stockData.symbol} акциясының қазіргі бағасы ${stockData.currentPrice} доллар. `;
-        textToRead += isUp ? "Бүгін акция құны өсіп жатыр. " : "Бүгін акция құны төмендеуде. ";
-        if (stockData.halal && stockData.halal.status === "pass") textToRead += "Бұл компания халал стандарттарына толық сай келеді. ";
-        textToRead += "Сәтті сауда тілейміз!";
-      } else {
-        textToRead += "Нарықтағы соңғы жаңалықтарды білу үшін жоғарыдағы іздеу жолағына акция тикерін жазыңыз.";
-      }
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      utterance.lang = "kk-KZ";
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => setIsPlaying(false);
-      synth.speak(utterance);
-      setIsPlaying(true);
-    }
-  };
-  useEffect(() => { return () => { if (synth && isPlaying) synth.cancel(); }; }, [synth, isPlaying]);
-
-  return (
-    <div className="glass-card animate-fade" style={{ marginBottom: "40px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid rgba(59,130,246,0.5)`, background: "linear-gradient(90deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.9) 100%)", boxShadow: "0 10px 30px rgba(59,130,246,0.15)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <button onClick={togglePlay} style={{ width: "48px", height: "48px", borderRadius: "50%", background: isPlaying ? "rgba(239,68,68,0.2)" : colors.gold, border: isPlaying ? `1px solid ${colors.lossBright}` : "none", color: isPlaying ? colors.lossBright : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.3s" }}>
-          {isPlaying ? <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: "3px" }}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>}
-        </button>
-        <div>
-          <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>TradeIQ Подкаст <span style={{ fontSize: "0.6rem", background: colors.lossBright, color: "#fff", padding: "2px 6px", borderRadius: "4px" }}>LIVE</span></h4>
-          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: colors.textMuted }}>Күндік нарық шолуы</p>
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "24px", width: "40px" }}>
-        {isPlaying ? <><div className="audio-bar bar1"></div><div className="audio-bar bar2"></div><div className="audio-bar bar3"></div><div className="audio-bar bar4"></div><div className="audio-bar bar5"></div></> : <div style={{ fontSize: "1.2rem", opacity: 0.5 }}>🎙️</div>}
-      </div>
-    </div>
-  );
-}
-
 function safeNum(v, digits) { return (typeof v !== "number" || isNaN(v)) ? "—" : v.toFixed(digits); }
 function evaluateFundamental(key, value) {
   if (typeof value !== "number" || isNaN(value)) return { text: "—", color: colors.textFaint };
@@ -302,6 +250,7 @@ export default function Home() {
   
   const [summary, setSummary] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
   
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -356,11 +305,18 @@ export default function Home() {
 
   async function getAiSummary(stockData) {
     setSummaryLoading(true);
+    setSummaryError("");
     try {
       const res = await fetch("/api/summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(stockData) });
       const json = await res.json();
-      if (res.ok && json.summary) setSummary(json.summary);
-    } catch(err) {}
+      if (res.ok && json.summary) {
+        setSummary(json.summary);
+      } else {
+        setSummaryError(json.error || "Мәлімет табылмады.");
+      }
+    } catch(err) {
+      setSummaryError("Желі қатесі.");
+    }
     setSummaryLoading(false);
   }
 
@@ -368,12 +324,12 @@ export default function Home() {
     e?.preventDefault();
     const symbol = (sym || ticker).trim().toUpperCase();
     if (!symbol) return;
-    setLoading(true); setError(""); setData(null); setSummary("");
+    setLoading(true); setError(""); setData(null); setSummary(""); setSummaryError("");
     try {
       const res = await fetch(`/api/stock?symbol=${symbol}`);
       const json = await res.json();
       if (!res.ok) setError(json.error || "Қате"); 
-      else { setData(json); getAiSummary(json); }
+      else { setData(json); }
     } catch { setError("Байланыс қатесі"); } finally { setLoading(false); }
   }
 
@@ -437,10 +393,7 @@ export default function Home() {
             <button type="submit" className="tradeiq-search-btn" style={{ padding: "0 24px", height: "46px", borderRadius: "18px", background: colors.gold, border: "none", color: "#fff", fontWeight: "600", cursor: "pointer" }}>Іздеу</button>
           </form>
 
-          {/* ПОДКАСТ (ҚАЙТАРЫЛДЫ) */}
-          <AiRadioPlayer stockData={data} isUp={isUp} />
-
-          {/* НАРЫҚ ШОЛУЫ (QQQ, SPY) (ҚАЙТАРЫЛДЫ) */}
+          {/* НАРЫҚ ШОЛУЫ (QQQ, SPY) */}
           <div className="animate-fade" style={{ width: "100%", marginBottom: "48px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: "700", margin: 0 }}>Нарық шолуы</h3>
@@ -510,7 +463,7 @@ export default function Home() {
               {/* ПСИХОЛОГ */}
               <AiPsychologist data={data} />
 
-              {/* СЕНТИМЕНТ МЕТР (ҚАЙТАРЫЛДЫ) */}
+              {/* СЕНТИМЕНТ МЕТР */}
               <SentimentMeter score={currentSentimentScore} />
 
               {/* ЧАРТ */}
@@ -574,7 +527,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* AI ТҮСІНДІРМЕ (Толық мәтінді талдау) */}
+              {/* AI ТҮСІНДІРМЕ БАТЫРМАСЫ ЖӘНЕ НӘТИЖЕСІ */}
               <div style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: "16px", padding: "20px", marginBottom: "30px" }}>
                 <h4 style={{ margin: "0 0 12px 0", color: colors.goldBright, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "8px" }}>
                   <span>✨</span> AI Толық Талдау
@@ -583,7 +536,15 @@ export default function Home() {
                   <div style={{ color: colors.textMuted, fontSize: "0.85rem", animation: "pulse 1.5s infinite" }}>AI мәліметтерді оқып, сараптама жасауда...</div>
                 ) : summary ? (
                   <div style={{ color: "#e2e8f0", fontSize: "0.85rem", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{summary}</div>
-                ) : null}
+                ) : (
+                  <div>
+                    <p style={{ color: colors.textMuted, fontSize: "0.8rem", margin: "0 0 12px 0" }}>Акцияның техникалық және фундаменталды жағдайына жасанды интеллект арқылы толық талдау жасау.</p>
+                    {summaryError && <p style={{ color: colors.lossBright, fontSize: "0.8rem", margin: "0 0 12px 0" }}>⚠ {summaryError}</p>}
+                    <button onClick={() => getAiSummary(data)} style={{ width: "100%", padding: "12px", borderRadius: "12px", background: colors.gold, border: "none", color: "#fff", fontWeight: "600", cursor: "pointer" }}>
+                      Талдауды бастау
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* СУИНГ ТРЕЙДИНГ ЖОСПАРЫ */}
@@ -603,7 +564,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* FLOATING CHAT (Қалқымалы Чат - ҚАЙТАРЫЛДЫ) */}
+      {/* FLOATING CHAT (Қалқымалы Чат) */}
       <FloatingChat
         chatMessages={chatMessages}
         chatInput={chatInput}
