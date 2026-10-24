@@ -1,184 +1,187 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-const colors = {
-  bg: "#0B132B",
-  card: "#0F1A3D",
-  border: "#1E3A8A",
-  gold: "#D4AF37",
-  textPrimary: "#F5F1E6",
-  textFaint: "#5B6478",
-};
-
-const fontBody = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-export default function FloatingChat({
-  chatMessages,
-  chatInput,
-  setChatInput,
-  chatLoading,
-  chatError,
-  onSubmit,
+export default function FloatingChat({ 
+  chatMessages, 
+  chatInput, 
+  setChatInput, 
+  chatLoading, 
+  chatError, 
+  onSubmit 
 }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Автоматический скролл вниз при новых сообщениях
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isOpen]);
 
   return (
-    <>
-      {/* ---------- ЖҮЗБЕЛІ ПАНЕЛЬ ---------- */}
-      {open ? (
-        <div
-          className="tradeiq-card"
-          style={{
-            position: "fixed",
-            bottom: "88px",
-            right: "20px",
-            width: "min(340px, calc(100vw - 40px))",
-            maxHeight: "60vh",
-            display: "flex",
-            flexDirection: "column",
-            background: colors.card,
-            borderRadius: "16px",
-            padding: "18px",
-            border: `1px solid ${colors.border}`,
-            boxShadow: "0 10px 40px rgba(0,0,0,0.45)",
-            zIndex: 95,
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <div
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-                color: colors.gold,
-                textTransform: "uppercase",
-                letterSpacing: "0.6px",
-              }}
-            >
-              💬 AI-мен сөйлесу
+    <div style={{ 
+      position: "fixed", 
+      bottom: "90px", /* Нижнее меню перекрывать не будет */
+      right: "16px", 
+      zIndex: 99999 /* Максимально поверх всех элементов */
+    }}>
+      
+      {/* Окно чата */}
+      {isOpen && (
+        <div style={{
+          position: "absolute", 
+          bottom: "70px", 
+          right: "0",
+          width: "320px", 
+          height: "450px", 
+          maxHeight: "65vh",
+          background: "rgba(15, 23, 42, 0.95)", 
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(59,130,246,0.3)", 
+          borderRadius: "20px",
+          display: "flex", 
+          flexDirection: "column", 
+          overflow: "hidden",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+          animation: "fadeInUp 0.3s ease-out"
+        }}>
+          {/* Шапка чата */}
+          <div style={{ 
+            padding: "16px", 
+            background: "linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)", 
+            color: "#fff", 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center" 
+          }}>
+            <div style={{ fontWeight: "700", fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>✨</span> TradeIQ AI
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Жабу"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: colors.textFaint,
-                fontSize: "1.1rem",
-                cursor: "pointer",
-                lineHeight: 1,
-              }}
+            <button 
+              onClick={() => setIsOpen(false)} 
+              style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", fontSize: "1.2rem", padding: "0 8px" }}
             >
               ✕
             </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", marginBottom: "12px" }}>
+          {/* Область сообщений */}
+          <div style={{ 
+            flex: 1, 
+            padding: "16px", 
+            overflowY: "auto", 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: "12px",
+            fontFamily: "'Inter', sans-serif"
+          }}>
             {chatMessages.length === 0 ? (
-              <p style={{ color: colors.textFaint, fontSize: "0.8rem", margin: 0 }}>
-                Сауда, акциялар немесе талдау туралы сұрағыңды жаз.
-              </p>
+              <div style={{ color: "#9ca3af", fontSize: "0.85rem", textAlign: "center", marginTop: "40px", lineHeight: "1.5" }}>
+                Сәлем! Мен TradeIQ жасанды интеллектімін.<br/>Акция немесе нарық туралы сұрағыңыз бар ма?
+              </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {chatMessages.map((m, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                      maxWidth: "85%",
-                      background: m.role === "user" ? colors.gold : colors.bg,
-                      color: m.role === "user" ? colors.bg : colors.textPrimary,
-                      border: m.role === "user" ? "none" : `1px solid ${colors.border}`,
-                      borderRadius: "10px",
-                      padding: "8px 12px",
-                      fontSize: "0.82rem",
-                      lineHeight: "1.4",
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
-                    {m.text}
-                  </div>
-                ))}
-                {chatLoading ? (
-                  <div style={{ alignSelf: "flex-start", color: colors.textFaint, fontSize: "0.8rem" }}>
-                    Жазып жатыр...
-                  </div>
-                ) : null}
+              chatMessages.map((msg, idx) => (
+                <div key={idx} style={{
+                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                  background: msg.role === "user" ? "#3b82f6" : "rgba(255,255,255,0.1)",
+                  color: "#fff", 
+                  padding: "10px 14px", 
+                  borderRadius: "14px",
+                  borderBottomRightRadius: msg.role === "user" ? "4px" : "14px",
+                  borderBottomLeftRadius: msg.role === "assistant" ? "4px" : "14px",
+                  maxWidth: "85%", 
+                  fontSize: "0.85rem", 
+                  lineHeight: "1.5"
+                }}>
+                  {msg.text}
+                </div>
+              ))
+            )}
+            {chatLoading && (
+              <div style={{ color: "#60a5fa", fontSize: "0.8rem", alignSelf: "flex-start", padding: "8px 0" }}>
+                AI жауап жазуда...
               </div>
             )}
-            {chatError ? (
-              <p style={{ color: "#E2764C", fontSize: "0.78rem", marginTop: "8px" }}>{chatError}</p>
-            ) : null}
+            {chatError && (
+              <div style={{ color: "#ef4444", fontSize: "0.8rem", alignSelf: "center", textAlign: "center" }}>
+                {chatError}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={onSubmit} style={{ display: "flex", gap: "8px" }}>
+          {/* Форма ввода */}
+          <form onSubmit={onSubmit} style={{ 
+            padding: "12px", 
+            borderTop: "1px solid rgba(255,255,255,0.1)", 
+            display: "flex", 
+            gap: "8px",
+            background: "rgba(0,0,0,0.2)"
+          }}>
             <input
-              className="tradeiq-input"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Сұрағыңды жаз..."
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: `1px solid ${colors.border}`,
-                background: colors.bg,
-                color: colors.textPrimary,
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                boxSizing: "border-box",
+              type="text" 
+              value={chatInput} 
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="Сұрақ қойыңыз..."
+              style={{ 
+                flex: 1, 
+                background: "rgba(255,255,255,0.05)", 
+                border: "1px solid rgba(255,255,255,0.1)", 
+                borderRadius: "12px", 
+                padding: "10px 14px", 
+                color: "#fff", 
+                outline: "none", 
+                fontSize: "0.9rem" 
               }}
             />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="tradeiq-search-btn"
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: colors.gold,
-                color: colors.bg,
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                fontFamily: fontBody,
-                cursor: chatLoading ? "default" : "pointer",
-                flexShrink: 0,
+            <button 
+              type="submit" 
+              disabled={chatLoading || !chatInput.trim()} 
+              style={{ 
+                background: "#3b82f6", 
+                border: "none", 
+                borderRadius: "12px", 
+                width: "44px", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center", 
+                color: "#fff", 
+                cursor: "pointer", 
+                opacity: (chatLoading || !chatInput.trim()) ? 0.5 : 1,
+                transition: "transform 0.2s"
               }}
             >
-              Жіберу
+              ➤
             </button>
           </form>
         </div>
-      ) : null}
+      )}
 
-      {/* ---------- FAB БАТЫРМАСЫ ---------- */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="AI чатты ашу"
+      {/* Кнопка открытия/закрытия чата */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
         style={{
-          position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          width: "54px",
-          height: "54px",
-          borderRadius: "50%",
-          background: colors.gold,
-          color: colors.bg,
-          border: "none",
-          fontSize: "1.4rem",
-          cursor: "pointer",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
-          zIndex: 96,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          width: "56px", 
+          height: "56px", 
+          borderRadius: "50%", 
+          background: isOpen ? "#1e293b" : "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", 
+          border: isOpen ? "1px solid rgba(255,255,255,0.1)" : "none",
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center", 
+          color: "#fff", 
+          fontSize: isOpen ? "1.5rem" : "1.8rem",
+          boxShadow: isOpen ? "none" : "0 4px 20px rgba(59,130,246,0.5)", 
+          cursor: "pointer", 
+          transition: "all 0.3s ease",
+          transform: isOpen ? "scale(0.9)" : "scale(1)"
         }}
       >
-        {open ? "✕" : "💬"}
+        {isOpen ? "✕" : "💬"}
       </button>
-    </>
+    </div>
   );
 }
