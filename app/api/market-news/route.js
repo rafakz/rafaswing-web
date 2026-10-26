@@ -1,150 +1,94 @@
-export const revalidate = 3600; // сағат сайын жаңарады
+import { NextResponse } from 'next/server';
 
-async function translateItems(items, apiKey) {
+export const revalidate = 3600; 
+
+async function translateAndAnalyzeItems(items, apiKey) {
   if (!apiKey || items.length === 0) return items;
 
-  var numbered = items
-    .map(function (it, i) {
-      var summary = it.summary && it.summary.trim() ? it.summary : "(жоқ)";
-      return (i + 1) + ".\nТАҚЫРЫП: " + it.headline + "\nМАЗМҰНЫ: " + summary;
-    })
-    .join("\n\n");
+  const newsData = items.map((it, i) => ({
+    id: i + 1,
+    headline: it.headline,
+    summary: it.summary && it.summary.trim() ? it.summary : "(жоқ)"
+  }));
 
-  var prompt =
-    "Мына акша-нарық жаңалықтарының әрқайсысының ТАҚЫРЫБЫН және МАЗМҰНЫН қазақ тіліне аудар. " +
-    "Әр жаңалық үшін дәл осы форматта жауап бер (нөмірін сақта):\n" +
-    "N.\nТАҚЫРЫП: <аударылған тақырып>\nМАЗМҰНЫ: <аударылған мазмұн>\n\n" +
-    "Басқа ешнәрсе қоспа, тек аудармаларды қайтар.\n\n" +
-    numbered;
+  // Промпт: AI-дан нақты формат талап етеміз
+  const prompt = `Translate the following financial news headlines and summaries into Kazakh. Also, determine the market sentiment for each news item ("Bullish", "Bearish", or "Neutral").
+  Respond ONLY with a valid JSON array of objects, exactly matching this format:
+  [{"id": 1, "headline": "қазақша тақырып", "summary": "қазақша мазмұн", "sentiment": "Bullish"}]
+  
+  News to translate:
+  ${JSON.stringify(newsData)}`;
 
-  var geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   try {
-    var res = await fetch(geminiUrl, {
+    const res = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
+        // ЕҢ БАСТЫСЫ: AI тек таза JSON қайтаруы үшін
+        generationConfig: { response_mime_type: "application/json" }
       }),
-      next: { revalidate: 3600 },
     });
 
     if (!res.ok) {
-      var errBody = await res.text();
-      console.error("Gemini translate error (market-news):", res.status, errBody.slice(0, 500));
+      console.error("Gemini API Error");
       return items;
     }
 
-    var data = await res.json();
-    var text = "";
-    if (
-      data &&
-      Array.isArray(data.candidates) &&
-      data.candidates[0] &&
-      data.candidates[0].content &&
-      Array.isArray(data.candidates[0].content.parts)
-    ) {
-      for (var i = 0; i < data.candidates[0].content.parts.length; i++) {
-        var part = data.candidates[0].content.parts[i];
-        if (part && typeof part.text === "string") text += part.text;
-      }
-    }
-
+    const data = await res.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     if (!text) return items;
 
-    var blocks = text.split(/\n(?=\d+\.\s*\n)/);
+    const parsedAiData = JSON.parse(text); 
 
-    var translatedMap = {};
-    blocks.forEach(function (block) {
-      var numMatch = block.match(/^\s*(\d+)\./);
-      if (!numMatch) return;
-      var num = parseInt(numMatch[1], 10);
-
-      var headlineMatch = block.match(/ТАҚЫРЫП:\s*([^\n]+)/);
-      var summaryMatch = block.match(/МАЗМҰНЫ:\s*([\s\S]+)/);
-
-      translatedMap[num] = {
-        headline: headlineMatch ? headlineMatch[1].trim() : null,
-        summary: summaryMatch ? summaryMatch[1].trim() : null,
+    return items.map((it, i) => {
+      const aiResult = parsedAiData.find(a => a.id === i + 1);
+      if (!aiResult) return it;
+      return {
+        ...it,
+        headline: aiResult.headline || it.headline,
+        summary: aiResult.summary !== "(жоқ)" ? aiResult.summary : it.summary,
+        sentiment: aiResult.sentiment || "Neutral" 
       };
     });
 
-    return items.map(function (it, i) {
-      var t = translatedMap[i + 1];
-      if (!t) return it;
-      return Object.assign({}, it, {
-        headline: t.headline || it.headline,
-        summary: t.summary && t.summary !== "(жоқ)" ? t.summary : it.summary,
-      });
-    });
   } catch (err) {
-    console.error("Gemini translate exception (market-news):", err.message);
-    return items;
+    console.error("Gemini Parse Error:", err);
+    return items; 
   }
 }
 
 export async function GET() {
   try {
-    var finnhubKey = process.env.FINNHUB_API_KEY;
-    var geminiKey = process.env.GEMINI_API_KEY;
+    const finnhubKey = process.env.FINNHUB_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
 
-    if (!finnhubKey) {
-      return Response.json(
-        { error: "FINNHUB_API_KEY орнатылмаган" },
-        { status: 200 }
-      );
-    }
+    if (!finnhubKey) return NextResponse.json({ error: "FINNHUB_API_KEY жоқ" }, { status: 200 });
 
-    var url = "https://finnhub.io/api/v1/news?category=general&token=" + finnhubKey;
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
 
-    var res;
-    try {
-      res = await fetch(url, { next: { revalidate: 3600 } });
-    } catch (fetchErr) {
-      return Response.json(
-        { error: "Finnhub-ке сұрау жіберу кезінде кате", detail: fetchErr.message },
-        { status: 200 }
-      );
-    }
+    if (!res.ok) return NextResponse.json({ error: "Finnhub API қатесi" }, { status: 200 });
 
-    if (!res.ok) {
-      var rawText = await res.text();
-      return Response.json(
-        { error: "Finnhub API катесi", status: res.status, detail: rawText.slice(0, 300) },
-        { status: 200 }
-      );
-    }
+    const data = await res.json();
+    if (!Array.isArray(data)) return NextResponse.json({ news: [] });
 
-    var data = await res.json();
+    // Тезірек жұмыс істеуі үшін 12 жаңалықты аламыз
+    const cleaned = data.slice(0, 12).map((item) => ({
+      id: item.id,
+      headline: item.headline || "",
+      summary: item.summary || "",
+      source: item.source || "",
+      url: item.url || "",
+      image: item.image || "", 
+      datetime: item.datetime || 0,
+    }));
 
-    if (!Array.isArray(data)) {
-      return Response.json({ news: [] });
-    }
-
-    var cleaned = data.slice(0, 25).map(function (item) {
-      return {
-        id: item.id,
-        headline: item.headline || "",
-        summary: item.summary || "",
-        source: item.source || "",
-        url: item.url || "",
-        image: item.image || "",
-        datetime: item.datetime || 0,
-        related: item.related || "",
-      };
-    });
-
-    var translated = await translateItems(cleaned, geminiKey);
-
-    return Response.json({ news: translated });
+    const translatedAndAnalyzed = await translateAndAnalyzeItems(cleaned, geminiKey);
+    return NextResponse.json({ news: translatedAndAnalyzed });
   } catch (err) {
-    return Response.json(
-      { error: "Жалпы кате", detail: (err && err.message) ? err.message : String(err) },
-      { status: 200 }
-    );
+    return NextResponse.json({ error: "Жалпы қате" }, { status: 200 });
   }
 }
