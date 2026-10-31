@@ -2,78 +2,76 @@
 
 import { useEffect, useRef } from "react";
 import { createChart, ColorType } from "lightweight-charts";
+import { color, font } from "../lib/theme";
 
 export default function ProChart({ chartData }) {
-  const chartContainerRef = useRef();
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current || !chartData || chartData.length === 0) return;
+    const el = containerRef.current;
+    if (!el || !chartData || chartData.length === 0) return;
 
-    // 1. Деректерді lightweight-charts форматына бейімдеу (date -> time) және реттеу
-    const formattedData = chartData
-      .filter(d => (d.date || d.time) && d.open && d.high && d.low && d.close) // Бос деректерді алып тастау
-      .map(d => {
-        let timeVal = d.date || d.time;
-        // Егер уақыт "2026-10-17T00:00:00Z" форматында болса, тек күнін аламыз
-        if (typeof timeVal === 'string' && timeVal.includes('T')) {
-          timeVal = timeVal.split('T')[0];
-        }
+    // 1. Деректерді lightweight-charts форматына келтіру (date -> time), сұрыптау
+    const formatted = chartData
+      .filter((d) => (d.date || d.time) && d.open && d.high && d.low && d.close)
+      .map((d) => {
+        let time = d.date || d.time;
+        if (typeof time === "string" && time.includes("T")) time = time.split("T")[0];
         return {
-          time: timeVal,
+          time,
           open: Number(d.open),
           high: Number(d.high),
           low: Number(d.low),
-          close: Number(d.close)
+          close: Number(d.close),
         };
       })
-      // Күндерді ескіден жаңаға қарай реттеу (кітапхана соны талап етеді)
       .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-    if (formattedData.length === 0) return;
+    if (formatted.length === 0) return;
 
-    const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-    };
-
-    // 2. Графикті құру
-    const chart = createChart(chartContainerRef.current, {
+    // 2. График
+    const chart = createChart(el, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#9ca3af",
+        textColor: color.textMuted,
+        fontFamily: font.family,
       },
       grid: {
-        vertLines: { color: "rgba(255, 255, 255, 0.05)" },
-        horzLines: { color: "rgba(255, 255, 255, 0.05)" },
+        vertLines: { color: color.borderSoft },
+        horzLines: { color: color.borderSoft },
       },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderColor: color.border,
       },
       rightPriceScale: {
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderColor: color.border,
       },
-      width: chartContainerRef.current.clientWidth,
+      width: el.clientWidth,
       height: 250,
     });
 
-    // 3. Жапон шамдарын баптау
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: "#10b981",       
-      downColor: "#ef4444",     
+    // 3. Шамдар: өсу — gainStrong, құлау — loss (theme.js)
+    const series = chart.addCandlestickSeries({
+      upColor: color.gainStrong,
+      downColor: color.loss,
       borderVisible: false,
-      wickUpColor: "#10b981",   
-      wickDownColor: "#ef4444", 
+      wickUpColor: color.gainStrong,
+      wickDownColor: color.loss,
     });
 
-    // 4. Дайын деректерді салу
+    // 4. Деректерді салу
     try {
-      candlestickSeries.setData(formattedData);
-      chart.timeScale().fitContent(); // Графикті терезеге сыйдыру
+      series.setData(formatted);
+      chart.timeScale().fitContent();
     } catch (e) {
       console.error("График деректерін жүктеу қатесі:", e);
     }
 
+    const handleResize = () => {
+      chart.applyOptions({ width: el.clientWidth });
+    };
     window.addEventListener("resize", handleResize);
 
     return () => {
@@ -83,8 +81,8 @@ export default function ProChart({ chartData }) {
   }, [chartData]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "250px" }}>
-      <div ref={chartContainerRef} style={{ width: "100%", height: "100%" }} />
+    <div style={{ position: "relative", width: "100%", height: 250 }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>
   );
 }
