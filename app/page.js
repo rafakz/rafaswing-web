@@ -5,6 +5,7 @@ import NavMenu from "./NavMenu";
 import Header from "./Header";
 import ProChart from "./ProChart";
 import FloatingChat from "./FloatingChat";
+import FundamentalsPanel from "./FundamentalsPanel";
 import { supabase } from "./supabaseClient";
 import { color, font, radius, space, size, motion, changeColor } from "../lib/theme";
 import { Card, Button } from "./ui";
@@ -26,13 +27,6 @@ function fmtCurr(val, curr, rate) {
   return "$" + val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtMarketCap(valInM, curr, rate) {
-  if (typeof valInM !== "number" || isNaN(valInM)) return "—";
-  const v = valInM * 1000000;
-  if (curr === "KZT") return (v * rate / 1000000000).toFixed(1) + "B ₸";
-  return "$" + (v / 1000000000).toFixed(1) + "B";
-}
-
 function fmtUpdated(ts) {
   if (!ts) return "";
   try {
@@ -40,41 +34,6 @@ function fmtUpdated(ts) {
   } catch (e) {
     return "";
   }
-}
-
-function evaluateFundamental(key, value) {
-  if (typeof value !== "number" || isNaN(value)) return { text: "—", color: color.textMuted };
-  if (key === "PE") {
-    if (value < 15 && value > 0) return { text: "Тартымды", color: color.gainStrong };
-    if (value <= 25 && value >= 15) return { text: "Қалыпты", color: color.neutral };
-    return { text: "Қымбат", color: color.lossStrong };
-  }
-  if (key === "DE") {
-    if (value < 1) return { text: "Қауіпсіз", color: color.gainStrong };
-    if (value <= 2) return { text: "Орташа", color: color.neutral };
-    return { text: "Қауіпті", color: color.lossStrong };
-  }
-  if (key === "CR") {
-    if (value >= 1.5) return { text: "Өтімді", color: color.gainStrong };
-    if (value >= 1) return { text: "Қалыпты", color: color.neutral };
-    return { text: "Нашар", color: color.lossStrong };
-  }
-  if (key === "ROE") {
-    if (value >= 15) return { text: "Өте тиімді", color: color.gainStrong };
-    if (value >= 5) return { text: "Қалыпты", color: color.neutral };
-    return { text: "Тиімсіз", color: color.lossStrong };
-  }
-  if (key === "PM") {
-    if (value >= 10) return { text: "Табысты", color: color.gainStrong };
-    if (value > 0) return { text: "Аз маржа", color: color.neutral };
-    return { text: "Шығын", color: color.lossStrong };
-  }
-  if (key === "PB") {
-    if (value <= 3 && value >= 1) return { text: "Әділ", color: color.gainStrong };
-    if (value > 0 && value < 1) return { text: "Арзан", color: color.neutral };
-    return { text: "Қымбат", color: color.lossStrong };
-  }
-  return { text: "—", color: color.textSecondary };
 }
 
 /* ---------- Бөлек блоктар ---------- */
@@ -413,22 +372,6 @@ export default function Home() {
     else if (data.changePercent) sentimentScore = data.changePercent > 0 ? 65 : 35;
   }
 
-  const fundItem = (label, value, key) => {
-    const ev = evaluateFundamental(key, value);
-    const shown = safeNum(value, 2);
-    return (
-      <div style={statBox}>
-        <div style={{ fontSize: font.xs, color: color.textMuted, marginBottom: 6 }}>{label}</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: space.sm }}>
-          <span style={{ fontSize: font.lg, fontWeight: font.semibold }}>
-            {shown !== "—" ? (key === "PM" || key === "ROE" ? shown + "%" : shown) : "—"}
-          </span>
-          {shown !== "—" && <span style={{ fontSize: font.xs, fontWeight: font.semibold, color: ev.color }}>{ev.text}</span>}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <main style={{ minHeight: "100vh", background: color.bg, color: color.textPrimary, fontFamily: font.family, paddingBottom: 140 }}>
       <style>{`
@@ -612,33 +555,10 @@ export default function Home() {
                 <div>Мин: <span style={{ color: color.textPrimary, fontWeight: font.semibold }}>{fmtCurr(data.low, currency, usdkzt)}</span></div>
               </div>
 
+              {/* ---------- ФУНДАМЕНТАЛДЫ + ТӘУЕКЕЛ (түсіндірмесімен) ---------- */}
               {data.fundamentals && (
                 <div style={{ marginBottom: space.xl }}>
-                  <div style={sectionTitle}>Фундаменталды талдау</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: space.sm, marginBottom: space.md }}>
-                    <div style={{ ...statBox, textAlign: "center" }}>
-                      <div style={{ fontSize: font.xs, color: color.textMuted }}>Нарық құны</div>
-                      <div style={{ fontSize: font.sm, fontWeight: font.semibold, marginTop: 4 }}>{fmtMarketCap(data.marketCap, currency, usdkzt)}</div>
-                    </div>
-                    <div style={{ ...statBox, textAlign: "center" }}>
-                      <div style={{ fontSize: font.xs, color: color.textMuted }}>EPS</div>
-                      <div style={{ fontSize: font.sm, fontWeight: font.semibold, marginTop: 4 }}>{fmtCurr(data.fundamentals.eps, currency, usdkzt)}</div>
-                    </div>
-                    <div style={{ ...statBox, textAlign: "center" }}>
-                      <div style={{ fontSize: font.xs, color: color.textMuted }}>Дивиденд</div>
-                      <div style={{ fontSize: font.sm, fontWeight: font.semibold, marginTop: 4 }}>
-                        {data.fundamentals.dividendYield ? safeNum(data.fundamentals.dividendYield, 2) + "%" : "—"}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: space.sm }}>
-                    {fundItem("P/E", data.fundamentals.peRatio, "PE")}
-                    {fundItem("Қарыз / капитал", data.fundamentals.debtToEquity, "DE")}
-                    {fundItem("Өтімділік", data.fundamentals.currentRatio, "CR")}
-                    {fundItem("ROE", data.fundamentals.roe, "ROE")}
-                    {fundItem("Таза маржа", data.fundamentals.profitMargin, "PM")}
-                    {fundItem("P/B", data.fundamentals.pbRatio, "PB")}
-                  </div>
+                  <FundamentalsPanel data={data} fmt={(v) => fmtCurr(v, currency, usdkzt)} />
                 </div>
               )}
 
