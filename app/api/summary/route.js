@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from "../../supabaseClient";
 
 /**
- * AI қорытынды (Gemini 1.5 Flash).
+ * AI қорытынды (Gemini 2.5 Flash).
  * Кэш өмірі: 3 сағат. Баға 2%-дан артық немесе Swing Score 5 ұпайдан артық өзгерсе жаңарады.
  */
 const SUMMARY_TTL_MS = 3 * 60 * 60 * 1000; 
@@ -103,7 +103,7 @@ ${dataText}`;
     }
 
     // ---------- Gemini-ден жаңа қорытынды сұрау ----------
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     let geminiRes;
     try {
