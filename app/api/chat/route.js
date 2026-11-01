@@ -57,8 +57,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Жіберілетін хабарлама жоқ" }, { status: 400 });
     }
 
-    // 4. Прямой запрос к Google Gemini 1.5 Flash
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 4. Прямой запрос к Google Gemini 2.5 Flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
