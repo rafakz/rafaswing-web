@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
+import { askGemini } from "../../../lib/gemini";
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: "GEMINI_API_KEY орнатылмаған (Vercel-ді тексеріңіз)" }, { status: 500 });
     }
 
@@ -16,15 +15,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "Хабарлама жоқ" }, { status: 400 });
     }
 
-    // 1. Промпт для ИИ
-    let systemNote = `Сен 'TradeIQ' атты қазақ тіліндегі элиталық AI-powered инвестициялық платформасының жасанды интеллект көмекшісісің. 
+    // 1. Жүйелік нұсқау
+    let systemNote = `Сен 'TradeIQ' атты қазақ тіліндегі элиталық AI-powered инвестициялық платформасының жасанды интеллект көмекшісісің.
 Сенің басты мақсатың - трейдерлерге техникалық/фундаменталды талдау жасауға көмектесу ЖӘНЕ олардың эмоцияларын (ФОМО, дүрбелең) басқаруға психологиялық қолдау көрсету.
 - Пайдаланушымен әрқашан ҚАЗАҚ ТІЛІНДЕ сөйлес.
 - Жауаптарың қысқа, кәсіби, нақты және түсінікті болсын (артық суреттемесіз).
 - Акцияның құлағанын көрсең, сабырға шақыр. Күрт өссе, ашкөздіктен (FOMO) сақтандыр.
 - Нақты 'мына акцияны сатып ал' немесе 'сат' деген қаржылық кеңес берме, тек талдау нәтижесін ұсын.`;
 
-    // 2. Добавление контекста об акции (если пользователь находится на странице акции)
+    // 2. Ағымдағы акция контексті (бет ашық тұрса)
     if (stockContext && stockContext.symbol) {
       systemNote += `\n\nПАЙДАЛАНУШЫ ҚАРАП ОТЫРҒАН АКЦИЯ: ${stockContext.symbol} (${stockContext.name || ""})
 - Қазіргі бағасы: $${stockContext.currentPrice ?? "белгісіз"}`;
@@ -42,64 +41,28 @@ export async function POST(request) {
       }
     }
 
-    // 3. Подготовка сообщений пользователя
+    // 3. Хабарламаларды дайындау (бос мәтіндерді алып тастаймыз)
     const contents = [];
     for (const m of messages) {
       const text = String(m.text || "").trim();
       if (!text) continue;
-      contents.push({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: text }]
-      });
+      contents.push({ role: m.role === "assistant" ? "assistant" : "user", text });
     }
 
     if (contents.length === 0) {
       return NextResponse.json({ error: "Жіберілетін хабарлама жоқ" }, { status: 400 });
     }
 
-    // 4. Прямой запрос к Google Gemini 2.5 Flash
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-    const geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { // В REST API используется именно system_instruction
-          parts: [{ text: systemNote }]
-        },
-        contents: contents
-      })
-    });
-
-    const rawText = await geminiRes.text();
-
-    if (!geminiRes.ok) {
-      console.error("Gemini API Error:", rawText);
-      return NextResponse.json({ error: "Gemini API қатесі", detail: rawText.slice(0, 200) }, { status: 502 });
-    }
-
-    let geminiData;
+    // 4. Gemini (модель lib/gemini.js ішінде автоматты табылады)
+    let reply;
     try {
-      geminiData = JSON.parse(rawText);
-    } catch {
-      return NextResponse.json({ error: "Gemini жауабын оқу кезінде қате" }, { status: 500 });
+      reply = await askGemini({ system: systemNote, contents, maxTokens: 1024 });
+    } catch (aiErr) {
+      console.error("Gemini chat error:", aiErr);
+      return NextResponse.json({ error: "Gemini API қатесі", detail: String(aiErr.message || aiErr).slice(0, 300) }, { status: 502 });
     }
 
-    let replyText = "";
-    const parts = geminiData?.candidates?.[0]?.content?.parts || [];
-
-    for (const part of parts) {
-      if (part && typeof part.text === "string") {
-        replyText += part.text;
-      }
-    }
-
-    if (!replyText.trim()) {
-      return NextResponse.json({ error: "AI жауабы бос келді" }, { status: 500 });
-    }
-
-    return NextResponse.json({ reply: replyText.trim() });
-
+    return NextResponse.json({ reply });
   } catch (err) {
     console.error("Chat API General Error:", err);
     return NextResponse.json({ error: "Жалпы сервер қатесі", detail: err?.message || String(err) }, { status: 500 });
