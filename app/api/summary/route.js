@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import { supabase } from "../../supabaseClient";
+import { askGemini } from "../../../lib/gemini";
 
 /**
- * AI қорытынды (Gemini 2.5 Flash).
+ * AI қорытынды (Gemini, модель lib/gemini.js арқылы автоматты табылады).
  * Кэш өмірі: 3 сағат. Баға 2%-дан артық немесе Swing Score 5 ұпайдан артық өзгерсе жаңарады.
  */
-const SUMMARY_TTL_MS = 3 * 60 * 60 * 1000; 
-const PRICE_TOLERANCE = 0.02; 
-const SCORE_TOLERANCE = 5; 
+const SUMMARY_TTL_MS = 3 * 60 * 60 * 1000;
+const PRICE_TOLERANCE = 0.02;
+const SCORE_TOLERANCE = 5;
 const STALE_NOTE = "\n\n(Ескерту: AI жүктемесіне байланысты соңғы сақталған нұсқа көрсетілді.)";
 
 function num(v) {
@@ -22,15 +23,13 @@ function cleanText(v, maxLen) {
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: "GEMINI_API_KEY орнатылмаған" }, { status: 200 });
     }
 
     const body = (await request.json()) || {};
     const symbol = String(body.symbol || "").toUpperCase();
-    
+
     if (!/^[A-Z0-9.\-]{1,12}$/.test(symbol)) {
       return NextResponse.json({ error: "Ticker дұрыс емес" }, { status: 200 });
     }
@@ -43,11 +42,9 @@ export async function POST(request) {
     const swingScore = num(body.swingScore);
     const tradePlan = body.tradePlan || {};
     const signalLabel = cleanText(body.signalLabel, 40);
-    
-    // Жаңа: Халал статусын алу (Егер фронтендтен келсе)
-    const halalStatus = body.halal ? body.halal.label : "Белгісіз"; 
+    const halalStatus = body.halal ? body.halal.label : "Белгісіз";
 
-    // ---------- Промптқа арналған деректерді жинау ----------
+    // ---------- Промптқа арналған деректер ----------
     const dataText = `Компания: ${name ? name + " (" + symbol + ")" : symbol}
 Ағымдағы баға: $${price !== null ? price : "—"}, өзгеріс: ${changePercent !== null ? changePercent : "—"}%
 Халал статусы: ${halalStatus}
@@ -60,9 +57,9 @@ Swing Score: ${swingScore !== null ? swingScore + "/100" : "—"}
 Автоматты сигнал: ${signalLabel || "—"}
 Сауда жоспары: Entry: $${num(tradePlan.entry) ?? "—"}, Stop Loss: $${num(tradePlan.stopLoss) ?? "—"}, TP1: $${num(tradePlan.takeProfit1) ?? "—"}`;
 
-    const userMessage = `Сен 'TradeIQ' инвестициялық платформасының кәсіби AI-аналитигісің. 
-Төмендегі деректер негізінде осы акция бойынша 3-4 сөйлемнен тұратын қысқа, нақты әрі түсінікті ҚАЗАҚ ТІЛІНДЕ қорытынды жаз. 
-- Инвестициялық ұсыныс (ал немесе сат) берме, тек деректерді талдап бер. 
+    const userMessage = `Сен 'TradeIQ' инвестициялық платформасының кәсіби AI-аналитигісің.
+Төмендегі деректер негізінде осы акция бойынша 3-4 сөйлемнен тұратын қысқа, нақты әрі түсінікті ҚАЗАҚ ТІЛІНДЕ қорытынды жаз.
+- Инвестициялық ұсыныс (ал немесе сат) берме, тек деректерді талдап бер.
 - Егер компания Халал болса, оны мұсылман инвесторларға қолайлы деп қысқаша атап өт.
 - Соңында жаңа жолдан: "⚠ Бұл ақпараттық сипатта, инвестиция кеңесі емес." деп міндетті түрде жаз.
 
@@ -78,9 +75,7 @@ ${dataText}`;
         .select("payload, updated_at")
         .eq("symbol", cacheKey)
         .maybeSingle();
-      if (!error && data?.payload?.text) {
-        cached = data;
-      }
+      if (!error && data?.payload?.text) cached = data;
     } catch (cacheErr) {
       cached = null;
     }
@@ -102,47 +97,18 @@ ${dataText}`;
       return NextResponse.json({ summary: cached.payload.text, source: "cache" });
     }
 
-    // ---------- Gemini-ден жаңа қорытынды сұрау ----------
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    
-    let geminiRes;
+    // ---------- Gemini-ден жаңа қорытынды (модель автоматты табылады) ----------
+    let summaryText;
     try {
-      geminiRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: userMessage }] }] })
+      summaryText = await askGemini({
+        contents: [{ role: "user", text: userMessage }],
+        maxTokens: 1024,
       });
-    } catch (fetchErr) {
+    } catch (aiErr) {
+      console.error("Gemini summary error:", aiErr);
+      // Уақытша ақау болса, ескі кэшті көрсетеміз
       if (cached) return staleResponse(cached);
-      return NextResponse.json({ error: "Gemini-ге сұрау жіберу кезінде қате", detail: fetchErr.message }, { status: 200 });
-    }
-
-    const rawText = await geminiRes.text();
-
-    if (!geminiRes.ok) {
-      const transient = geminiRes.status === 429 || geminiRes.status >= 500;
-      if (transient && cached) return staleResponse(cached);
-      if (geminiRes.status === 429) {
-        return NextResponse.json({ error: "AI лимиті таусылды. Біраздан кейін қайта көріңіз." }, { status: 200 });
-      }
-      return NextResponse.json({ error: "AI API қатесi", status: geminiRes.status, detail: rawText.slice(0, 500) }, { status: 200 });
-    }
-
-    let geminiData;
-    try {
-      geminiData = JSON.parse(rawText);
-    } catch (parseErr) {
-      return NextResponse.json({ error: "AI жауабын оқуда қате", detail: rawText.slice(0, 500) }, { status: 200 });
-    }
-
-    let summaryText = "";
-    const parts = geminiData?.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part?.text) summaryText += part.text;
-    }
-
-    if (!summaryText.trim()) {
-      return NextResponse.json({ error: "Қорытынды бос келді", detail: rawText.slice(0, 500) }, { status: 200 });
+      return NextResponse.json({ error: "AI API қатесі", detail: String(aiErr.message || aiErr).slice(0, 300) }, { status: 200 });
     }
 
     // ---------- Жаңа қорытындыны Supabase-ке сақтау ----------
@@ -156,7 +122,7 @@ ${dataText}`;
         { onConflict: "symbol" }
       );
     } catch (saveErr) {
-      // Үнсіз қалу
+      // Үнсіз қалу: сақтау сәтсіз болса да жауап беріле береді
     }
 
     return NextResponse.json({ summary: summaryText.trim(), source: "gemini" });
